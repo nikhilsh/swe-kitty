@@ -114,6 +114,9 @@ private struct ConversationRenderer {
 
     static func toolSections(for event: ConversationItem) -> [ToolSection] {
         var sections: [ToolSection] = []
+        if let command = extractCommand(from: event.content) {
+            sections.append(.command(command))
+        }
 
         if !event.files.isEmpty {
             sections.append(.files(event.files))
@@ -149,9 +152,26 @@ private struct ConversationRenderer {
         guard !lines.isEmpty else { return false }
         return lines.contains(where: { $0.hasPrefix("+") || $0.hasPrefix("-") || $0.hasPrefix("@@") })
     }
+
+    static func extractCommand(from text: String) -> String? {
+        for raw in text.split(separator: "\n", omittingEmptySubsequences: true) {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if line.hasPrefix("$ ") {
+                return String(line.dropFirst(2))
+            }
+            if line.lowercased().hasPrefix("running ") {
+                return String(line.dropFirst("running ".count))
+            }
+            if line.lowercased().hasPrefix("cmd:") {
+                return String(line.dropFirst(4)).trimmingCharacters(in: .whitespaces)
+            }
+        }
+        return nil
+    }
 }
 
 private enum ToolSection: Equatable {
+    case command(String)
     case files([ViewEventFile])
     case text(String)
     case code(language: String?, content: String)
@@ -378,6 +398,8 @@ private struct ConversationToolCard: View {
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(Array(sections.enumerated()), id: \.offset) { _, section in
                         switch section {
+                        case .command(let command):
+                            ConversationCommandBlock(command: command)
                         case .files(let files):
                             ConversationFileStrip(files: files)
                         case .text(let text):
@@ -405,9 +427,28 @@ private struct ConversationToolCard: View {
         case "pending":
             return SweKittyTheme.accentStrong
         case "failed":
-            return SweKittyTheme.error
+            return SweKittyTheme.danger
         default:
             return SweKittyTheme.success
+        }
+    }
+}
+
+private struct ConversationCommandBlock: View {
+    let command: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ConversationSectionLabel(title: "COMMAND")
+            Text(command)
+                .font(.system(.caption, design: .monospaced).weight(.semibold))
+                .foregroundStyle(SweKittyTheme.textPrimary)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(SweKittyTheme.surface.opacity(0.72))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
 }
@@ -434,7 +475,7 @@ private struct ConversationStatusChip: View {
         case "pending":
             return SweKittyTheme.accentStrong.opacity(0.20)
         case "failed":
-            return SweKittyTheme.error.opacity(0.20)
+            return SweKittyTheme.danger.opacity(0.20)
         default:
             return SweKittyTheme.success.opacity(0.20)
         }
@@ -447,7 +488,7 @@ private struct ConversationStatusChip: View {
         case "pending":
             return SweKittyTheme.accentStrong
         case "failed":
-            return SweKittyTheme.error
+            return SweKittyTheme.danger
         default:
             return SweKittyTheme.success
         }

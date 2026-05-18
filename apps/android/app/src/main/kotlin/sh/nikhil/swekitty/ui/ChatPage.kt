@@ -77,6 +77,7 @@ private sealed class ConversationBlock {
 }
 
 private sealed class ToolSection {
+    data class Command(val command: String) : ToolSection()
     data class Files(val files: List<ViewEventFile>) : ToolSection()
     data class Text(val text: String) : ToolSection()
     data class Code(val language: String?, val content: String) : ToolSection()
@@ -130,6 +131,7 @@ private object ConversationRenderer {
 
     fun toolSections(event: ConversationItem): List<ToolSection> {
         val sections = mutableListOf<ToolSection>()
+        extractCommand(event.content)?.let { sections += ToolSection.Command(it) }
         if (event.files.isNotEmpty()) sections += ToolSection.Files(event.files)
         val trimmed = event.content.trim()
         if (trimmed.isEmpty()) return sections
@@ -153,6 +155,18 @@ private object ConversationRenderer {
 
     private fun looksLikeDiff(text: String): Boolean =
         text.lineSequence().any { it.startsWith("+") || it.startsWith("-") || it.startsWith("@@") }
+
+    private fun extractCommand(text: String): String? {
+        text.lineSequence().forEach { raw ->
+            val line = raw.trim()
+            when {
+                line.startsWith("$ ") -> return line.removePrefix("$ ").trim()
+                line.lowercase().startsWith("running ") -> return line.substringAfter("running ").trim()
+                line.lowercase().startsWith("cmd:") -> return line.substringAfter("cmd:").trim()
+            }
+        }
+        return null
+    }
 }
 
 @Composable
@@ -445,6 +459,7 @@ private fun ConversationToolCard(ev: ConversationItem) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     sections.forEach { section ->
                         when (section) {
+                            is ToolSection.Command -> CommandBlock(section.command)
                             is ToolSection.Files -> FileStrip(section.files)
                             is ToolSection.Text -> MarkdownBlock(section.text, ConversationRole.Tool)
                             is ToolSection.Code -> CodeBlock(section.language, section.content)
@@ -452,6 +467,32 @@ private fun ConversationToolCard(ev: ConversationItem) {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CommandBlock(command: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "COMMAND",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Bold,
+        )
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+        ) {
+            SelectionContainer {
+                Text(
+                    command,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
             }
         }
     }
