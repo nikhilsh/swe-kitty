@@ -36,7 +36,7 @@ jobs:
   build-ipa:
     name: ad-hoc signed IPA
     needs: ensure-release
-    runs-on: macos-15
+    runs-on: macos-26
     env:
       APP_NAME: SweKitty
       SCHEME: SweKitty
