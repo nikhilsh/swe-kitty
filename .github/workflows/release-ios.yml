@@ -47,6 +47,9 @@ jobs:
       PROJECT_PATH: apps/ios/SweKitty.xcodeproj
       ARCHIVE_PATH: ${{ github.workspace }}/apps/ios/build/SweKitty.xcarchive
       EXPORT_PATH: ${{ github.workspace }}/apps/ios/build/export
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+      SENTRY_PROJECT_IOS: ${{ secrets.SENTRY_PROJECT_IOS }}
     steps:
       - uses: actions/checkout@v4
 
@@ -175,16 +178,12 @@ jobs:
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
 
       - name: Install sentry-cli
-        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' && secrets.SENTRY_ORG != '' && secrets.SENTRY_PROJECT_IOS != '' }}
+        if: ${{ env.SENTRY_AUTH_TOKEN != '' && env.SENTRY_ORG != '' && env.SENTRY_PROJECT_IOS != '' }}
         run: |
           curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION="2.40.0" sh
 
       - name: Upload dSYMs to Sentry
-        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' && secrets.SENTRY_ORG != '' && secrets.SENTRY_PROJECT_IOS != '' }}
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT_IOS: ${{ secrets.SENTRY_PROJECT_IOS }}
+        if: ${{ env.SENTRY_AUTH_TOKEN != '' && env.SENTRY_ORG != '' && env.SENTRY_PROJECT_IOS != '' }}
         run: |
           test -d "$ARCHIVE_PATH/dSYMs"
           sentry-cli debug-files upload \
