@@ -94,6 +94,27 @@ jobs:
         working-directory: apps/ios
         run: ./build-rust.sh
 
+      - name: Inject signing settings into app target
+        working-directory: apps/ios
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("project.yml")
+          text = path.read_text()
+          marker = "        ENABLE_MODULE_VERIFIER: NO\n"
+          replacement = (
+              "        ENABLE_MODULE_VERIFIER: NO\n"
+              "        CODE_SIGN_STYLE: Manual\n"
+              "        CODE_SIGN_IDENTITY: Apple Distribution\n"
+              "        DEVELOPMENT_TEAM: ${TEAM_ID}\n"
+              "        PROVISIONING_PROFILE_SPECIFIER: ${PROFILE_NAME}\n"
+          )
+          if marker not in text:
+              raise SystemExit("expected project.yml target settings marker not found")
+          path.write_text(text.replace(marker, replacement, 1))
+          PY
+
       - name: Generate Xcode project
         working-directory: apps/ios
         run: xcodegen generate
@@ -134,8 +155,6 @@ jobs:
             -configuration "$CONFIGURATION" \
             -archivePath "$ARCHIVE_PATH" \
             -destination 'generic/platform=iOS' \
-            CODE_SIGN_STYLE=Automatic \
-            DEVELOPMENT_TEAM="$TEAM_ID" \
             PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID"
 
       - name: Export IPA
