@@ -15,12 +15,24 @@ settings:
     MARKETING_VERSION: "0.0.1"
     CURRENT_PROJECT_VERSION: "1"
 
+packages:
+  SwiftTerm:
+    url: https://github.com/migueldeicaza/SwiftTerm
+    from: 1.2.4
+
 targets:
   SweKitty:
     type: application
     platform: iOS
     sources:
       - path: Sources
+      - path: SweKittyCore/Sources
+        optional: true
+    dependencies:
+      - framework: SweKittyCore/SweKittyCore.xcframework
+        embed: true
+        codeSign: true
+      - package: SwiftTerm
     info:
       path: Sources/Info.plist
       properties:
@@ -35,12 +47,15 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: sh.nikhil.swekitty
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
         GENERATE_INFOPLIST_FILE: NO
+        ENABLE_MODULE_VERIFIER: NO
 
 schemes:
   SweKitty:

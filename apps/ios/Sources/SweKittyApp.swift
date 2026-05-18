@@ -2,9 +2,12 @@ import SwiftUI
 
 @main
 struct SweKittyApp: App {
+    @State private var store = SessionStore()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
+                .environment(store)
         }
     }
 }
