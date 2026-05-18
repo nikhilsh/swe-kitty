@@ -1050,6 +1050,7 @@ dependencies = [
  "async-trait",
  "flate2",
  "futures-util",
+ "once_cell",
  "parking_lot",
  "serde",
  "serde_json",

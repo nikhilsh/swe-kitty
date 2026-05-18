@@ -15,6 +15,7 @@ use std::time::Duration;
 use flate2::read::GzDecoder;
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
+use tokio::runtime::Handle;
 use tokio::net::TcpStream;
 use tokio::sync::{mpsc, Mutex};
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
@@ -40,10 +41,7 @@ pub struct SessionHandle {
 
 impl SessionHandle {
     pub fn close(&self) {
-        let tx = self.tx.clone();
-        tokio::spawn(async move {
-            let _ = tx.send(Message::Close(None)).await;
-        });
+        let _ = self.tx.try_send(Message::Close(None));
     }
 
     pub async fn send_input(&self, data: Vec<u8>) -> Result<(), SweKittyError> {
@@ -87,50 +85,60 @@ impl SessionHandle {
 type WsStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
 pub async fn connect(
-    endpoint: &str,
-    session_id: &str,
-    assistant: &str,
-    token: &str,
+    runtime: &Handle,
+    endpoint: String,
+    session_id: String,
+    assistant: String,
+    token: String,
     delegate: Arc<dyn SweKittyDelegate>,
 ) -> Result<SessionHandle, SweKittyError> {
-    let url = format!(
-        "{}/ws/{}?assistant={}&token={}",
-        endpoint.trim_end_matches('/'),
-        session_id,
-        urlencode(assistant),
-        urlencode(token),
-    );
-    let mut request = url
-        .into_client_request()
-        .map_err(|e| SweKittyError::Connection(e.to_string()))?;
-    request.headers_mut().insert(
-        "Authorization",
-        HeaderValue::from_str(&format!("Bearer {token}"))
-            .map_err(|e| SweKittyError::Connection(e.to_string()))?,
-    );
+    let join = runtime.spawn(async move {
+        let url = format!(
+            "{}/ws/{}?assistant={}&token={}",
+            endpoint.trim_end_matches('/'),
+            session_id,
+            urlencode(&assistant),
+            urlencode(&token),
+        );
+        let mut request = url
+            .into_client_request()
+            .map_err(|e| SweKittyError::Connection(e.to_string()))?;
+        request.headers_mut().insert(
+            "Authorization",
+            HeaderValue::from_str(&format!("Bearer {token}"))
+                .map_err(|e| SweKittyError::Connection(e.to_string()))?,
+        );
 
-    let (ws, _resp) = match connect_async(request).await {
-        Ok(parts) => parts,
-        Err(WsError::Http(response)) if response.status() == StatusCode::UNAUTHORIZED => {
-            return Err(SweKittyError::Auth);
-        }
-        Err(e) => return Err(SweKittyError::Connection(e.to_string())),
-    };
-    let (writer, reader) = ws.split();
-    let (tx, rx) = mpsc::channel::<Message>(64);
-    let writer = Arc::new(Mutex::new(writer));
+        let (ws, _resp) = match connect_async(request).await {
+            Ok(parts) => parts,
+            Err(WsError::Http(response)) if response.status() == StatusCode::UNAUTHORIZED => {
+                return Err(SweKittyError::Auth);
+            }
+            Err(e) => return Err(SweKittyError::Connection(e.to_string())),
+        };
+        let (writer, reader) = ws.split();
+        let (tx, rx) = mpsc::channel::<Message>(64);
+        let writer = Arc::new(Mutex::new(writer));
 
-    tokio::spawn(writer_loop(writer, rx));
-    tokio::spawn(heartbeat_loop(tx.clone()));
-    tokio::spawn(reader_loop(
-        reader,
-        session_id.to_string(),
-        delegate,
-        tx.clone(),
-        SnapshotReassembler::new(),
-    ));
+        tokio::spawn(writer_loop(writer, rx));
+        tokio::spawn(heartbeat_loop(tx.clone()));
+        tokio::spawn(reader_loop(
+            reader,
+            session_id,
+            delegate,
+            tx.clone(),
+            SnapshotReassembler::new(),
+        ));
 
-    Ok(SessionHandle { tx })
+        Ok(SessionHandle { tx })
+    });
+
+    match join.await {
+        Ok(result) => result,
+        Err(e) => Err(SweKittyError::Connection(format!(
+            "runtime join failed: {e}"
+        ))),
+    }
 }
 
 async fn writer_loop(

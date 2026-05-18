@@ -40,6 +40,20 @@ struct ProjectListView: View {
                 ConnectionBadge()
             }
         }
+        .alert("Couldn't start session", isPresented: sessionCreationAlertIsPresented) {
+            Button("OK", role: .cancel) {
+                store.sessionCreationError = nil
+            }
+        } message: {
+            Text(store.sessionCreationError ?? "Unknown error")
+        }
+    }
+
+    private var sessionCreationAlertIsPresented: Binding<Bool> {
+        Binding(
+            get: { store.sessionCreationError != nil },
+            set: { if !$0 { store.sessionCreationError = nil } }
+        )
     }
 }
 

@@ -45,6 +45,7 @@ final class SessionStore {
     var connection: ConnectionState = .disconnected
     var sessions: [ProjectSession] = []
     var selectedSessionID: String?
+    var sessionCreationError: String?
 
     /// Latest SessionStatus seen for each session — drives the health badge + agent badge.
     var statusBySession: [String: SessionStatus] = [:]
@@ -100,13 +101,14 @@ final class SessionStore {
 
     func createSession(assistant: String, branch: String? = nil) {
         guard let client else { return }
+        sessionCreationError = nil
         Task {
             do {
                 let id = try await client.createSession(assistant: assistant, branch: branch)
                 self.refreshSessions()
                 self.selectedSessionID = id
             } catch {
-                self.connection = .failed("create_session: \(error)")
+                self.sessionCreationError = String(describing: error)
             }
         }
     }

@@ -7,8 +7,10 @@ pub mod views;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use thiserror::Error;
+use tokio::runtime::Runtime;
 use uuid::Uuid;
 
 pub use views::{
@@ -16,6 +18,14 @@ pub use views::{
 };
 
 uniffi::include_scaffolding!("swe_kitty_core");
+
+static CORE_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .thread_name("swe-kitty-core")
+        .build()
+        .expect("failed to build swe-kitty-core tokio runtime")
+});
 
 #[derive(Debug, Error)]
 pub enum SweKittyError {
@@ -203,16 +213,16 @@ impl SweKittyClient {
         );
 
         let handle = transport::connect(
-            &self.endpoint,
-            &session_id,
-            &assistant,
-            &self.token,
+            CORE_RUNTIME.handle(),
+            self.endpoint.clone(),
+            session_id.clone(),
+            assistant.clone(),
+            self.token.clone(),
             Arc::new(ClientDelegate {
                 sessions: Arc::clone(&self.sessions),
                 delegate,
             }),
-        )
-        .await?;
+        ).await?;
         self.handles.lock().insert(session_id, handle);
         Ok(())
     }
