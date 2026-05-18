@@ -10,11 +10,15 @@ const publicDir = path.join(root, "public");
 const repo = process.env.GITHUB_REPO || "nikhilsh/swe-kitty";
 const siteOrigin = process.env.SITE_ORIGIN || "https://swekitty.kaopeh.com";
 
+const headers = {
+  "User-Agent": "swe-kitty-website-build",
+  Accept: "application/vnd.github+json",
+};
+const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+if (token) headers.Authorization = `Bearer ${token}`;
+
 const response = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=10`, {
-  headers: {
-    "User-Agent": "swe-kitty-website-build",
-    Accept: "application/vnd.github+json",
-  },
+  headers,
 });
 
 if (!response.ok) {
