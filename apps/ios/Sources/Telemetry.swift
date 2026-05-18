@@ -19,13 +19,13 @@ enum Telemetry {
     static func capture(error: Error, message: String, tags: [String: String] = [:], extras: [String: String] = [:]) {
 #if canImport(Sentry)
         guard !sentryDSN.isEmpty else { return }
-        SentrySDK.withScope { scope in
-            scope.setLevel(.error)
+        SentrySDK.configureScope { scope in
             tags.forEach { scope.setTag(value: $0.value, key: $0.key) }
             extras.forEach { scope.setExtra(value: $0.value, key: $0.key) }
-            SentrySDK.capture(message: message)
-            SentrySDK.capture(error: error)
+            scope.setLevel(value: .error)
         }
+        SentrySDK.capture(message: message)
+        SentrySDK.capture(error: error)
 #else
         _ = (error, message, tags, extras)
 #endif
