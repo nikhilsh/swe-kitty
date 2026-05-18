@@ -5,12 +5,19 @@ const docsUrl = "https://github.com/nikhilsh/swe-kitty/tree/main/docs";
 const repoUrl = "https://github.com/nikhilsh/swe-kitty";
 const manifestUrl = `${release.siteOrigin || "https://swekitty.kaopeh.com"}/manifest.plist`;
 const otaInstallUrl = `itms-services://?action=download-manifest&url=${encodeURIComponent(manifestUrl)}`;
-const publishedLabel = release.publishedAt
-  ? new Date(release.publishedAt).toLocaleString("en-US", {
+const publishedUtcLabel = release.publishedAt
+  ? `${new Date(release.publishedAt).toLocaleString("en-US", {
       dateStyle: "medium",
       timeStyle: "short",
       timeZone: "UTC",
-    }) + " UTC"
+    })} UTC`
+  : null;
+const publishedLocalLabel = release.publishedAt
+  ? `${new Date(release.publishedAt).toLocaleString("en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZoneName: "short",
+    })} Local`
   : null;
 
 const featureCards = [
@@ -53,6 +60,52 @@ export default function HomePage() {
         <span className="masthead-tag">swe-kitty</span>
         <span className="masthead-tag mute">mobile harness for serious agent sessions</span>
       </div>
+
+      <section className="downloads downloads-prominent">
+        <div className="section-head">
+          <p className="eyebrow">Builds</p>
+          <h2>Install the current release directly.</h2>
+        </div>
+        <div className="download-card">
+          <p>Each release carries the current mobile builds and harness binaries.</p>
+          {release.tagName ? (
+            <p className="release-meta">
+              Current release: <strong>{release.tagName}</strong>
+              {publishedUtcLabel || publishedLocalLabel
+                ? ` · published ${publishedUtcLabel ?? ""}${publishedUtcLabel && publishedLocalLabel ? " · " : ""}${publishedLocalLabel ?? ""}`
+                : ""}
+            </p>
+          ) : null}
+          <div className="actions">
+            {release.ipa ? <a className="button primary" href={otaInstallUrl}>Install on iPhone or iPad</a> : null}
+            {release.ipa ? <a className="button secondary" href={release.ipa.url}>Download IPA</a> : null}
+            {release.apk ? <a className="button tertiary" href={release.apk.url}>Download APK</a> : null}
+            {!release.apk ? <a className="button tertiary" href={releaseUrl}>Open latest release</a> : null}
+            <a className="button tertiary" href={docsUrl}>
+              Read docs
+            </a>
+          </div>
+          <div className="build-grid">
+            <article className="build-card">
+              <span className="build-label">iOS</span>
+              <strong>{release.ipa ? "ready" : "missing"}</strong>
+              <p>OTA install plus direct IPA download from the latest signed release.</p>
+            </article>
+            <article className="build-card">
+              <span className="build-label">Android</span>
+              <strong>{release.apk ? "ready" : "not in latest release"}</strong>
+              <p>
+                {release.apk
+                  ? "Direct APK download is available."
+                  : "The website is ready to expose the APK as soon as the signed Android release asset ships."}
+              </p>
+            </article>
+          </div>
+          <p className="download-note">
+            iOS OTA install works from iPhone or iPad using the manifest hosted on this site. If install fails, use the direct IPA link or open the release page.
+          </p>
+        </div>
+      </section>
 
       <section className="hero">
         <div className="hero-copy">
@@ -121,50 +174,6 @@ export default function HomePage() {
               <p>{card.body}</p>
             </article>
           ))}
-        </div>
-      </section>
-
-      <section className="downloads">
-        <div className="section-head">
-          <p className="eyebrow">Builds</p>
-          <h2>Install the current release directly.</h2>
-        </div>
-        <div className="download-card">
-          <p>Each release carries the current mobile builds and harness binaries.</p>
-          {release.tagName ? (
-            <p className="release-meta">
-              Current release: <strong>{release.tagName}</strong>
-              {publishedLabel ? ` · published ${publishedLabel}` : ""}
-            </p>
-          ) : null}
-          <div className="actions">
-            {release.ipa ? <a className="button primary" href={otaInstallUrl}>Install on iPhone or iPad</a> : null}
-            {release.ipa ? <a className="button secondary" href={release.ipa.url}>Download IPA</a> : null}
-            {release.apk ? <a className="button tertiary" href={release.apk.url}>Download APK</a> : null}
-            {!release.apk ? <a className="button tertiary" href={releaseUrl}>Open latest release</a> : null}
-            <a className="button tertiary" href={docsUrl}>
-              Read docs
-            </a>
-          </div>
-          <div className="build-grid">
-            <article className="build-card">
-              <span className="build-label">iOS</span>
-              <strong>{release.ipa ? "ready" : "missing"}</strong>
-              <p>OTA install plus direct IPA download from the latest signed release.</p>
-            </article>
-            <article className="build-card">
-              <span className="build-label">Android</span>
-              <strong>{release.apk ? "ready" : "not in latest release"}</strong>
-              <p>
-                {release.apk
-                  ? "Direct APK download is available."
-                  : "The website is ready to expose the APK as soon as the signed Android release asset ships."}
-              </p>
-            </article>
-          </div>
-          <p className="download-note">
-            iOS OTA install works from iPhone or iPad using the manifest hosted on this site. If install fails, use the direct IPA link or open the release page.
-          </p>
         </div>
       </section>
 
