@@ -1,10 +1,9 @@
 import Foundation
 import Security
 
-/// Tiny wrapper around `SecItem*` for storing the bearer token. Endpoint
-/// URL stays in UserDefaults — the URL itself isn't a secret, but pairing
-/// it with the token in plaintext storage is, so the token gets its own
-/// keychain entry.
+/// Tiny wrapper around `SecItem*` for storing persistent pairing data.
+/// We keep both endpoint URL and bearer token in the keychain so the
+/// server pairing survives app reinstalls.
 enum Keychain {
     private static let service = "sh.nikhil.swekitty"
 

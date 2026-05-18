@@ -3,7 +3,7 @@ name: SweKitty
 options:
   bundleIdPrefix: sh.nikhil
   deploymentTarget:
-    iOS: "17.0"
+    iOS: "26.0"
   createIntermediateGroups: true
   generateEmptyDirectories: true
 
@@ -50,6 +50,7 @@ targets:
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
         NSCameraUsageDescription: "Scan SweKitty pairing QR codes."
+        NSPhotoLibraryUsageDescription: "Import a SweKitty pairing QR code from your photo library."
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: sh.nikhil.swekitty

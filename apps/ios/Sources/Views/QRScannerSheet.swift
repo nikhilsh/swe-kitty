@@ -1,6 +1,9 @@
 import SwiftUI
 import AVFoundation
 import AudioToolbox
+import CoreImage
+import PhotosUI
+import UIKit
 
 /// AVFoundation-backed QR scanner. Returns the raw scanned string via the
 /// `onScan` closure (the caller parses `swekitty://…`).
@@ -10,6 +13,12 @@ struct QRScannerSheet: View {
 
     @State private var error: String?
     @State private var scanned: Bool = false
+    @State private var selectedPhoto: PhotosPickerItem?
+    private let detector = CIDetector(
+        ofType: CIDetectorTypeQRCode,
+        context: nil,
+        options: [CIDetectorAccuracy: CIDetectorAccuracyHigh]
+    )
 
     var body: some View {
         NavigationStack {
@@ -24,17 +33,28 @@ struct QRScannerSheet: View {
 
                 VStack {
                     Spacer()
-                    Text("Point at a SweKitty pairing QR")
-                        .padding(8)
-                        .background(.thinMaterial, in: Capsule())
-                        .padding(.bottom, 40)
+                    VStack(spacing: 12) {
+                        Text("Point at a SweKitty pairing QR")
+                            .font(.headline)
+                        PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                            Label("Choose From Photos", systemImage: "photo.on.rectangle")
+                                .font(.headline)
+                                .padding(.horizontal, 18)
+                                .padding(.vertical, 12)
+                                .background(.regularMaterial, in: Capsule())
+                        }
+                    }
+                    .padding(18)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 32)
                 }
 
                 if let error {
                     VStack {
                         Text(error)
                             .padding()
-                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                     }
                 }
             }
@@ -45,7 +65,56 @@ struct QRScannerSheet: View {
                     Button("Cancel") { dismiss() }
                 }
             }
+            .onChange(of: selectedPhoto) { _, item in
+                guard let item else { return }
+                importPhoto(item)
+            }
         }
+    }
+
+    private func importPhoto(_ item: PhotosPickerItem) {
+        Task {
+            do {
+                guard let data = try await item.loadTransferable(type: Data.self) else {
+                    await MainActor.run {
+                        error = "Couldn't read that photo."
+                    }
+                    return
+                }
+                let uiImage = UIImage(data: data)
+                guard let image = CIImage(data: data) ?? uiImage.flatMap(CIImage.init(image:)) else {
+                    await MainActor.run {
+                        error = "Couldn't decode that image."
+                    }
+                    return
+                }
+                guard let code = qrString(from: image) else {
+                    await MainActor.run {
+                        error = "No QR code found in that photo."
+                    }
+                    return
+                }
+                await MainActor.run {
+                    scanned = true
+                    error = nil
+                    onScan(code)
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = "Photo import failed: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    private func qrString(from image: CIImage) -> String? {
+        guard let detector else { return nil }
+        let features = detector.features(in: image)
+        return features
+            .compactMap { $0 as? CIQRCodeFeature }
+            .compactMap(\.messageString)
+            .first
     }
 }
 
@@ -134,4 +203,3 @@ final class ScannerViewController: UIViewController, AVCaptureMetadataOutputObje
         delegate?.scanner(self, didScan: code)
     }
 }
-

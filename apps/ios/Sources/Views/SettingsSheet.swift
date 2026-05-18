@@ -30,6 +30,7 @@ struct SettingsSheet: View {
                     } label: {
                         Label("Scan pairing QR", systemImage: "qrcode.viewfinder")
                     }
+                    .buttonStyle(.borderedProminent)
                     Button("Save & Connect") {
                         store.endpoint = StoredEndpoint(url: url.trimmingCharacters(in: .whitespaces),
                                                         token: token.trimmingCharacters(in: .whitespaces))
@@ -37,10 +38,17 @@ struct SettingsSheet: View {
                         store.connect()
                         dismiss()
                     }
+                    .buttonStyle(.borderedProminent)
                     .disabled(url.isEmpty || token.isEmpty)
                 }
                 if let scanError {
                     Section { Text(scanError).foregroundStyle(.red) }
+                }
+                if store.endpoint.isComplete {
+                    Section("Paired Server") {
+                        LabeledContent("Endpoint", value: store.endpoint.url)
+                        LabeledContent("Token", value: "Saved in Keychain")
+                    }
                 }
                 Section("Status") {
                     LabeledContent("Connection") {
@@ -48,6 +56,8 @@ struct SettingsSheet: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(SettingsBackground())
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -99,5 +109,20 @@ enum PairingURL {
         guard !token.isEmpty else { return nil }
         let port = components.port.map { ":\($0)" } ?? ""
         return Parsed(endpoint: "ws://\(host)\(port)", token: token)
+    }
+}
+
+private struct SettingsBackground: View {
+    var body: some View {
+        LinearGradient(
+            colors: [
+                Color(red: 0.08, green: 0.11, blue: 0.18),
+                Color(red: 0.13, green: 0.15, blue: 0.24),
+                Color(red: 0.07, green: 0.09, blue: 0.14),
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
     }
 }

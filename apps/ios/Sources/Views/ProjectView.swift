@@ -23,9 +23,10 @@ struct ProjectView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            Divider()
+            Divider().overlay(Color.white.opacity(0.12))
             tabContent
         }
+        .padding(12)
         .navigationTitle(session.name)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -33,13 +34,19 @@ struct ProjectView: View {
     private var header: some View {
         HStack {
             HealthDot(health: store.statusBySession[session.id]?.health ?? "unknown")
-            Text(session.name).font(.headline)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(session.name).font(.headline)
+                Text(store.statusBySession[session.id]?.phase ?? "ready")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Spacer()
             MemoryButton(tab: $tab, mode: $browserMode)
             agentBadge
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
         .overlay(alignment: .bottom) {
             Picker("View", selection: $tab) {
                 ForEach(ProjectTab.allCases) { t in
@@ -52,6 +59,7 @@ struct ProjectView: View {
             .offset(y: 40)
         }
         .padding(.bottom, 44)
+        .glassPane(horizontalPadding: 18, verticalPadding: 16)
     }
 
     private var agentBadge: some View {

@@ -20,6 +20,9 @@ struct ProjectListView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.clear)
+        .listRowSpacing(10)
         .navigationTitle("SweKitty")
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -65,12 +68,20 @@ private struct SessionRow: View {
         HStack(spacing: 8) {
             HealthDot(health: status?.health ?? "unknown")
             VStack(alignment: .leading, spacing: 2) {
-                Text(session.name).font(.body)
+                Text(session.name).font(.headline)
                 Text("\(session.assistant) · \(session.branch ?? "—")")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.secondary.opacity(0.9))
             }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
         }
+        .foregroundStyle(.primary)
+        .glassPane(horizontalPadding: 16, verticalPadding: 14)
+        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+        .listRowBackground(Color.clear)
     }
 }
 

@@ -37,7 +37,7 @@ struct StoredEndpoint: Equatable {
 @Observable
 @MainActor
 final class SessionStore {
-    // Persisted endpoint (v1: UserDefaults; replaced by Keychain in task 009).
+    // Persisted endpoint in the keychain so pairings survive app reinstalls.
     var endpoint: StoredEndpoint {
         didSet { Self.persist(endpoint) }
     }
@@ -203,17 +203,24 @@ final class SessionStore {
 
     private static let endpointKey = "swekitty.endpoint.url"
     private static let tokenKey = "swekitty.endpoint.token"
+    private static let legacyEndpointDefaultsKey = "swekitty.endpoint.url"
 
     private static func loadPersisted() -> StoredEndpoint {
-        StoredEndpoint(
-            url: UserDefaults.standard.string(forKey: endpointKey) ?? "",
-            token: Keychain.get(tokenKey) ?? "",
-        )
+        let token = Keychain.get(tokenKey) ?? ""
+        let endpoint = Keychain.get(endpointKey)
+            ?? UserDefaults.standard.string(forKey: legacyEndpointDefaultsKey)
+            ?? ""
+        if !endpoint.isEmpty, Keychain.get(endpointKey) == nil {
+            Keychain.set(endpoint, for: endpointKey)
+            UserDefaults.standard.removeObject(forKey: legacyEndpointDefaultsKey)
+        }
+        return StoredEndpoint(url: endpoint, token: token)
     }
 
     private static func persist(_ e: StoredEndpoint) {
-        UserDefaults.standard.set(e.url, forKey: endpointKey)
+        Keychain.set(e.url.isEmpty ? nil : e.url, for: endpointKey)
         Keychain.set(e.token.isEmpty ? nil : e.token, for: tokenKey)
+        UserDefaults.standard.removeObject(forKey: legacyEndpointDefaultsKey)
     }
 }
 
