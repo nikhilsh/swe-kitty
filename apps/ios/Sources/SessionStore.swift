@@ -18,7 +18,7 @@ enum HarnessState: Equatable {
         switch self {
         case .disconnected: return "Disconnected"
         case .connecting:   return "Connecting…"
-        case .linked:       return "Ready"
+        case .linked:       return "Paired"
         case .live:         return "Live"
         case .failed:       return "Offline"
         }
@@ -161,7 +161,14 @@ final class SessionStore {
                 self.harness = .linked
                 self.refreshSessions()
             } catch {
-                self.harness = .failed(String(describing: error))
+                let detail = Self.describe(error)
+                self.harness = .failed(detail)
+                Telemetry.capture(
+                    error: error,
+                    message: "iOS harness connect failed",
+                    tags: ["surface": "ios", "phase": "connect"],
+                    extras: ["endpoint": self.endpoint.displayHost, "detail": detail]
+                )
             }
         }
     }
@@ -195,8 +202,18 @@ final class SessionStore {
                 self.refreshSessions()
                 self.selectedSessionID = id
             } catch {
-                self.sessionLifecycle[pendingID] = .failed(String(describing: error))
-                self.sessionCreationError = String(describing: error)
+                let detail = Self.describe(error)
+                self.sessionLifecycle[pendingID] = .failed(detail)
+                self.sessionCreationError = detail
+                if Self.isAuth(error) {
+                    self.harness = .failed("Pairing expired. Scan a new QR code from the harness.")
+                }
+                Telemetry.capture(
+                    error: error,
+                    message: "iOS create session failed",
+                    tags: ["surface": "ios", "phase": "create_session", "assistant": assistant],
+                    extras: ["endpoint": self.endpoint.displayHost, "detail": detail]
+                )
                 // Sweep the placeholder after a short delay so the user can
                 // see *why* without having a stuck row forever.
                 Task { @MainActor in
@@ -212,7 +229,17 @@ final class SessionStore {
         Task {
             do { try await client.switchAgent(sessionId: sessionID, assistant: assistant) }
             catch {
-                self.sessionLifecycle[sessionID] = .failed("switch_agent: \(error)")
+                let detail = Self.describe(error)
+                self.sessionLifecycle[sessionID] = .failed("switch_agent: \(detail)")
+                if Self.isAuth(error) {
+                    self.harness = .failed("Pairing expired. Scan a new QR code from the harness.")
+                }
+                Telemetry.capture(
+                    error: error,
+                    message: "iOS switch agent failed",
+                    tags: ["surface": "ios", "phase": "switch_agent", "assistant": assistant],
+                    extras: ["endpoint": self.endpoint.displayHost, "session_id": sessionID, "detail": detail]
+                )
             }
         }
     }
@@ -327,6 +354,20 @@ final class SessionStore {
         Keychain.set(e.url.isEmpty ? nil : e.url, for: endpointKey)
         Keychain.set(e.token.isEmpty ? nil : e.token, for: tokenKey)
         UserDefaults.standard.removeObject(forKey: legacyEndpointDefaultsKey)
+    }
+}
+
+private extension SessionStore {
+    static func describe(_ error: Error) -> String {
+        if isAuth(error) {
+            return "Authentication failed. This pairing token has expired; scan a fresh QR code from the harness."
+        }
+        return String(describing: error)
+    }
+
+    static func isAuth(_ error: Error) -> Bool {
+        let text = String(describing: error).lowercased()
+        return text.contains("auth(") || text == "auth" || text.contains("unauthorized")
     }
 }
 

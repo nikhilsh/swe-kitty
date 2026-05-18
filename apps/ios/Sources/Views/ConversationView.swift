@@ -1,0 +1,481 @@
+import SwiftUI
+
+private enum ConversationRole: Equatable {
+    case user
+    case assistant
+    case tool
+    case system
+
+    init(rawValue: String) {
+        switch rawValue.lowercased() {
+        case "user":
+            self = .user
+        case "assistant":
+            self = .assistant
+        case "tool":
+            self = .tool
+        default:
+            self = .system
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .user: return "person.fill"
+        case .assistant: return "sparkles"
+        case .tool: return "wrench.and.screwdriver.fill"
+        case .system: return "info.circle.fill"
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .user: return "You"
+        case .assistant: return "Assistant"
+        case .tool: return "Tool"
+        case .system: return "System"
+        }
+    }
+
+    var accent: Color {
+        switch self {
+        case .user: return SweKittyTheme.accentStrong
+        case .assistant: return SweKittyTheme.success
+        case .tool: return SweKittyTheme.warning
+        case .system: return SweKittyTheme.textSecondary
+        }
+    }
+}
+
+private enum ConversationBlock: Equatable {
+    case markdown(String)
+    case code(language: String?, content: String)
+}
+
+private struct ConversationRenderer {
+    static func blocks(for content: String) -> [ConversationBlock] {
+        let lines = content.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        var blocks: [ConversationBlock] = []
+        var markdownLines: [String] = []
+        var codeLines: [String] = []
+        var codeLanguage: String?
+        var inCode = false
+
+        func flushMarkdown() {
+            let text = markdownLines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            if !text.isEmpty {
+                blocks.append(.markdown(text))
+            }
+            markdownLines.removeAll(keepingCapacity: true)
+        }
+
+        func flushCode() {
+            let text = codeLines.joined(separator: "\n")
+            if !text.isEmpty {
+                blocks.append(.code(language: codeLanguage, content: text))
+            }
+            codeLines.removeAll(keepingCapacity: true)
+            codeLanguage = nil
+        }
+
+        for line in lines {
+            if line.hasPrefix("```") {
+                let fence = String(line.dropFirst(3)).trimmingCharacters(in: .whitespacesAndNewlines)
+                if inCode {
+                    flushCode()
+                    inCode = false
+                } else {
+                    flushMarkdown()
+                    codeLanguage = fence.isEmpty ? nil : fence
+                    inCode = true
+                }
+                continue
+            }
+
+            if inCode {
+                codeLines.append(line)
+            } else {
+                markdownLines.append(line)
+            }
+        }
+
+        if inCode {
+            flushCode()
+        } else {
+            flushMarkdown()
+        }
+
+        if blocks.isEmpty {
+            blocks = [.markdown(content)]
+        }
+
+        return blocks
+    }
+
+    static func toolSections(for event: ChatEvent) -> [ToolSection] {
+        var sections: [ToolSection] = []
+
+        if !event.files.isEmpty {
+            sections.append(.files(event.files))
+        }
+
+        let trimmed = event.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return sections
+        }
+
+        let blocks = blocks(for: trimmed)
+        for block in blocks {
+            switch block {
+            case .markdown(let text):
+                if looksLikeDiff(text) {
+                    sections.append(.diff(text))
+                } else {
+                    sections.append(.text(text))
+                }
+            case .code(let language, let content):
+                if language == "diff" || looksLikeDiff(content) {
+                    sections.append(.diff(content))
+                } else {
+                    sections.append(.code(language: language, content: content))
+                }
+            }
+        }
+        return sections
+    }
+
+    static func looksLikeDiff(_ text: String) -> Bool {
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
+        guard !lines.isEmpty else { return false }
+        return lines.contains(where: { $0.hasPrefix("+") || $0.hasPrefix("-") || $0.hasPrefix("@@") })
+    }
+}
+
+private enum ToolSection: Equatable {
+    case files([ViewEventFile])
+    case text(String)
+    case code(language: String?, content: String)
+    case diff(String)
+}
+
+struct ConversationTimelineView: View {
+    let events: [ChatEvent]
+
+    var body: some View {
+        LazyVStack(alignment: .leading, spacing: 14) {
+            ForEach(Array(events.enumerated()), id: \.offset) { idx, event in
+                ConversationEventRow(event: event)
+                    .id(idx)
+            }
+        }
+    }
+}
+
+private struct ConversationEventRow: View {
+    let event: ChatEvent
+
+    private var role: ConversationRole { ConversationRole(rawValue: event.role) }
+
+    var body: some View {
+        switch role {
+        case .user:
+            HStack {
+                Spacer(minLength: 40)
+                ConversationBubbleContainer(role: role, timestamp: event.ts, alignTrailing: true) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ConversationBlockStack(blocks: ConversationRenderer.blocks(for: event.content), role: role)
+                        if !event.files.isEmpty {
+                            ConversationFileStrip(files: event.files)
+                        }
+                    }
+                }
+            }
+        case .assistant:
+            HStack {
+                ConversationBubbleContainer(role: role, timestamp: event.ts, alignTrailing: false) {
+                    ConversationBlockStack(blocks: ConversationRenderer.blocks(for: event.content), role: role)
+                }
+                Spacer(minLength: 40)
+            }
+        case .tool:
+            ConversationToolCard(event: event)
+        case .system:
+            HStack {
+                ConversationBubbleContainer(role: role, timestamp: event.ts, alignTrailing: false) {
+                    ConversationBlockStack(blocks: ConversationRenderer.blocks(for: event.content), role: role)
+                }
+                Spacer(minLength: 70)
+            }
+        }
+    }
+}
+
+private struct ConversationBubbleContainer<Content: View>: View {
+    let role: ConversationRole
+    let timestamp: String
+    let alignTrailing: Bool
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        VStack(alignment: alignTrailing ? .trailing : .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                if !alignTrailing {
+                    Image(systemName: role.icon)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(role.accent)
+                }
+                Text(role.label.uppercased())
+                    .font(.caption2.weight(.semibold))
+                    .tracking(0.7)
+                    .foregroundStyle(SweKittyTheme.textSecondary)
+                if !timestamp.isEmpty {
+                    Text(timestamp)
+                        .font(.caption2)
+                        .foregroundStyle(SweKittyTheme.textMuted)
+                }
+                if alignTrailing {
+                    Image(systemName: role.icon)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(role.accent)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: alignTrailing ? .trailing : .leading)
+
+            content()
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .glassRect(
+                    cornerRadius: 20,
+                    tint: role == .user ? role.accent.opacity(0.28) : role.accent.opacity(0.18)
+                )
+        }
+    }
+}
+
+private struct ConversationBlockStack: View {
+    let blocks: [ConversationBlock]
+    let role: ConversationRole
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
+                switch block {
+                case .markdown(let text):
+                    ConversationMarkdownBlock(text: text, role: role)
+                case .code(let language, let content):
+                    ConversationCodeBlock(language: language, content: content)
+                }
+            }
+        }
+    }
+}
+
+private struct ConversationMarkdownBlock: View {
+    let text: String
+    let role: ConversationRole
+
+    var body: some View {
+        Group {
+            if let attributed = try? AttributedString(
+                markdown: text,
+                options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .full)
+            ) {
+                Text(attributed)
+            } else {
+                Text(text)
+            }
+        }
+        .font(.body)
+        .foregroundStyle(role == .system ? SweKittyTheme.textSecondary : SweKittyTheme.textBody)
+        .textSelection(.enabled)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct ConversationCodeBlock: View {
+    let language: String?
+    let content: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let language, !language.isEmpty {
+                Text(language.uppercased())
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(SweKittyTheme.textSecondary)
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                Text(content)
+                    .font(.system(.footnote, design: .monospaced))
+                    .foregroundStyle(SweKittyTheme.textPrimary)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(SweKittyTheme.surface.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(SweKittyTheme.border.opacity(0.55), lineWidth: 0.8)
+        )
+    }
+}
+
+private struct ConversationToolCard: View {
+    let event: ChatEvent
+    @State private var expanded = true
+
+    private var sections: [ToolSection] { ConversationRenderer.toolSections(for: event) }
+    private var summary: String {
+        let firstLine = event.content
+            .split(separator: "\n", omittingEmptySubsequences: true)
+            .first
+            .map(String.init)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let firstLine, !firstLine.isEmpty else { return "Tool activity" }
+        return String(firstLine.prefix(80))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "wrench.and.screwdriver.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(SweKittyTheme.warning)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("TOOL")
+                        .font(.caption2.weight(.bold))
+                        .tracking(0.7)
+                        .foregroundStyle(SweKittyTheme.textSecondary)
+                    Text(summary)
+                        .font(.subheadline)
+                        .foregroundStyle(SweKittyTheme.textBody)
+                        .lineLimit(1)
+                }
+                Spacer()
+                if !event.ts.isEmpty {
+                    Text(event.ts)
+                        .font(.caption2)
+                        .foregroundStyle(SweKittyTheme.textMuted)
+                }
+                Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(SweKittyTheme.textSecondary)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    expanded.toggle()
+                }
+            }
+
+            if expanded {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(Array(sections.enumerated()), id: \.offset) { _, section in
+                        switch section {
+                        case .files(let files):
+                            ConversationFileStrip(files: files)
+                        case .text(let text):
+                            ConversationMarkdownBlock(text: text, role: .tool)
+                        case .code(let language, let content):
+                            ConversationCodeBlock(language: language, content: content)
+                        case .diff(let diff):
+                            ConversationDiffBlock(content: diff)
+                        }
+                    }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassRect(cornerRadius: 18, tint: SweKittyTheme.warning.opacity(0.24))
+    }
+}
+
+private struct ConversationSectionLabel: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.caption2.weight(.bold))
+            .tracking(0.7)
+            .foregroundStyle(SweKittyTheme.textSecondary)
+    }
+}
+
+private struct ConversationFileStrip: View {
+    let files: [ViewEventFile]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ConversationSectionLabel(title: "FILES")
+            ForEach(Array(files.enumerated()), id: \.offset) { _, file in
+                HStack(spacing: 8) {
+                    Image(systemName: "doc.text")
+                        .font(.caption)
+                        .foregroundStyle(SweKittyTheme.accentStrong)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(file.path)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(SweKittyTheme.textBody)
+                            .lineLimit(2)
+                        if !file.rev.isEmpty {
+                            Text("@\(file.rev.prefix(7))")
+                                .font(.caption2.monospaced())
+                                .foregroundStyle(SweKittyTheme.textMuted)
+                        }
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(SweKittyTheme.surface.opacity(0.6))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+        }
+    }
+}
+
+private struct ConversationDiffBlock: View {
+    let content: String
+
+    var body: some View {
+        let lines = Array(content.split(separator: "\n", omittingEmptySubsequences: false).map(String.init).enumerated())
+        VStack(alignment: .leading, spacing: 8) {
+            ConversationSectionLabel(title: "DIFF")
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(lines, id: \.offset) { _, line in
+                    Text(line)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(color(for: line))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                }
+            }
+            .padding(12)
+            .background(SweKittyTheme.surface.opacity(0.72))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(SweKittyTheme.border.opacity(0.55), lineWidth: 0.8)
+            )
+        }
+    }
+
+    private func color(for line: String) -> Color {
+        if line.hasPrefix("+") {
+            return SweKittyTheme.success
+        }
+        if line.hasPrefix("-") {
+            return SweKittyTheme.danger
+        }
+        if line.hasPrefix("@@") {
+            return SweKittyTheme.warning
+        }
+        return SweKittyTheme.textBody
+    }
+}

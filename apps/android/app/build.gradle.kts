@@ -15,6 +15,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.0.1"
+        buildConfigField("String", "SENTRY_DSN", "\"${System.getenv("SENTRY_DSN_ANDROID") ?: ""}\"")
 
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86") }
     }
@@ -59,7 +60,10 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 
     packaging {
         resources.excludes += setOf(
@@ -88,6 +92,7 @@ dependencies {
 
     // UniFFI Kotlin runtime.
     implementation("net.java.dev.jna:jna:5.13.0@aar")
+    implementation("io.sentry:sentry-android:7.14.0")
 
     // ZXing-embedded QR scanner. Ships its own activity + permission flow.
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")

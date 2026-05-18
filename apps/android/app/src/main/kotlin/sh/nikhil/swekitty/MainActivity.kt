@@ -13,6 +13,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Telemetry.configure(applicationContext)
         store.hydrate(applicationContext)
         setContent {
             MaterialTheme {

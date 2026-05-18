@@ -108,11 +108,14 @@ jobs:
       - name: xcodebuild (simulator, no signing)
         if: steps.detect.outputs.skip != 'true'
         working-directory: apps/ios
+        env:
+          SENTRY_DSN_IOS: ${{ secrets.SENTRY_DSN_IOS }}
         run: |
           xcodebuild -scheme SweKitty \
             -destination 'generic/platform=iOS Simulator' \
             -skipPackagePluginValidation \
             -skipMacroValidation \
+            SENTRY_DSN="$SENTRY_DSN_IOS" \
             build
 
   android-build:
@@ -158,4 +161,6 @@ jobs:
       - name: gradle assembleDebug
         if: steps.detect.outputs.skip != 'true'
         working-directory: apps/android
+        env:
+          SENTRY_DSN_ANDROID: ${{ secrets.SENTRY_DSN_ANDROID }}
         run: ./gradlew assembleDebug --no-daemon

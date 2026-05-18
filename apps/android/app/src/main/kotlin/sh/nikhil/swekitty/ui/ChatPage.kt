@@ -1,112 +1,550 @@
 package sh.nikhil.swekitty.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.SmartToy
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import sh.nikhil.swekitty.SessionStore
 import uniffi.swe_kitty_core.ChatEvent
 import uniffi.swe_kitty_core.ProjectSession
+import uniffi.swe_kitty_core.ViewEventFile
 
-@OptIn(ExperimentalMaterial3Api::class)
+private sealed class ConversationRole(
+    val label: String,
+    val accent: Color,
+) {
+    data object User : ConversationRole("You", Color(0xFF00A56A))
+    data object Assistant : ConversationRole("Assistant", Color(0xFF4F8CFF))
+    data object Tool : ConversationRole("Tool", Color(0xFFF39C3D))
+    data object System : ConversationRole("System", Color(0xFF8C8C94))
+
+    companion object {
+        fun from(raw: String): ConversationRole = when (raw.lowercase()) {
+            "user" -> User
+            "assistant" -> Assistant
+            "tool" -> Tool
+            else -> System
+        }
+    }
+}
+
+private sealed class ConversationBlock {
+    data class Markdown(val text: String) : ConversationBlock()
+    data class Code(val language: String?, val content: String) : ConversationBlock()
+}
+
+private sealed class ToolSection {
+    data class Files(val files: List<ViewEventFile>) : ToolSection()
+    data class Text(val text: String) : ToolSection()
+    data class Code(val language: String?, val content: String) : ToolSection()
+    data class Diff(val content: String) : ToolSection()
+}
+
+private object ConversationRenderer {
+    fun blocks(content: String): List<ConversationBlock> {
+        val lines = content.split('\n')
+        val blocks = mutableListOf<ConversationBlock>()
+        val markdownLines = mutableListOf<String>()
+        val codeLines = mutableListOf<String>()
+        var codeLanguage: String? = null
+        var inCode = false
+
+        fun flushMarkdown() {
+            val text = markdownLines.joinToString("\n").trim()
+            if (text.isNotEmpty()) blocks += ConversationBlock.Markdown(text)
+            markdownLines.clear()
+        }
+
+        fun flushCode() {
+            val text = codeLines.joinToString("\n")
+            if (text.isNotEmpty()) blocks += ConversationBlock.Code(codeLanguage, text)
+            codeLines.clear()
+            codeLanguage = null
+        }
+
+        lines.forEach { line ->
+            if (line.startsWith("```")) {
+                val fence = line.removePrefix("```").trim()
+                if (inCode) {
+                    flushCode()
+                    inCode = false
+                } else {
+                    flushMarkdown()
+                    codeLanguage = fence.ifEmpty { null }
+                    inCode = true
+                }
+            } else if (inCode) {
+                codeLines += line
+            } else {
+                markdownLines += line
+            }
+        }
+
+        if (inCode) flushCode() else flushMarkdown()
+        if (blocks.isEmpty()) return listOf(ConversationBlock.Markdown(content))
+        return blocks
+    }
+
+    fun toolSections(event: ChatEvent): List<ToolSection> {
+        val sections = mutableListOf<ToolSection>()
+        if (event.files.isNotEmpty()) sections += ToolSection.Files(event.files)
+        val trimmed = event.content.trim()
+        if (trimmed.isEmpty()) return sections
+        blocks(trimmed).forEach { block ->
+            when (block) {
+                is ConversationBlock.Markdown -> {
+                    if (looksLikeDiff(block.text)) sections += ToolSection.Diff(block.text)
+                    else sections += ToolSection.Text(block.text)
+                }
+                is ConversationBlock.Code -> {
+                    if (block.language == "diff" || looksLikeDiff(block.content)) {
+                        sections += ToolSection.Diff(block.content)
+                    } else {
+                        sections += ToolSection.Code(block.language, block.content)
+                    }
+                }
+            }
+        }
+        return sections
+    }
+
+    private fun looksLikeDiff(text: String): Boolean =
+        text.lineSequence().any { it.startsWith("+") || it.startsWith("-") || it.startsWith("@@") }
+}
+
 @Composable
 fun ChatPage(store: SessionStore, session: ProjectSession) {
     val log by store.chatLog.collectAsState()
     val events = log[session.id] ?: emptyList()
     var draft by remember { mutableStateOf("") }
+    var autoFollow by remember { mutableStateOf(true) }
     val listState = rememberLazyListState()
 
-    LaunchedEffect(events.size) {
-        if (events.isNotEmpty()) listState.animateScrollToItem(events.size - 1)
+    LaunchedEffect(events.size, autoFollow) {
+        if (autoFollow && events.isNotEmpty()) {
+            listState.animateScrollToItem(events.size)
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            items(events) { ev -> ChatRow(ev) }
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                    .pointerInput(Unit) {
+                        detectDragGestures { _, _ -> autoFollow = false }
+                    },
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (events.isEmpty()) {
+                    item { EmptyConversationCard() }
+                } else {
+                    items(events.size) { index ->
+                        ConversationEventRow(events[index])
+                    }
+                }
+                item { Spacer(Modifier.height(1.dp)) }
+            }
+
+            AnimatedVisibility(
+                visible = !autoFollow && events.isNotEmpty(),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+            ) {
+                AssistChip(
+                    onClick = { autoFollow = true },
+                    label = { Text("Latest") },
+                    leadingIcon = { Icon(Icons.Outlined.ArrowDownward, null) },
+                )
+            }
         }
+
         HorizontalDivider()
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = draft,
-                onValueChange = { draft = it },
-                placeholder = { Text("Message agent…") },
-                modifier = Modifier.weight(1f),
-            )
-            IconButton(onClick = {
+        ConversationComposer(
+            draft = draft,
+            onDraftChange = { draft = it },
+            onSend = {
                 val msg = draft.trim()
                 if (msg.isNotEmpty()) {
                     store.sendChat(session.id, msg)
                     draft = ""
+                    autoFollow = true
                 }
-            }) { Icon(Icons.Default.Send, contentDescription = "Send") }
+            },
+        )
+    }
+}
+
+@Composable
+private fun EmptyConversationCard() {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("No conversation yet", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Messages, tool activity, diffs, and file references will appear here once the session starts responding.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
 
 @Composable
-private fun ChatRow(ev: ChatEvent) {
-    val (bubble, icon) = when (ev.role) {
-        "user"      -> Color(0x33_2D7BFF) to Icons.Outlined.AccountCircle
-        "assistant" -> Color(0x22_64748B) to Icons.Outlined.SmartToy
-        "tool"      -> Color(0x33_FB923C) to Icons.Outlined.Build
-        else        -> Color(0x14_64748B) to Icons.Outlined.SmartToy
+private fun ConversationEventRow(ev: ChatEvent) {
+    when (ConversationRole.from(ev.role)) {
+        ConversationRole.User -> Row(modifier = Modifier.fillMaxWidth()) {
+            Spacer(Modifier.weight(0.18f))
+            ConversationBubble(ev, ConversationRole.User, Modifier.weight(0.82f), alignEnd = true)
+        }
+        ConversationRole.Assistant -> Row(modifier = Modifier.fillMaxWidth()) {
+            ConversationBubble(ev, ConversationRole.Assistant, Modifier.weight(0.82f), alignEnd = false)
+            Spacer(Modifier.weight(0.18f))
+        }
+        ConversationRole.Tool -> ConversationToolCard(ev)
+        ConversationRole.System -> Row(modifier = Modifier.fillMaxWidth()) {
+            ConversationBubble(ev, ConversationRole.System, Modifier.weight(0.88f), alignEnd = false)
+            Spacer(Modifier.weight(0.12f))
+        }
     }
-    Column(modifier = Modifier.fillMaxWidth()) {
+}
+
+@Composable
+private fun ConversationBubble(
+    ev: ChatEvent,
+    role: ConversationRole,
+    modifier: Modifier,
+    alignEnd: Boolean,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, modifier = Modifier.size(14.dp))
-            Spacer(Modifier.width(4.dp))
+            if (!alignEnd) {
+                RoleIcon(role)
+                Spacer(Modifier.width(6.dp))
+            }
             Text(
-                ev.role.uppercase(),
+                role.label.uppercase(),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
             )
             if (ev.ts.isNotEmpty()) {
                 Spacer(Modifier.width(6.dp))
                 Text(ev.ts, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
             }
+            if (alignEnd) {
+                Spacer(Modifier.width(6.dp))
+                RoleIcon(role)
+            }
         }
-        Spacer(Modifier.height(2.dp))
-        SelectionContainer {
+
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = role.accent.copy(alpha = if (role == ConversationRole.User) 0.18f else 0.10f),
+            tonalElevation = 1.dp,
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                ConversationRenderer.blocks(ev.content).forEach { block ->
+                    when (block) {
+                        is ConversationBlock.Markdown -> MarkdownBlock(block.text, role)
+                        is ConversationBlock.Code -> CodeBlock(block.language, block.content)
+                    }
+                }
+                if (role == ConversationRole.User && ev.files.isNotEmpty()) {
+                    FileStrip(ev.files)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RoleIcon(role: ConversationRole) {
+    val icon = when (role) {
+        ConversationRole.User -> Icons.Outlined.AccountCircle
+        ConversationRole.Assistant -> Icons.Outlined.SmartToy
+        ConversationRole.Tool -> Icons.Outlined.Build
+        ConversationRole.System -> Icons.Outlined.Info
+    }
+    Icon(icon, null, modifier = Modifier.size(14.dp), tint = role.accent)
+}
+
+@Composable
+private fun MarkdownBlock(text: String, role: ConversationRole) {
+    SelectionContainer {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (role == ConversationRole.System) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+        )
+    }
+}
+
+@Composable
+private fun CodeBlock(language: String?, content: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (!language.isNullOrBlank()) {
             Text(
-                ev.content,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(bubble)
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                language.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
             )
         }
-        if (ev.files.isNotEmpty()) {
-            Spacer(Modifier.height(2.dp))
-            Column(modifier = Modifier.padding(start = 4.dp)) {
-                ev.files.forEach { f ->
-                    Text(
-                        text = if (f.rev.isNotEmpty()) "📄 ${f.path} @${f.rev.take(7)}" else "📄 ${f.path}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        SelectionContainer {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                        RoundedCornerShape(14.dp),
                     )
+                    .padding(12.dp)
+                    .horizontalScroll(rememberScrollState()),
+            ) {
+                Text(
+                    text = content,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConversationToolCard(ev: ChatEvent) {
+    var expanded by remember { mutableStateOf(true) }
+    val sections = remember(ev) { ConversationRenderer.toolSections(ev) }
+    val summary = remember(ev.content) {
+        ev.content.lineSequence().firstOrNull()?.trim()?.takeIf { it.isNotEmpty() }?.take(80) ?: "Tool activity"
+    }
+
+    Card(
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f)),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Outlined.Build, null, tint = ConversationRole.Tool.accent, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("TOOL", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                    Text(summary, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                }
+                if (ev.ts.isNotEmpty()) {
+                    Text(ev.ts, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    Spacer(Modifier.width(8.dp))
+                }
+                AssistChip(
+                    onClick = { expanded = !expanded },
+                    label = { Text(if (expanded) "Hide" else "Show") },
+                )
+            }
+
+            AnimatedVisibility(visible = expanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    sections.forEach { section ->
+                        when (section) {
+                            is ToolSection.Files -> FileStrip(section.files)
+                            is ToolSection.Text -> MarkdownBlock(section.text, ConversationRole.Tool)
+                            is ToolSection.Code -> CodeBlock(section.language, section.content)
+                            is ToolSection.Diff -> DiffBlock(section.content)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FileStrip(files: List<ViewEventFile>) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "FILES",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Bold,
+        )
+        files.forEach { file ->
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Outlined.Info, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Column {
+                        Text(file.path, style = MaterialTheme.typography.labelMedium, fontFamily = FontFamily.Monospace)
+                        if (file.rev.isNotEmpty()) {
+                            Text("@${file.rev.take(7)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DiffBlock(content: String) {
+    val lines = remember(content) { content.split('\n') }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "DIFF",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Bold,
+        )
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                lines.forEach { line ->
+                    Text(
+                        line,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = when {
+                            line.startsWith("+") -> Color(0xFF2E7D32)
+                            line.startsWith("-") -> MaterialTheme.colorScheme.error
+                            line.startsWith("@@") -> Color(0xFFE65100)
+                            else -> MaterialTheme.colorScheme.onSurface
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConversationComposer(
+    draft: String,
+    onDraftChange: (String) -> Unit,
+    onSend: () -> Unit,
+) {
+    Surface(
+        tonalElevation = 1.dp,
+        modifier = Modifier.fillMaxWidth().padding(10.dp).windowInsetsPadding(WindowInsets.navigationBars),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.24f),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.SmartToy, null, tint = ConversationRole.Assistant.accent, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Reply", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
+            }
+            Row(verticalAlignment = Alignment.Bottom) {
+                OutlinedTextField(
+                    value = draft,
+                    onValueChange = onDraftChange,
+                    placeholder = { Text("Message agent…") },
+                    modifier = Modifier.weight(1f),
+                    minLines = 1,
+                    maxLines = 6,
+                )
+                Spacer(Modifier.width(10.dp))
+                FilledIconButton(
+                    onClick = onSend,
+                    enabled = draft.trim().isNotEmpty(),
+                ) {
+                    Icon(Icons.Default.Send, contentDescription = "Send")
                 }
             }
         }

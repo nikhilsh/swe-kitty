@@ -154,6 +154,8 @@ jobs:
           PLIST
 
       - name: Archive
+        env:
+          SENTRY_DSN_IOS: ${{ secrets.SENTRY_DSN_IOS }}
         run: |
           xcodebuild archive \
             -project "$PROJECT_PATH" \
@@ -161,6 +163,7 @@ jobs:
             -configuration "$CONFIGURATION" \
             -archivePath "$ARCHIVE_PATH" \
             -destination 'generic/platform=iOS' \
+            SENTRY_DSN="$SENTRY_DSN_IOS" \
             PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID"
 
       - name: Export IPA

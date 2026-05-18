@@ -112,6 +112,8 @@ jobs:
 
       - name: gradle assembleRelease
         working-directory: apps/android
+        env:
+          SENTRY_DSN_ANDROID: ${{ secrets.SENTRY_DSN_ANDROID }}
         run: ./gradlew assembleRelease --no-daemon
 
       - name: Upload to GitHub Release

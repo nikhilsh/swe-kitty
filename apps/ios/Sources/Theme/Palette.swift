@@ -11,7 +11,7 @@ enum SweKittyPalette {
     }
 
     static let accent          = Pair(light: "#4A4A4A", dark: "#B0B0B0")
-    static let accentStrong    = Pair(light: "#00995D", dark: "#00FF9C")
+    static let accentStrong    = Pair(light: "#00A86B", dark: "#34C759")
     static let textPrimary     = Pair(light: "#1A1A1A", dark: "#FFFFFF")
     static let textSecondary   = Pair(light: "#6B6B6B", dark: "#888888")
     static let textMuted       = Pair(light: "#9E9E9E", dark: "#555555")

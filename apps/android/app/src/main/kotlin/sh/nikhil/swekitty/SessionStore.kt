@@ -39,7 +39,7 @@ sealed class HarnessState {
     val badgeLabel: String get() = when (this) {
         is Disconnected -> "Disconnected"
         is Connecting   -> "Connecting…"
-        is Linked       -> "Ready"
+        is Linked       -> "Paired"
         is Live         -> "Live"
         is Failed       -> "Offline"
     }
@@ -198,7 +198,14 @@ class SessionStore : ViewModel(), SweKittyDelegate {
                 _harness.value = HarnessState.Linked
                 refreshSessions()
             } catch (t: Throwable) {
-                _harness.value = HarnessState.Failed(t.message ?: t.toString())
+                val detail = describe(t)
+                _harness.value = HarnessState.Failed(detail)
+                Telemetry.capture(
+                    error = t,
+                    message = "Android harness connect failed",
+                    tags = mapOf("surface" to "android", "phase" to "connect"),
+                    extras = mapOf("endpoint" to _endpoint.value.displayHost, "detail" to detail),
+                )
             }
         }
     }
@@ -233,9 +240,18 @@ class SessionStore : ViewModel(), SweKittyDelegate {
                 refreshSessions()
                 _selectedId.value = id
             } catch (t: Throwable) {
-                val reason = t.message ?: t.toString()
+                val reason = describe(t)
                 updateLifecycle { it + (pendingId to SessionLifecycle.FailedToStart(reason)) }
                 _sessionCreationError.value = reason
+                if (isAuth(t)) {
+                    _harness.value = HarnessState.Failed("Pairing expired. Scan a new QR code from the harness.")
+                }
+                Telemetry.capture(
+                    error = t,
+                    message = "Android create session failed",
+                    tags = mapOf("surface" to "android", "phase" to "create_session", "assistant" to assistant),
+                    extras = mapOf("endpoint" to _endpoint.value.displayHost, "detail" to reason),
+                )
                 // Sweep the placeholder after a short delay so the user can
                 // see *why* without having a stuck row forever.
                 launch {
@@ -251,7 +267,17 @@ class SessionStore : ViewModel(), SweKittyDelegate {
         viewModelScope.launch {
             try { withContext(Dispatchers.IO) { c.switchAgent(sessionId, assistant) } }
             catch (t: Throwable) {
-                _sessionCreationError.value = "switch_agent: ${t.message}"
+                val detail = describe(t)
+                _sessionCreationError.value = "switch_agent: $detail"
+                if (isAuth(t)) {
+                    _harness.value = HarnessState.Failed("Pairing expired. Scan a new QR code from the harness.")
+                }
+                Telemetry.capture(
+                    error = t,
+                    message = "Android switch agent failed",
+                    tags = mapOf("surface" to "android", "phase" to "switch_agent", "assistant" to assistant),
+                    extras = mapOf("endpoint" to _endpoint.value.displayHost, "session_id" to sessionId, "detail" to detail),
+                )
             }
         }
     }
@@ -359,6 +385,18 @@ class SessionStore : ViewModel(), SweKittyDelegate {
 
     override fun onDisconnected(reason: String) {
         _harness.value = HarnessState.Failed("Disconnected: $reason")
+    }
+
+    private fun describe(t: Throwable): String {
+        if (isAuth(t)) {
+            return "Authentication failed. This pairing token has expired; scan a fresh QR code from the harness."
+        }
+        return t.message ?: t.toString()
+    }
+
+    private fun isAuth(t: Throwable): Boolean {
+        val text = (t.message ?: t.toString()).lowercase()
+        return text.contains("auth(") || text == "auth" || text.contains("unauthorized")
     }
 
     companion object {

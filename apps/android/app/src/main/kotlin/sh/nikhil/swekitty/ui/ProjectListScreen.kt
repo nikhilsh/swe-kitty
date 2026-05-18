@@ -139,7 +139,7 @@ fun ProjectListScreen(
 @Composable
 fun HealthDot(health: String?, size: androidx.compose.ui.unit.Dp = 10.dp) {
     val color = when (health) {
-        "green"  -> Color(0xFF22C55E)
+        "green"  -> Color(0xFF34C759)
         "yellow" -> Color(0xFFEAB308)
         "red"    -> Color(0xFFEF4444)
         else     -> Color(0xFF94A3B8)
