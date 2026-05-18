@@ -324,3 +324,87 @@ The next meaningful mobile milestone should be:
 4. strengthen sessions/servers
 
 That is the shortest route from "shell" to "credible KittyLitter-style mobile client."
+
+---
+
+## v1.x — Parity follow-ups (2026-05-18 update)
+
+The first backlog pass framed "what KittyLitter has that we lack" at the chat-bubble level. After landing the reconnect / Glass-theme / ANSI-terminal / one-line-install milestones, here are the next parity-driven items, grouped by which upstream they come from. Order roughly reflects user-visible impact per unit work.
+
+### A. Parity with **litter** (`github.com/dnakov/litter`)
+
+Surfaces we don't have yet, drawn from `apps/ios/Sources/Litter/Views/`:
+
+1. **`ConversationTimelineView`-style streaming** — litter has a `StreamingRendererCoordinator` (in `Models/`) that interleaves tool-call cards with assistant text as the agent streams. Our flat `ChatTab` renders only finished events. Building this needs typed `ConversationItem`s in the Rust core (`hydration.rs` / `conversation.rs` in litter) so iOS and Android share one timeline model.
+
+2. **Tool-call cards** — `ComputerUseToolCallView`, `ImageGenerationToolCallView`, `SubagentCardView`, `CrossServerToolResultView`. When the agent runs a shell command / writes a file / invokes a sub-agent, we should render a collapsed card with title, args, status (pending → running → done → failed), and an "expand for output" affordance. Replaces today's `[chat:tool] running ls -la` plain-text line.
+
+3. **`QuickReplySheet`** — modal sheet of contextual chips parsed from the visible agent output. Existing memory `project-quick-replies-client-side` already pins the design: client-side detector, no MCP bridge, per-agent regex strategies. Lives in `core/` so iOS + Android share.
+
+4. **`DiscoveryView` + saved servers** — multi-harness pairing. Today we pair one endpoint and forget. Add `SavedServerStore` (Keychain / EncryptedSharedPreferences), an mDNS browser screen listing every `_swe-kitty._tcp.local` advertiser, and a server-switcher in the sidebar / drawer. Litter's `DiscoveredServer.swift` + `SavedServer.swift` are the template.
+
+5. **`HomeBottomBar` + `HomeComposerView`** — the in-session bottom dock from litter's `HomeDashboardView`. Glass-capsule action row that's persistent across the terminal/chat/browser tabs (new session, voice, attach, pin a context). Currently we have no global persistent affordance inside a session. Closes B.5 in `project-ios-visual-rewrite`.
+
+6. **`ChatWallpaperBackground` / `WallpaperSelectionView`** — per-conversation visual identity. Litter ships static + video wallpapers (`VideoWallpaperPlayerView`). Nice-to-have, not load-bearing, but the AppearanceSettings story plugs into our existing `Theme/` cleanly.
+
+7. **`AnimatedSplashView`** — closes B.6 in `project-ios-visual-rewrite`. Litter has a tuned splash that hides the cold-start latency of the Rust core boot.
+
+8. **`InlineHandoffView`** — when an agent swap (`switch_agent`) is mid-flight, show the typed handoff progress inline in the chat instead of just flipping the badge. Mirrors our existing `docs/SESSION-LIFECYCLE.md §5` flow but adds a UX.
+
+9. **Multi-agent visual identity** — litter ships per-agent assets in `Assets.xcassets/agent_*.imageset` (claude, codex, hermes, pi, opencode). We have one neon-cat badge. Adding agent avatars + accent colors is small but pays off when `switch_agent` is used.
+
+10. **CarPlay + Mac Catalyst** — litter has `CarPlay/CarPlaySceneDelegate.swift`, `MacCommands/MacCommands.swift`, and Catalyst voice stubs. Out of scope for v1 but candidate for v1.x — same WebSocket protocol, just additional scene delegates.
+
+11. **Voice in/out** — `RealtimeVoiceScreen.swift`, `VoiceCallView.swift`, `HomeVoiceOrbButton.swift`, `AudioWaveformView.swift`. On-device Whisper (iOS Speech.framework / Android SpeechRecognizer) → `send_chat`. Already in `docs/PLAN.md` Part F v1.x #4; promote to backlog with concrete entry points.
+
+12. **Diff rendering** — `DiffRendering.swift`. Currently file edits surface as raw `+/-` text. A typed diff card with collapse/expand per hunk is high-value when an agent is writing code.
+
+13. **`ConversationComposer*` family** — litter's composer has attach sheet, context bar, expanded view, popup overlays, modal coordinator, etc. Ours is a single TextField. Phase 1: just add attach (image / file) + a context chip ("editing X.swift").
+
+### B. Parity with **swe-swe** (`github.com/choonkeat/swe-swe`)
+
+`swe-swe` ships a real **web frontend** in `www/`: Elm app (`elm.js`) + vanilla JS (`index.js`) + theme-aware CSS, with FOUC-prevention boot script and `_redirects` for Netlify-style hosting. It speaks the same WebSocket protocol that swe-kitty's harness already serves.
+
+14. **Web frontend** — at minimum, a static `www/` served by the harness at `GET /` so a user with a laptop on the same network can drive a session without installing the mobile app. v1: just a terminal view (xterm.js) wired to the existing `/ws/<uuid>` endpoint. v1.1: chat + browser tabs to match the mobile multi-view. Trade-off: PLAN.md explicitly says "no web client (swe-swe's UI already works)" — but having something on `/` keeps a non-mobile fallback alive when swe-swe isn't installed alongside, and we can ship it as ~200 KB of static assets embedded in the Go binary (`//go:embed www/*`).
+
+15. **OS-native terminal feel on the web** — swe-swe's frontend ships xterm.js plus its CSS theme. If we do (14), reuse this exact bundle so the visual identity stays consistent across phone + laptop.
+
+### C. Parity-independent — operational wins
+
+These don't come from upstream but show up the moment swe-kitty has more than one user:
+
+16. **Push notifications** — APNs/FCM wired to the harness's `view_event { kind: "stall_alert" }`, `status { phase: "exited" }`, and `pending_input` events. Today the phone is a viewer; this turns it into a real remote control. The harness needs a new endpoint `POST /push/register` that stores APNs/FCM tokens, plus a background "needs your attention" classifier in `internal/session/watchdog.go`.
+
+17. **Background fetch / wakeup** — iOS Background App Refresh + Android `WorkManager` periodic check so a backgrounded app reconnects ahead of the user opening it. Pairs with #16: by the time the notification taps in, the session is already paired.
+
+18. **Memory diff UI** — `swe-kitty memory show --diff <a> <b>` rendered in-app. Currently `MemoryButton` opens the rendered HTML in the in-app browser; add a "compare to last checkpoint" affordance that shows what the agent changed in its plan.
+
+19. **Subagent / parallel sessions in one project** — when claude spawns a child task, surface it as a nested session you can drill into. Maps onto our existing per-session model — needs a `parent_session_id` field on `ProjectSession` and a tree-view in the sidebar.
+
+20. **Pairing via shortlink** — instead of QR + bearer, the harness can mint `swekitty://pair/<short-code>` URLs and post them through the OS share sheet, so pairing from a desktop to a phone doesn't need a physical screen-to-camera step.
+
+### Sequencing recommendation
+
+Rough order for the next quarter, optimising for "biggest dogfood gain per week":
+
+```
+Quarter A — typed conversation:
+  1. Typed ConversationItem in core/  (A.1)
+  2. Tool-call cards on both platforms  (A.2)
+  3. Diff rendering  (A.12)
+  4. Pending-input UI  (already in earlier section)
+
+Quarter B — multi-harness:
+  5. SavedServerStore + DiscoveryView  (A.4)
+  6. Push notifications  (C.16)
+  7. Web frontend at GET /  (B.14)
+
+Quarter C — polish + voice:
+  8. HomeBottomBar dock  (A.5)  → closes B.5 of iOS visual rewrite
+  9. AnimatedSplashView  (A.7)  → closes B.6
+  10. Quick replies  (A.3)  → already memory-scoped
+  11. Voice in/out  (A.11)
+```
+
+Stop-the-line items (regressions, not features): the harness `internal/ws` package has a pre-existing `TestPingPong` failure on `main` (`expected pong text, got mt=2`) that needs a separate fix; the wire contract in `WEBSOCKET-PROTOCOL.md §3.3` says ping/pong are JSON text frames, so the server is currently sending the wrong frame type. Worth fixing before A.1 so the new typed conversation can rely on the heartbeat path.
+
