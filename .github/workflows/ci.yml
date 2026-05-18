@@ -91,20 +91,22 @@ jobs:
       - name: Install xcodegen
         if: steps.detect.outputs.skip != 'true'
         run: brew install xcodegen
-      - name: Generate Xcode project
-        if: steps.detect.outputs.skip != 'true'
-        working-directory: apps/ios
-        run: xcodegen generate
       - name: Build Rust xcframework
         if: steps.detect.outputs.skip != 'true'
         working-directory: apps/ios
         run: ./build-rust.sh
+      - name: Generate Xcode project
+        if: steps.detect.outputs.skip != 'true'
+        working-directory: apps/ios
+        run: xcodegen generate
       - name: xcodebuild (simulator, no signing)
         if: steps.detect.outputs.skip != 'true'
         working-directory: apps/ios
         run: |
           xcodebuild -scheme SweKitty \
             -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
             build
 
   android-build:

@@ -1,29 +1,50 @@
-# apps/ios — scaffold mode
+# apps/ios — SweKitty iOS app
 
-This directory is **placeholder scaffold**, not the iOS shell described in
-`docs/PLAN.md` Part B4 / Part D step 6.
+Native SwiftUI shell for the swe-kitty harness. Implements the v0.1 surface
+from `docs/PLAN.md` Part B4 / Part D step 6: project switcher + per-project
+multi-view (Terminal wired; Chat / Browser stubbed for task 007).
 
-Its only purpose is to exercise `.github/workflows/release-ios.yml`
-end-to-end (signing, archive, export) so the release pipeline is proven
-before the real app lands. The produced IPA is a launch-screen-only
-SwiftUI app, ~20 KB.
+## Layout
 
-## Do not
+```
+apps/ios/
+├── project.yml                 xcodegen spec — generates SweKitty.xcodeproj
+├── build-rust.sh               builds SweKittyCore.xcframework from ../../core/
+├── Sources/
+│   ├── SweKittyApp.swift       @main
+│   ├── SessionStore.swift      @Observable wrapper around SweKittyClient
+│   ├── Info.plist
+│   └── Views/
+│       ├── RootView.swift
+│       ├── SettingsSheet.swift     manual endpoint+token entry (task 009 → QR)
+│       ├── ProjectListView.swift   sidebar / project switcher
+│       ├── ProjectView.swift       segmented picker, agent badge
+│       ├── TerminalTab.swift       SwiftTerm-backed
+│       ├── ChatTab.swift           stub
+│       └── BrowserTab.swift        stub
+└── SweKittyCore/               populated by build-rust.sh (gitignored)
+    ├── SweKittyCore.xcframework
+    └── Sources/SweKittyCore.swift
+```
 
-- Tag `v0.0.1` (or any `v*`) until this directory matches PLAN.md step 6:
-  - `project.yml` declares the `SweKittyCore.xcframework` dependency
-  - `build-rust.sh` actually builds the xcframework from `../../core/`
-  - `Sources/` contains `SessionStore.swift` and the `Views/` tree
-    (`ProjectListView`, `ProjectView`, `TerminalTab`, `ChatTab`,
-    `BrowserTab`) with SwiftTerm wired
-- Treat `Sources/ContentView.swift` or `SweKittyApp.swift` as the basis
-  for the real app — they will be replaced wholesale.
+## Build & run
 
-## When step 6 starts
+Requires Xcode 16+, Rust with iOS targets, `xcodegen`.
 
-Rewrite `project.yml`, replace `Sources/`, implement `build-rust.sh`
-(see `docs/PLAN.md` Part B6 for the xcframework targets). The workflow
-itself should not need changes — it's parameterized by `project.yml`.
+```bash
+# from repo root
+make ios               # ./build-rust.sh + xcodegen generate
+open apps/ios/SweKitty.xcodeproj
+# Run on iPhone 16 simulator → Settings sheet → enter ws://<host>:1977 + bearer
+```
 
-See memory `project-ios-release-resume` for ASC artifact IDs and the
-"adding a new tester" steady-state loop.
+## CI
+
+`.github/workflows/ci.yml` `ios sim build` runs the same `build-rust.sh` +
+`xcodegen generate` + `xcodebuild build` against `iPhone 16` on `macos-15`,
+no signing.
+
+## Release
+
+Tag `v*` to trigger `.github/workflows/release-ios.yml` — produces an ad-hoc
+signed IPA on a GitHub Release. See `docs/RELEASE-IOS.md` for ASC setup.
