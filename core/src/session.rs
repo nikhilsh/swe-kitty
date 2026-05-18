@@ -152,6 +152,13 @@ fn classify_kind(role: &str, content: &str) -> String {
 }
 
 fn classify_status(content: &str) -> String {
+    if let Some(code) = extract_exit_code(content) {
+        return if code == 0 {
+            "done".to_string()
+        } else {
+            "failed".to_string()
+        };
+    }
     let lower = content.to_ascii_lowercase();
     if lower.contains("running") {
         "running".to_string()
@@ -162,6 +169,23 @@ fn classify_status(content: &str) -> String {
     } else {
         "done".to_string()
     }
+}
+
+fn extract_exit_code(content: &str) -> Option<i32> {
+    for raw in content.lines() {
+        let line = raw.trim().to_ascii_lowercase();
+        if let Some(rest) = line.strip_prefix("exit code:") {
+            if let Ok(code) = rest.trim().parse::<i32>() {
+                return Some(code);
+            }
+        }
+        if let Some(rest) = line.strip_prefix("exit=") {
+            if let Ok(code) = rest.trim().parse::<i32>() {
+                return Some(code);
+            }
+        }
+    }
+    None
 }
 
 fn looks_like_diff(text: &str) -> bool {
@@ -226,5 +250,29 @@ mod tests {
         };
         let item = ConversationItem::from_chat_event(&event, 0);
         assert_eq!(item.kind, "pending_input");
+    }
+
+    #[test]
+    fn exit_code_non_zero_is_failed() {
+        let event = ChatEvent {
+            role: "tool".to_string(),
+            content: "command: make test\nexit code: 1".to_string(),
+            ts: "2026-05-18T00:00:00Z".to_string(),
+            files: vec![],
+        };
+        let item = ConversationItem::from_chat_event(&event, 0);
+        assert_eq!(item.status, "failed");
+    }
+
+    #[test]
+    fn exit_code_zero_is_done() {
+        let event = ChatEvent {
+            role: "tool".to_string(),
+            content: "command: make test\nexit=0".to_string(),
+            ts: "2026-05-18T00:00:00Z".to_string(),
+            files: vec![],
+        };
+        let item = ConversationItem::from_chat_event(&event, 0);
+        assert_eq!(item.status, "done");
     }
 }

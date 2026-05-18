@@ -114,6 +114,10 @@ private struct ConversationRenderer {
 
     static func toolSections(for event: ConversationItem) -> [ToolSection] {
         var sections: [ToolSection] = []
+        let meta = extractMetadata(from: event.content)
+        if meta.exitCode != nil || meta.duration != nil {
+            sections.append(.meta(meta))
+        }
         if let command = extractCommand(from: event.content) {
             sections.append(.command(command))
         }
@@ -128,9 +132,29 @@ private struct ConversationRenderer {
         }
 
         let blocks = blocks(for: trimmed)
+        var currentStream: String?
         for block in blocks {
             switch block {
             case .markdown(let text):
+                let lower = text.lowercased()
+                if lower == "stdout:" || lower == "stdout" {
+                    currentStream = "stdout"
+                    continue
+                }
+                if lower == "stderr:" || lower == "stderr" {
+                    currentStream = "stderr"
+                    continue
+                }
+                if currentStream == "stdout" {
+                    sections.append(.stdout(text))
+                    currentStream = nil
+                    continue
+                }
+                if currentStream == "stderr" {
+                    sections.append(.stderr(text))
+                    currentStream = nil
+                    continue
+                }
                 if looksLikeDiff(text) {
                     sections.append(.diff(text))
                 } else {
@@ -145,6 +169,27 @@ private struct ConversationRenderer {
             }
         }
         return sections
+    }
+
+    static func extractMetadata(from text: String) -> ToolMetadata {
+        var exitCode: Int?
+        var duration: String?
+        for raw in text.split(separator: "\n", omittingEmptySubsequences: true) {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            let lower = line.lowercased()
+            if lower.hasPrefix("exit code:"),
+               let code = Int(line.dropFirst("exit code:".count).trimmingCharacters(in: .whitespaces)) {
+                exitCode = code
+            } else if lower.hasPrefix("exit="),
+                      let code = Int(line.dropFirst("exit=".count).trimmingCharacters(in: .whitespaces)) {
+                exitCode = code
+            } else if lower.hasPrefix("duration:") {
+                duration = String(line.dropFirst("duration:".count)).trimmingCharacters(in: .whitespaces)
+            } else if lower.hasPrefix("took ") {
+                duration = String(line.dropFirst("took ".count)).trimmingCharacters(in: .whitespaces)
+            }
+        }
+        return ToolMetadata(exitCode: exitCode, duration: duration)
     }
 
     static func looksLikeDiff(_ text: String) -> Bool {
@@ -188,11 +233,19 @@ private struct ConversationRenderer {
 }
 
 private enum ToolSection: Equatable {
+    case meta(ToolMetadata)
     case command(String)
     case files([ViewEventFile])
+    case stdout(String)
+    case stderr(String)
     case text(String)
     case code(language: String?, content: String)
     case diff(String)
+}
+
+private struct ToolMetadata: Equatable {
+    let exitCode: Int?
+    let duration: String?
 }
 
 struct ConversationTimelineView: View {
@@ -462,10 +515,16 @@ private struct ConversationToolCard: View {
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(Array(sections.enumerated()), id: \.offset) { _, section in
                         switch section {
+                        case .meta(let meta):
+                            ConversationToolMetaBlock(meta: meta)
                         case .command(let command):
                             ConversationCommandBlock(command: command)
                         case .files(let files):
                             ConversationFileStrip(files: files)
+                        case .stdout(let text):
+                            ConversationLabeledOutputBlock(title: "STDOUT", text: text)
+                        case .stderr(let text):
+                            ConversationLabeledOutputBlock(title: "STDERR", text: text)
                         case .text(let text):
                             ConversationMarkdownBlock(text: text, role: .tool)
                         case .code(let language, let content):
@@ -513,6 +572,46 @@ private struct ConversationCommandBlock: View {
                 .padding(.vertical, 8)
                 .background(SweKittyTheme.surface.opacity(0.72))
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+    }
+}
+
+private struct ConversationToolMetaBlock: View {
+    let meta: ToolMetadata
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if let code = meta.exitCode {
+                Text("EXIT \(code)")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(code == 0 ? SweKittyTheme.success : SweKittyTheme.danger)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background((code == 0 ? SweKittyTheme.success : SweKittyTheme.danger).opacity(0.18))
+                    .clipShape(Capsule())
+            }
+            if let duration = meta.duration, !duration.isEmpty {
+                Text("DURATION \(duration)")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(SweKittyTheme.textSecondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(SweKittyTheme.surface.opacity(0.65))
+                    .clipShape(Capsule())
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct ConversationLabeledOutputBlock: View {
+    let title: String
+    let text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ConversationSectionLabel(title: title)
+            ConversationCodeBlock(language: nil, content: text)
         }
     }
 }

@@ -77,8 +77,11 @@ private sealed class ConversationBlock {
 }
 
 private sealed class ToolSection {
+    data class Meta(val exitCode: Int?, val duration: String?) : ToolSection()
     data class Command(val command: String) : ToolSection()
     data class Files(val files: List<ViewEventFile>) : ToolSection()
+    data class Stdout(val text: String) : ToolSection()
+    data class Stderr(val text: String) : ToolSection()
     data class Text(val text: String) : ToolSection()
     data class Code(val language: String?, val content: String) : ToolSection()
     data class Diff(val content: String) : ToolSection()
@@ -131,13 +134,37 @@ private object ConversationRenderer {
 
     fun toolSections(event: ConversationItem): List<ToolSection> {
         val sections = mutableListOf<ToolSection>()
+        val (exitCode, duration) = extractToolMetadata(event.content)
+        if (exitCode != null || duration != null) {
+            sections += ToolSection.Meta(exitCode, duration)
+        }
         extractCommand(event.content)?.let { sections += ToolSection.Command(it) }
         if (event.files.isNotEmpty()) sections += ToolSection.Files(event.files)
         val trimmed = event.content.trim()
         if (trimmed.isEmpty()) return sections
+        var currentStream: String? = null
         blocks(trimmed).forEach { block ->
             when (block) {
                 is ConversationBlock.Markdown -> {
+                    val lower = block.text.lowercase()
+                    if (lower == "stdout:" || lower == "stdout") {
+                        currentStream = "stdout"
+                        return@forEach
+                    }
+                    if (lower == "stderr:" || lower == "stderr") {
+                        currentStream = "stderr"
+                        return@forEach
+                    }
+                    if (currentStream == "stdout") {
+                        sections += ToolSection.Stdout(block.text)
+                        currentStream = null
+                        return@forEach
+                    }
+                    if (currentStream == "stderr") {
+                        sections += ToolSection.Stderr(block.text)
+                        currentStream = null
+                        return@forEach
+                    }
                     if (looksLikeDiff(block.text)) sections += ToolSection.Diff(block.text)
                     else sections += ToolSection.Text(block.text)
                 }
@@ -151,6 +178,22 @@ private object ConversationRenderer {
             }
         }
         return sections
+    }
+
+    private fun extractToolMetadata(text: String): Pair<Int?, String?> {
+        var exitCode: Int? = null
+        var duration: String? = null
+        text.lineSequence().forEach { raw ->
+            val line = raw.trim()
+            val lower = line.lowercase()
+            when {
+                lower.startsWith("exit code:") -> exitCode = line.substringAfter("exit code:").trim().toIntOrNull()
+                lower.startsWith("exit=") -> exitCode = line.substringAfter("exit=").trim().toIntOrNull()
+                lower.startsWith("duration:") -> duration = line.substringAfter("duration:").trim()
+                lower.startsWith("took ") -> duration = line.substringAfter("took ").trim()
+            }
+        }
+        return exitCode to duration
     }
 
     private fun looksLikeDiff(text: String): Boolean =
@@ -517,8 +560,11 @@ private fun ConversationToolCard(ev: ConversationItem) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     sections.forEach { section ->
                         when (section) {
+                            is ToolSection.Meta -> ToolMetaRow(section.exitCode, section.duration)
                             is ToolSection.Command -> CommandBlock(section.command)
                             is ToolSection.Files -> FileStrip(section.files)
+                            is ToolSection.Stdout -> LabeledOutputBlock("STDOUT", section.text)
+                            is ToolSection.Stderr -> LabeledOutputBlock("STDERR", section.text)
                             is ToolSection.Text -> MarkdownBlock(section.text, ConversationRole.Tool)
                             is ToolSection.Code -> CodeBlock(section.language, section.content)
                             is ToolSection.Diff -> DiffBlock(section.content)
@@ -553,6 +599,48 @@ private fun CommandBlock(command: String) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ToolMetaRow(exitCode: Int?, duration: String?) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (exitCode != null) {
+            val ok = exitCode == 0
+            Surface(shape = CircleShape, color = if (ok) Color(0x2222C55E) else Color(0x22EF4444)) {
+                Text(
+                    "EXIT $exitCode",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (ok) Color(0xFF22C55E) else Color(0xFFEF4444),
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
+        if (!duration.isNullOrBlank()) {
+            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)) {
+                Text(
+                    "DURATION $duration",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LabeledOutputBlock(title: String, text: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            title,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Bold,
+        )
+        CodeBlock(language = null, content = text)
     }
 }
 
