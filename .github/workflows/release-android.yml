@@ -59,6 +59,7 @@ jobs:
 
       - name: gradle assembleRelease
         env:
+          ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/apps/android/app/release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -69,6 +70,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          APK_PATH="$(find apps/android/app/build/outputs/apk/release -maxdepth 1 -name 'app-release*.apk' | head -n 1)"
+          test -n "$APK_PATH"
           gh release upload "${{ github.ref_name }}" \
-            apps/android/app/build/outputs/apk/release/app-release.apk \
+            "$APK_PATH" \
             --clobber
