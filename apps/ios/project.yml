@@ -28,6 +28,7 @@ targets:
       - path: Sources
       - path: SweKittyCore/Sources
         optional: true
+      - path: Sources/Assets.xcassets
     dependencies:
       - framework: SweKittyCore/SweKittyCore.xcframework
         embed: true
@@ -58,6 +59,7 @@ targets:
         SUPPORTS_MACCATALYST: NO
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_MODULE_VERIFIER: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
 schemes:
   SweKitty:
