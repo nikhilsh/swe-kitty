@@ -123,5 +123,6 @@ jobs:
         working-directory: website/out
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          cp ../.deploy.yaml .deploy.yaml
+          rm -f .deploy.yaml
+          script -q -e -c "fyra link swekitty" /dev/null
           script -q -e -c "fyra push" /dev/null
