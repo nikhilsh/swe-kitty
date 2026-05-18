@@ -57,7 +57,7 @@ private struct DetailEmptyState: View {
             Text(title)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(.white)
-            Text(body)
+            Text(message)
                 .font(.callout)
                 .foregroundStyle(SweKittyTheme.mutedFG)
                 .multilineTextAlignment(.center)
@@ -88,7 +88,7 @@ private struct DetailEmptyState: View {
         }
     }
 
-    private var body: String {
+    private var message: String {
         switch harness {
         case .disconnected:
             return endpoint.isComplete

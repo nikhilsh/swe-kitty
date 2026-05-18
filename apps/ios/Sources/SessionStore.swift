@@ -136,7 +136,7 @@ final class SessionStore {
     var visibleSessions: [VisibleSession] {
         let real = sessions.map { VisibleSession.real($0) }
         let placeholderIDs = sessionLifecycle
-            .filter { $0.value == .creating && !sessions.contains(where: { s in s.id == $0.key }) }
+            .filter { entry in entry.value == .creating && !sessions.contains(where: { s in s.id == entry.key }) }
             .keys
             .sorted()
         let placeholders = placeholderIDs.map { VisibleSession.creating($0) }
