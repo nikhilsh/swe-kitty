@@ -10,9 +10,7 @@
 
 use std::io::{self, Read, Write};
 
-use swe_kitty_core::{
-    ChatEvent, PreviewInfo, SessionStatus, SweKittyClient, SweKittyDelegate,
-};
+use swe_kitty_core::{ChatEvent, PreviewInfo, SessionStatus, SweKittyClient, SweKittyDelegate};
 use tokio::sync::mpsc;
 
 struct StdoutDelegate;
@@ -55,10 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let endpoint = args[1].clone();
     let token = args[2].clone();
-    let assistant = args
-        .get(3)
-        .cloned()
-        .unwrap_or_else(|| "claude".to_string());
+    let assistant = args.get(3).cloned().unwrap_or_else(|| "claude".to_string());
 
     let client = SweKittyClient::new(endpoint, token);
     client.connect(Box::new(StdoutDelegate)).await?;
@@ -68,7 +63,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     client.resize(session_id.clone(), 40, 120).await?;
     client
-        .send_input(session_id.clone(), b"printf 'cli-driver connected\\r\\n'\\n".to_vec())
+        .send_input(
+            session_id.clone(),
+            b"printf 'cli-driver connected\\r\\n'\\n".to_vec(),
+        )
         .await?;
 
     let (tx, mut rx) = mpsc::unbounded_channel::<Vec<u8>>();

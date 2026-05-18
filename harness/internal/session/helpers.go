@@ -42,39 +42,3 @@ func syncDir(path string) error {
 	defer dir.Close()
 	return dir.Sync()
 }
-
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
-}
-
-func (s *Session) ensureWorktree() error {
-	return os.MkdirAll(filepath.Join(s.worktreeDir, ".swe-kitty"), 0o755)
-}
-
-func (s *Session) defaultBranchName() string {
-	shortID := s.ID
-	if len(shortID) > 8 {
-		shortID = shortID[:8]
-	}
-	name := strings.Map(func(r rune) rune {
-		switch {
-		case r >= 'a' && r <= 'z':
-			return r
-		case r >= 'A' && r <= 'Z':
-			return r + ('a' - 'A')
-		case r >= '0' && r <= '9':
-			return r
-		case r == '-', r == '_':
-			return r
-		default:
-			return '-'
-		}
-	}, s.Assistant)
-	name = strings.Trim(name, "-")
-	if name == "" {
-		name = "agent"
-	}
-	return "agent/" + name + "-" + shortID
-}
-

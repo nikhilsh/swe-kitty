@@ -330,25 +330,6 @@ func (s *Session) fanout(p []byte) {
 	}
 }
 
-func (s *Session) fanoutText(p []byte) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for ch := range s.textSubs {
-		select {
-		case ch <- p:
-		default:
-			select {
-			case <-ch:
-			default:
-			}
-			select {
-			case ch <- p:
-			default:
-			}
-		}
-	}
-}
-
 // Manager owns the lookup table of sessions.
 type Manager struct {
 	mu        sync.RWMutex

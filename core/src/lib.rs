@@ -74,7 +74,12 @@ impl SweKittyClient {
     }
 
     pub fn disconnect(&self) {
-        let handles: Vec<_> = self.handles.lock().drain().map(|(_, handle)| handle).collect();
+        let handles: Vec<_> = self
+            .handles
+            .lock()
+            .drain()
+            .map(|(_, handle)| handle)
+            .collect();
         for handle in handles {
             handle.close();
         }
@@ -87,7 +92,8 @@ impl SweKittyClient {
         branch: Option<String>,
     ) -> Result<String, SweKittyError> {
         let session_id = Uuid::new_v4().to_string();
-        self.open_session(session_id.clone(), assistant, branch).await?;
+        self.open_session(session_id.clone(), assistant, branch)
+            .await?;
         Ok(session_id)
     }
 
@@ -146,7 +152,9 @@ impl SweKittyClient {
             .lock()
             .remove(&session_id)
             .ok_or_else(|| SweKittyError::UnknownSession(session_id.clone()))?;
-        let _ = handle.send_json(&serde_json::json!({ "type": "exit" })).await;
+        let _ = handle
+            .send_json(&serde_json::json!({ "type": "exit" }))
+            .await;
         handle.close();
         self.sessions.lock().remove(&session_id);
         Ok(())
