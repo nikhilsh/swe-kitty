@@ -110,7 +110,7 @@ jobs:
         working-directory: apps/ios
         run: |
           xcodebuild -scheme SweKitty \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination 'generic/platform=iOS Simulator' \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             build
