@@ -1,8 +1,6 @@
 package sh.nikhil.swekitty.ui
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -19,25 +17,31 @@ import sh.nikhil.swekitty.SessionStore
 import uniffi.swe_kitty_core.ProjectSession
 
 /**
- * v1 stub terminal: shows raw PTY scrollback as monospace text and provides a
- * line-buffered input field. Real terminal emulation (termux/terminal-view)
- * lands in task 007 / v0.3 multi-view.
+ * Terminal tab. PTY scrollback is parsed by [renderAnsi] into a styled
+ * [androidx.compose.ui.text.AnnotatedString] — colors, bold/italic,
+ * cursor-overwrite via `\r`, and CSI sequences other than SGR are
+ * stripped. Real cursor-positioning emulation is out of scope; that's
+ * a follow-up task.
+ *
+ * The whole buffer is re-rendered on each PTY delta (keyed on the
+ * ByteArray identity, which changes on append). Acceptable for the
+ * v0.x sizes; can become incremental if scrollback gets long.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TerminalPage(store: SessionStore, session: ProjectSession) {
     val buffers by store.terminalBuffer.collectAsState()
     val raw = buffers[session.id] ?: ByteArray(0)
-    val text = remember(raw) { String(raw, Charsets.UTF_8) }
+    val rendered = remember(raw) { renderAnsi(raw) }
     val scroll = rememberScrollState()
     var draft by remember { mutableStateOf("") }
 
-    LaunchedEffect(text) { scroll.scrollTo(scroll.maxValue) }
+    LaunchedEffect(rendered) { scroll.scrollTo(scroll.maxValue) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         SelectionContainer(modifier = Modifier.weight(1f).fillMaxWidth()) {
             Text(
-                text = text,
+                text = rendered,
                 modifier = Modifier
                     .verticalScroll(scroll)
                     .padding(8.dp),

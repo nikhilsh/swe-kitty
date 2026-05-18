@@ -67,9 +67,16 @@ struct SettingsSheet: View {
                     url = ""
                     token = ""
                 } label: {
-                    Label("Forget harness", systemImage: "trash")
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack(spacing: 10) {
+                        Label("Forget harness", systemImage: "trash")
+                            .foregroundStyle(SweKittyTheme.danger)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(SweKittyTheme.textMuted)
+                    }
                 }
+                .buttonStyle(.plain)
                 .padding(.vertical, 4)
             }
         }
@@ -97,20 +104,30 @@ struct SettingsSheet: View {
             Button {
                 showScanner = true
             } label: {
-                Label("Scan pairing QR", systemImage: "qrcode.viewfinder")
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 10) {
+                    Label("Scan pairing QR", systemImage: "qrcode.viewfinder")
+                        .foregroundStyle(SweKittyTheme.textBody)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(SweKittyTheme.textMuted)
+                }
             }
+            .buttonStyle(.plain)
             .padding(.vertical, 4)
 
-            Button {
-                save()
-            } label: {
+            Button { save() } label: {
                 Label("Save & Connect", systemImage: "link")
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(SweKittyTheme.textPrimary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
+                    .glassCapsule(
+                        interactive: true,
+                        tint: SweKittyTheme.accentStrong.opacity(0.55)
+                    )
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.plain)
             .disabled(url.isEmpty || token.isEmpty)
             .padding(.top, 4)
 
@@ -142,9 +159,16 @@ struct SettingsSheet: View {
                 Button {
                     store.reconnect()
                 } label: {
-                    Label("Reconnect", systemImage: "arrow.clockwise")
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack(spacing: 10) {
+                        Label("Reconnect", systemImage: "arrow.clockwise")
+                            .foregroundStyle(SweKittyTheme.textBody)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(SweKittyTheme.textMuted)
+                    }
                 }
+                .buttonStyle(.plain)
                 .padding(.vertical, 4)
             }
         }

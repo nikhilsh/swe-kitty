@@ -815,6 +815,8 @@ internal open class UniffiVTableCallbackInterfaceSweKittyDelegate(
 
 
 
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -855,6 +857,8 @@ internal interface UniffiLib : Library {
     ): Long
     fun uniffi_swe_kitty_core_fn_method_swekittyclient_list_sessions(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_swe_kitty_core_fn_method_swekittyclient_notify_network_change(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     fun uniffi_swe_kitty_core_fn_method_swekittyclient_resize(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`rows`: Short,`cols`: Short,
     ): Long
     fun uniffi_swe_kitty_core_fn_method_swekittyclient_send_chat(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`msg`: RustBuffer.ByValue,
@@ -991,6 +995,8 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_swe_kitty_core_checksum_method_swekittyclient_list_sessions(
     ): Short
+    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_notify_network_change(
+    ): Short
     fun uniffi_swe_kitty_core_checksum_method_swekittyclient_resize(
     ): Short
     fun uniffi_swe_kitty_core_checksum_method_swekittyclient_send_chat(
@@ -1053,6 +1059,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_list_sessions() != 61787.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_notify_network_change() != 11625.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_resize() != 62907.toShort()) {
@@ -1527,6 +1536,8 @@ public interface SweKittyClientInterface {
     
     fun `listSessions`(): List<ProjectSession>
     
+    fun `notifyNetworkChange`()
+    
     suspend fun `resize`(`sessionId`: kotlin.String, `rows`: kotlin.UShort, `cols`: kotlin.UShort)
     
     suspend fun `sendChat`(`sessionId`: kotlin.String, `msg`: kotlin.String)
@@ -1747,6 +1758,17 @@ open class SweKittyClient: Disposable, AutoCloseable, SweKittyClientInterface {
     }
     )
     }
+    
+
+    override fun `notifyNetworkChange`()
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_notify_network_change(
+        it, _status)
+}
+    }
+    
     
 
     

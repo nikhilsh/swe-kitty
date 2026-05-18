@@ -546,6 +546,8 @@ public protocol SweKittyClientProtocol : AnyObject {
     
     func listSessions()  -> [ProjectSession]
     
+    func notifyNetworkChange() 
+    
     func resize(sessionId: String, rows: UInt16, cols: UInt16) async throws 
     
     func sendChat(sessionId: String, msg: String) async throws 
@@ -702,6 +704,12 @@ open func listSessions() -> [ProjectSession] {
     uniffi_swe_kitty_core_fn_method_swekittyclient_list_sessions(self.uniffiClonePointer(),$0
     )
 })
+}
+    
+open func notifyNetworkChange() {try! rustCall() {
+    uniffi_swe_kitty_core_fn_method_swekittyclient_notify_network_change(self.uniffiClonePointer(),$0
+    )
+}
 }
     
 open func resize(sessionId: String, rows: UInt16, cols: UInt16)async throws  {
@@ -1935,6 +1943,9 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_swe_kitty_core_checksum_method_swekittyclient_list_sessions() != 61787) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_notify_network_change() != 11625) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_swe_kitty_core_checksum_method_swekittyclient_resize() != 62907) {

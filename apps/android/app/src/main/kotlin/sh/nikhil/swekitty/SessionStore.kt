@@ -1,6 +1,13 @@
 package sh.nikhil.swekitty
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.security.crypto.EncryptedSharedPreferences
@@ -153,6 +160,15 @@ class SessionStore : ViewModel(), SweKittyDelegate {
 
     private var client: SweKittyClient? = null
     private var prefs: android.content.SharedPreferences? = null
+    private var connectivity: ConnectivityManager? = null
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
+    private val lifecycleObserver = object : DefaultLifecycleObserver {
+        override fun onResume(owner: LifecycleOwner) {
+            // App came back from background — local sockets may be
+            // silently dead. Nudge every worker into reconnect.
+            client?.notifyNetworkChange()
+        }
+    }
 
     fun hydrate(ctx: Context) {
         if (prefs == null) {
@@ -171,6 +187,41 @@ class SessionStore : ViewModel(), SweKittyDelegate {
                 url = p.getString(KEY_URL, "") ?: "",
                 token = p.getString(KEY_TOKEN, "") ?: "",
             )
+            installNetworkAndLifecycleHooks(ctx.applicationContext)
+        }
+    }
+
+    private fun installNetworkAndLifecycleHooks(appCtx: Context) {
+        ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver)
+
+        val cm = appCtx.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            ?: return
+        connectivity = cm
+        val request = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        val cb = object : ConnectivityManager.NetworkCallback() {
+            // Fired on Wi-Fi↔LTE handoff, hotspot toggle, VPN flap. The
+            // exact sequence (lost/available) varies by Android version,
+            // so we nudge on either edge — Notify is idempotent.
+            override fun onAvailable(network: Network) {
+                client?.notifyNetworkChange()
+            }
+            override fun onLost(network: Network) {
+                client?.notifyNetworkChange()
+            }
+        }
+        networkCallback = cb
+        runCatching { cm.registerNetworkCallback(request, cb) }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        ProcessLifecycleOwner.get().lifecycle.removeObserver(lifecycleObserver)
+        val cm = connectivity
+        val cb = networkCallback
+        if (cm != null && cb != null) {
+            runCatching { cm.unregisterNetworkCallback(cb) }
         }
     }
 

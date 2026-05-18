@@ -1,5 +1,6 @@
 package sh.nikhil.swekitty.ui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalNavigationDrawer
@@ -10,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import kotlinx.coroutines.launch
 import sh.nikhil.swekitty.HarnessState
 import sh.nikhil.swekitty.SessionStore
@@ -32,31 +34,34 @@ fun AppRoot(store: SessionStore) {
         else if (harness is HarnessState.Disconnected) store.connect()
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ProjectListScreen(
-                store = store,
-                onOpenSettings = { showSettings = true },
-                onCloseDrawer = { scope.launch { drawerState.close() } },
-            )
-        },
-    ) {
-        val selected = sessions.firstOrNull { it.id == selectedId }
-        if (selected != null) {
-            ProjectScreen(
-                store = store,
-                session = selected,
-                onOpenDrawer = { scope.launch { drawerState.open() } },
-            )
-        } else {
-            EmptyDetail(
-                harness = harness,
-                endpoint = endpoint,
-                onOpenDrawer = { scope.launch { drawerState.open() } },
-                onOpenSettings = { showSettings = true },
-                onReconnect = { store.reconnect() },
-            )
+    Box(modifier = Modifier) {
+        GlassAppBackground()
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ProjectListScreen(
+                    store = store,
+                    onOpenSettings = { showSettings = true },
+                    onCloseDrawer = { scope.launch { drawerState.close() } },
+                )
+            },
+        ) {
+            val selected = sessions.firstOrNull { it.id == selectedId }
+            if (selected != null) {
+                ProjectScreen(
+                    store = store,
+                    session = selected,
+                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                )
+            } else {
+                EmptyDetail(
+                    harness = harness,
+                    endpoint = endpoint,
+                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                    onOpenSettings = { showSettings = true },
+                    onReconnect = { store.reconnect() },
+                )
+            }
         }
     }
 

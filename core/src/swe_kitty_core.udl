@@ -74,6 +74,8 @@ interface SweKittyClient {
 
     void disconnect();
 
+    void notify_network_change();
+
     [Async, Throws=SweKittyError]
     string create_session(string assistant, string? branch);
 

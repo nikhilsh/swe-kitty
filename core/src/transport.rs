@@ -32,7 +32,7 @@ use futures_util::{SinkExt, StreamExt};
 use parking_lot::Mutex;
 use serde::Deserialize;
 use tokio::net::TcpStream;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, Notify};
 use tokio::time::Instant;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::http::{HeaderValue, StatusCode};
@@ -63,11 +63,13 @@ pub enum ConnectionHealth {
 }
 
 /// A live websocket attached to one session. Cheap to clone; cloning
-/// shares the underlying writer and shutdown signal.
+/// shares the underlying writer, shutdown signal, and network-change
+/// nudge.
 #[derive(Clone)]
 pub struct SessionHandle {
     tx: mpsc::Sender<Message>,
     shutdown: Arc<Mutex<Option<oneshot::Sender<()>>>>,
+    nudge: Arc<Notify>,
 }
 
 impl SessionHandle {
@@ -77,6 +79,15 @@ impl SessionHandle {
             let _ = sender.send(());
         }
         let _ = self.tx.try_send(Message::Close(None));
+    }
+
+    /// Force the worker to drop its current socket and re-enter the
+    /// reconnect loop. Used by the apps when the OS signals a network
+    /// path change (Wi-Fi↔LTE handoff, foreground transition, etc.) so
+    /// we don't sit on a half-open TCP waiting for the kernel to surface
+    /// the failure.
+    pub fn nudge(&self) {
+        self.nudge.notify_one();
     }
 
     pub async fn send_input(&self, data: Vec<u8>) -> Result<(), SweKittyError> {
@@ -140,6 +151,7 @@ pub async fn connect(
     let (tx, rx) = mpsc::channel::<Message>(64);
     let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
     let shutdown = Arc::new(Mutex::new(Some(shutdown_tx)));
+    let nudge = Arc::new(Notify::new());
 
     delegate.on_connection_health(session_id.clone(), ConnectionHealth::Connected);
 
@@ -151,10 +163,15 @@ pub async fn connect(
         initial_ws: Some(ws),
         rx,
         shutdown_rx,
+        nudge: Arc::clone(&nudge),
         delegate,
     }));
 
-    Ok(SessionHandle { tx, shutdown })
+    Ok(SessionHandle {
+        tx,
+        shutdown,
+        nudge,
+    })
 }
 
 struct WorkerArgs {
@@ -165,6 +182,7 @@ struct WorkerArgs {
     initial_ws: Option<WsStream>,
     rx: mpsc::Receiver<Message>,
     shutdown_rx: oneshot::Receiver<()>,
+    nudge: Arc<Notify>,
     delegate: Arc<dyn SweKittyDelegate>,
 }
 
@@ -222,12 +240,13 @@ async fn session_worker(mut args: WorkerArgs) {
             }
         };
 
-        // Drive the socket until it dies, the user closes us out, or we
-        // detect a half-open via the pong deadline.
+        // Drive the socket until it dies, the user closes us out, the
+        // pong deadline fires, or the host signals a network change.
         let outcome = drive_socket(
             ws,
             &mut args.rx,
             &mut shutdown_rx,
+            &args.nudge,
             &args.delegate,
             &args.session_id,
         )
@@ -311,6 +330,7 @@ async fn drive_socket(
     ws: WsStream,
     rx: &mut mpsc::Receiver<Message>,
     shutdown_rx: &mut oneshot::Receiver<()>,
+    nudge: &Arc<Notify>,
     delegate: &Arc<dyn SweKittyDelegate>,
     session_id: &str,
 ) -> DriveOutcome {
@@ -327,6 +347,13 @@ async fn drive_socket(
                 let _ = writer.send(Message::Close(None)).await;
                 let _ = writer.close().await;
                 return DriveOutcome::ClientClose;
+            }
+            _ = nudge.notified() => {
+                // OS told us the network path probably changed. Don't
+                // wait for TCP to surface a half-open; force-close and
+                // reconnect immediately.
+                let _ = writer.close().await;
+                return DriveOutcome::Disconnected("network change".to_string());
             }
             outbound = rx.recv() => {
                 let Some(msg) = outbound else {

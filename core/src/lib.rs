@@ -116,6 +116,25 @@ impl SweKittyClient {
         *self.inner.delegate.lock() = None;
     }
 
+    /// Called by the apps when the host OS signals that the network
+    /// path probably changed — Wi-Fi↔LTE handoff, app foreground after
+    /// a long suspend, VPN flap. Every per-session worker drops its
+    /// current socket and re-enters the reconnect loop, so we don't
+    /// sit on a half-open TCP waiting for the kernel to surface the
+    /// failure.
+    pub fn notify_network_change(&self) {
+        let handles: Vec<_> = self
+            .inner
+            .handles
+            .lock()
+            .values()
+            .cloned()
+            .collect();
+        for handle in handles {
+            handle.nudge();
+        }
+    }
+
     pub async fn create_session(
         &self,
         assistant: String,

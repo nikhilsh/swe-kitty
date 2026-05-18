@@ -1,5 +1,7 @@
 import Foundation
+import Network
 import Observation
+import UIKit
 
 /// Harness reachability state. The Rust `connect()` just stores a delegate
 /// — it doesn't actually prove the server is reachable — so we keep a
@@ -144,9 +146,61 @@ final class SessionStore {
 
     private var client: SweKittyClient?
     private var delegate: StoreDelegate?
+    private var pathMonitor: NWPathMonitor?
+    private var foregroundObserver: NSObjectProtocol?
+    /// Path identifier we've seen so we don't nudge on first activation.
+    private var lastPath: NWPath?
 
     init() {
         self.endpoint = Self.loadPersisted()
+        installNetworkAndLifecycleHooks()
+    }
+
+    deinit {
+        if let token = foregroundObserver {
+            NotificationCenter.default.removeObserver(token)
+        }
+        pathMonitor?.cancel()
+    }
+
+    /// Tell every per-session worker in the Rust core that the network
+    /// path probably changed. The worker drops its current socket and
+    /// re-enters the reconnect loop instead of waiting for TCP to
+    /// surface the failure.
+    private func nudgeNetworkChange() {
+        client?.notifyNetworkChange()
+    }
+
+    private func installNetworkAndLifecycleHooks() {
+        // App returns to foreground after a long suspend — sockets may
+        // be silently dead even though our state thinks they're live.
+        foregroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.willEnterForegroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.nudgeNetworkChange()
+        }
+
+        // Wi-Fi↔LTE handoff, VPN flap, hotspot toggle. NWPathMonitor
+        // fires synchronously on its own queue; bounce to main and
+        // compare against the last seen path so we don't nudge on the
+        // initial subscription.
+        let monitor = NWPathMonitor()
+        monitor.pathUpdateHandler = { [weak self] path in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                defer { self.lastPath = path }
+                guard let prev = self.lastPath else { return }
+                if prev.availableInterfaces.map(\.type) != path.availableInterfaces.map(\.type)
+                    || prev.status != path.status
+                {
+                    self.nudgeNetworkChange()
+                }
+            }
+        }
+        monitor.start(queue: DispatchQueue(label: "swekitty.nwpath"))
+        self.pathMonitor = monitor
     }
 
     // MARK: - Convenience derived state

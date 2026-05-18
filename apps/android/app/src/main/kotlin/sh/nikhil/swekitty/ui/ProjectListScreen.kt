@@ -161,20 +161,24 @@ fun HarnessStatusStrip(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .glassRoundedRect(cornerRadiusDp = SweKittyTheme.smallCornerRadiusDp)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         HarnessBadge(harness)
         Spacer(Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(harness.badgeLabel, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                harness.badgeLabel,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = SweKittyTheme.textPrimary(),
+            )
             harness.failureReason?.let {
                 Text(
                     it,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    color = SweKittyTheme.danger(),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -182,9 +186,9 @@ fun HarnessStatusStrip(
         }
         if (harness is HarnessState.Failed || harness is HarnessState.Disconnected) {
             TextButton(onClick = onReconnect) {
-                Icon(Icons.Default.Refresh, contentDescription = null)
+                Icon(Icons.Default.Refresh, contentDescription = null, tint = SweKittyTheme.accentStrong())
                 Spacer(Modifier.width(4.dp))
-                Text("Reconnect")
+                Text("Reconnect", color = SweKittyTheme.accentStrong())
             }
         }
     }
@@ -214,9 +218,10 @@ private fun InlineErrorBanner(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.errorContainer)
-            .border(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+            .glassRect(
+                cornerRadiusDp = SweKittyTheme.smallCornerRadiusDp,
+                tint = SweKittyTheme.danger().copy(alpha = 0.35f),
+            )
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -249,8 +254,7 @@ private fun EmptySessionsHint(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .glassRoundedRect()
             .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -288,16 +292,18 @@ private fun SessionRow(
     onTap: () -> Unit,
 ) {
     val isFailed = lifecycle is SessionLifecycle.FailedToStart
-    val rowBg = when {
-        selected -> MaterialTheme.colorScheme.secondaryContainer
-        else     -> Color.Transparent
+    val tint = when {
+        selected  -> SweKittyTheme.accentStrong().copy(alpha = 0.45f)
+        isFailed  -> SweKittyTheme.danger().copy(alpha = 0.40f)
+        else      -> null
     }
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp)
             .clickable(enabled = entry is VisibleSession.Real, onClick = onTap)
-            .background(rowBg)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .glassRect(tint = tint)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         when {
@@ -321,6 +327,7 @@ private fun SessionRow(
                 },
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
+                color = SweKittyTheme.textPrimary(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -337,7 +344,7 @@ private fun SessionRow(
             Text(
                 subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = SweKittyTheme.textMuted(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
