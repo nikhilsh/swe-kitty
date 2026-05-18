@@ -1,8 +1,44 @@
 # Plan: `swe-kitty` — a litter-style mobile app with swe-swe per-project multi-view, built under a harness dev workflow
 
-## Context
+## How To Read This Document
 
-The working directory `/root/developer/projects/kitty-swe` is empty. It will be initialized as a git repo and pushed to **`git@github.com:nikhilsh/swe-kitty.git`** (local folder is `kitty-swe`, remote is `swe-kitty` — product name is **swe-kitty**, bundle IDs `sh.nikhil.swekitty`).
+- **Status Snapshot** below is the current reality and should drive execution.
+- **Part A onward** preserves the detailed target architecture and future plan.
+- If there is any mismatch, treat the Status Snapshot + newer focused docs (`RELEASE.md`, `MOBILE-FEATURE-BACKLOG.md`, `NEXT-RELEASE.md`) as the source of truth for immediate work.
+
+## Status Snapshot (May 18, 2026)
+
+### Done
+- Repository, CI, and tagged release automation are active.
+- Harness one-line bootstrap is active:
+  - `install.sh` download/install
+  - `swe-kitty-harness up --local` prints bearer token + pairing QR + `swekitty://` deep link
+- iOS and Android shipping flow is tag-driven (release workflows + orchestrator + website deploy).
+- Rust core has:
+  - reconnect/liveness handling
+  - typed conversation-item foundation
+  - UniFFI bindings used by both apps
+- Mobile apps have:
+  - terminal/chat/browser tabs
+  - tool cards, diff rendering, quick-reply chips
+  - saved-server persistence scaffolding in settings
+
+### In Progress
+- KittyLitter parity for structured tool-call UX:
+  - command metadata richness (args/exit/duration/progress)
+  - stronger diff UX (grouping/collapse)
+- Pending user-input first-class UX on both platforms.
+- Discovery UI parity (mDNS browser / server switching UX polish).
+
+### Planned / Future
+- Push notifications + background fetch/wakeup.
+- Voice I/O surfaces.
+- Subagent/handoff visualization parity.
+- Further UI convergence toward KittyLitter design language.
+
+## Original Planning Context (Preserved)
+
+Originally this plan started from an empty working tree (`/root/developer/projects/kitty-swe`) and described full bootstrap to `git@github.com:nikhilsh/swe-kitty.git`. That historical context is intentionally preserved below so future planned sections are not lost.
 
 Two threads run through this plan, and they must not be conflated:
 

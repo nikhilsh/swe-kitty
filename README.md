@@ -38,11 +38,46 @@ A phone-first AI coding harness. Drive Claude Code, Codex, and other agents from
 ## Website
 
 - Static landing site scaffold: [`website/`](website)
-- Fyrra deploy notes: [`website/DEPLOY.md`](website/DEPLOY.md)
+- Fyra deploy notes: [`website/DEPLOY.md`](website/DEPLOY.md)
 
-## Status
+## Delivery Status (May 18, 2026)
 
-Bootstrap. See [`docs/PLAN.md`](docs/PLAN.md) Part F — Roadmap.
+### Done
+- Harness runtime and pairing flow are live:
+  - one-line installer: `install.sh`
+  - `swe-kitty-harness up --local` prints token + pairing QR + `swekitty://` deep link
+- Release pipeline is live:
+  - `release-ios`, `release-android`, `release-harness`, `release-orchestrator`
+  - website pulls latest release assets and deploys via Fyra
+- Mobile chat has moved past plain logs:
+  - tool-call cards
+  - diff rendering
+  - quick-reply chips
+  - typed conversation-item foundation in shared Rust core
+- Multi-server persistence scaffolding exists in app settings:
+  - iOS: Keychain-backed saved servers
+  - Android: EncryptedSharedPreferences-backed saved servers
+
+### In Progress
+- Structured tool payload parity with KittyLitter:
+  - explicit command args / exit code / timing
+  - stdout/stderr grouping
+  - richer progress state transitions
+- Diff UX parity:
+  - per-file/per-hunk grouping and collapsible sections
+- Pending user-input UX parity:
+  - native request/choice cards instead of plain text fallback
+
+### Planned (not started or partial)
+- Discovery view (mDNS browser UI)
+- Push notifications + background wake/reconnect
+- Subagent / handoff timeline polish
+- Voice I/O and deeper composer parity
+
+Authoritative roadmap remains in:
+- [`docs/PLAN.md`](docs/PLAN.md)
+- [`docs/MOBILE-FEATURE-BACKLOG.md`](docs/MOBILE-FEATURE-BACKLOG.md)
+- [`docs/RELEASE.md`](docs/RELEASE.md)
 
 ## References
 
