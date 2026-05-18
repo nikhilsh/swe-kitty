@@ -48,17 +48,7 @@ jobs:
                 --json databaseId,workflowName,headBranch,status,conclusion,url,event)"
 
               matched="$(
-                python3 - "${RELEASE_TAG}" <<'PY' <<<"${run_json}"
-import json, sys
-
-tag = sys.argv[1]
-runs = json.load(sys.stdin)
-
-for run in runs:
-    if run.get("headBranch") == tag and run.get("event") == "push":
-        print(json.dumps(run))
-        break
-PY
+                python3 -c 'import json, sys; tag = sys.argv[1]; runs = json.load(sys.stdin); match = next((run for run in runs if run.get("headBranch") == tag and run.get("event") == "push"), None); print(json.dumps(match) if match else "")' "${RELEASE_TAG}" <<<"${run_json}"
               )"
 
               if [ -z "${matched}" ]; then
@@ -99,24 +89,7 @@ PY
           release_json="$(gh release view "${RELEASE_TAG}" -R "$GITHUB_REPOSITORY" --json assets,tagName,url)"
           echo "${release_json}"
 
-          python3 - "${RELEASE_TAG}" <<'PY' <<<"${release_json}"
-import json, sys
-
-tag = sys.argv[1]
-release = json.load(sys.stdin)
-assets = {asset["name"] for asset in release.get("assets", [])}
-required = {
-    "SweKitty.ipa",
-    "app-release.apk",
-    "swe-kitty-harness-linux-amd64",
-    "swe-kitty-harness-linux-arm64",
-    "swe-kitty-harness-darwin-amd64",
-    "swe-kitty-harness-darwin-arm64",
-}
-missing = sorted(required - assets)
-if missing:
-    raise SystemExit(f"release {tag} missing assets: {', '.join(missing)}")
-PY
+          python3 -c 'import json, sys; tag = sys.argv[1]; release = json.load(sys.stdin); assets = {asset["name"] for asset in release.get("assets", [])}; required = {"SweKitty.ipa", "app-release.apk", "swe-kitty-harness-linux-amd64", "swe-kitty-harness-linux-arm64", "swe-kitty-harness-darwin-amd64", "swe-kitty-harness-darwin-arm64"}; missing = sorted(required - assets); (_ for _ in ()).throw(SystemExit(f"release {tag} missing assets: {'"'"', '"'"'.join(missing)}")) if missing else None' "${RELEASE_TAG}" <<<"${release_json}"
 
       - uses: actions/setup-node@v4
         with:
