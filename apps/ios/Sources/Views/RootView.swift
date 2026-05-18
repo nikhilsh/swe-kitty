@@ -53,19 +53,20 @@ private struct DetailEmptyState: View {
         VStack(spacing: 18) {
             Image(systemName: icon)
                 .font(.system(size: 44, weight: .light))
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(SweKittyTheme.textSecondary)
             Text(title)
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(SweKittyTheme.textPrimary)
             Text(message)
                 .font(.callout)
-                .foregroundStyle(SweKittyTheme.mutedFG)
+                .foregroundStyle(SweKittyTheme.textMuted)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 360)
             actionButtons
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(40)
+        .tint(SweKittyTheme.accentStrong)
     }
 
     private var icon: String {

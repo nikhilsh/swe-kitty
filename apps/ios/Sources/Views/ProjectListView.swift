@@ -3,6 +3,7 @@ import SwiftUI
 struct ProjectListView: View {
     @Environment(SessionStore.self) private var store
     @Binding var showSettings: Bool
+    @Namespace private var glassNS
 
     var body: some View {
         @Bindable var store = store
@@ -51,6 +52,7 @@ struct ProjectListView: View {
                 .accessibilityLabel("New session")
             }
         }
+        .tint(SweKittyTheme.accentStrong)
     }
 
     @ViewBuilder
@@ -66,19 +68,22 @@ struct ProjectListView: View {
             .frame(maxHeight: .infinity, alignment: .top)
         } else {
             ScrollView {
-                LazyVStack(spacing: 10) {
-                    ForEach(visible) { entry in
-                        SessionRow(
-                            entry: entry,
-                            status: status(for: entry),
-                            lifecycle: lifecycle(for: entry),
-                            isSelected: isSelected(entry),
-                            onTap: { selectRow(entry) }
-                        )
+                GlassMorphContainer(spacing: 12) {
+                    LazyVStack(spacing: 10) {
+                        ForEach(visible) { entry in
+                            SessionRow(
+                                entry: entry,
+                                status: status(for: entry),
+                                lifecycle: lifecycle(for: entry),
+                                isSelected: isSelected(entry),
+                                onTap: { selectRow(entry) }
+                            )
+                            .glassMorphID("session-\(entry.id)", in: glassNS)
+                        }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
             }
         }
     }
@@ -117,7 +122,7 @@ private struct HarnessHeader: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(store.endpoint.displayHost)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(SweKittyTheme.textPrimary)
                         .lineLimit(1)
                         .truncationMode(.middle)
                     if let reason = store.harness.failureReason {
@@ -128,7 +133,7 @@ private struct HarnessHeader: View {
                     } else {
                         Text("swe-kitty harness")
                             .font(.caption2)
-                            .foregroundStyle(SweKittyTheme.mutedFG)
+                            .foregroundStyle(SweKittyTheme.textMuted)
                     }
                 }
                 Spacer()
@@ -148,14 +153,7 @@ private struct HarnessHeader: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: SweKittyTheme.cardCornerRadius, style: .continuous)
-                .fill(.ultraThinMaterial)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: SweKittyTheme.cardCornerRadius, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
-        )
+        .glassRoundedRect()
     }
 
     private var shouldShowReconnect: Bool {
@@ -176,15 +174,15 @@ private struct EmptySessionsHint: View {
         VStack(spacing: 14) {
             Image(systemName: isReachable ? "sparkles" : "cloud.slash")
                 .font(.system(size: 36, weight: .light))
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(SweKittyTheme.textSecondary)
             Text(isReachable ? "Start a session" : "Waiting for harness")
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(SweKittyTheme.textPrimary)
             Text(isReachable
                 ? "Pick an agent and we'll spin up a new conversation against the harness."
                 : "Once we can reach the harness this is where your sessions will appear.")
                 .font(.footnote)
-                .foregroundStyle(SweKittyTheme.mutedFG)
+                .foregroundStyle(SweKittyTheme.textMuted)
                 .multilineTextAlignment(.center)
 
             if isReachable {
@@ -208,14 +206,7 @@ private struct EmptySessionsHint: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 22)
         .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: SweKittyTheme.cardCornerRadius, style: .continuous)
-                .fill(.ultraThinMaterial)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: SweKittyTheme.cardCornerRadius, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
-        )
+        .glassRoundedRect()
     }
 }
 
@@ -233,11 +224,11 @@ private struct SessionRow: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(displayName)
                         .font(.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(SweKittyTheme.textPrimary)
                         .lineLimit(1)
                     Text(subtitle)
                         .font(.caption)
-                        .foregroundStyle(SweKittyTheme.mutedFG)
+                        .foregroundStyle(SweKittyTheme.textMuted)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 8)
@@ -245,14 +236,7 @@ private struct SessionRow: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: SweKittyTheme.cardCornerRadius, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: SweKittyTheme.cardCornerRadius, style: .continuous)
-                    .strokeBorder(borderColor, lineWidth: isSelected ? 1.5 : 1)
-            )
+            .glassRect(cornerRadius: SweKittyTheme.cardCornerRadius, tint: tint)
         }
         .buttonStyle(.plain)
         .disabled(!isTappable)
@@ -262,7 +246,7 @@ private struct SessionRow: View {
     private var leading: some View {
         switch lifecycle {
         case .creating:
-            ProgressView().controlSize(.small).tint(.white)
+            ProgressView().controlSize(.small).tint(SweKittyTheme.accentStrong)
         case .failed:
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(SweKittyTheme.danger)
@@ -276,7 +260,7 @@ private struct SessionRow: View {
         if case .real = entry {
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(SweKittyTheme.mutedFG)
+                .foregroundStyle(SweKittyTheme.textMuted)
         }
     }
 
@@ -304,9 +288,9 @@ private struct SessionRow: View {
         return false
     }
 
-    private var borderColor: Color {
-        if isSelected { return SweKittyTheme.accent.opacity(0.9) }
-        if case .failed = lifecycle { return SweKittyTheme.danger.opacity(0.5) }
-        return Color.white.opacity(0.14)
+    private var tint: Color? {
+        if isSelected { return SweKittyTheme.accentStrong.opacity(0.45) }
+        if case .failed = lifecycle { return SweKittyTheme.danger.opacity(0.40) }
+        return nil
     }
 }

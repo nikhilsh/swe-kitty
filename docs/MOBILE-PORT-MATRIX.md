@@ -376,3 +376,61 @@ In practical terms:
 3. replace the iOS shell structure before spending more time on visual tweaks
 
 That is the shortest path from "test scaffold" to "actual KittyLitter-shaped product shell."
+
+## Package B Sub-Plan: iOS Visual Language Port (2026-05-18)
+
+The audit above names the *what*. This section pins down the *how* for the iOS visual language — specifically: stop hand-rolling glass with `.ultraThinMaterial`, adopt litter's iOS 26 Liquid Glass primitives, and rewrite the shell screens against them.
+
+### Concrete Gap
+
+| Concern | Current (`apps/ios/Sources/Views/DesignSystem.swift`) | Upstream (`litter/apps/ios/Sources/Litter/Extensions.swift:390-487` + `Models/LitterPalette.swift`) |
+|---|---|---|
+| Glass primitives | `glassPane()` / `glassChip()` using `.ultraThinMaterial` + bespoke stroke | `GlassRectModifier`, `GlassRoundedRectModifier`, `GlassCapsuleModifier`, `GlassCircleModifier` — each gated `if #available(iOS 26.0, *)` with `glassEffect(.regular[.tint][.interactive()], in: …)` and a material fallback |
+| Morph between states | None — chips fade in/out | `GlassMorphContainer` (`GlassEffectContainer` on iOS 26) + `glassMorphID(_:in:)` (`glassEffectID` / `matchedGeometryEffect` fallback) |
+| Palette | Hardcoded dark-only gradient (`GlassAppBackground`) | `LitterPalette` light/dark pairs, resolved via App Group; `LitterTheme.backgroundGradient` is adaptive |
+| Typography | Default `Font.system` everywhere | `LitterFont` + `FontFamilyOption.mono/.system`, Berkeley Mono with SFMono fallback |
+| Status pill | `HarnessBadge` glass chip | Same idea, but uses real `glassEffect` capsule + tint that maps to status colour |
+
+### File-Level Port Plan
+
+Execute strictly in this order — each step compiles on its own and the app stays runnable.
+
+**Step B.1 — Glass primitives + theme (no UI change yet).** Land the infrastructure other screens will consume.
+- New `apps/ios/Sources/Theme/SweKittyPalette.swift` — port of `LitterPalette` shape, but bake our own light/dark hex values (no App Group yet; that's a v2 concern). Keep it minimal: `accent`, `accentStrong`, `surface`, `surfaceLight`, `border`, `separator`, `danger`, `success`, `warning`, `textPrimary/secondary/muted/body/onAccent`.
+- New `apps/ios/Sources/Theme/SweKittyTheme.swift` — wraps the palette into `Color` resolvers + `backgroundGradient(for: ColorScheme)`. Replaces `SweKittyTheme` enum in `DesignSystem.swift`.
+- New `apps/ios/Sources/Theme/Glass.swift` — port of `GlassRectModifier`, `GlassRoundedRectModifier`, `GlassCapsuleModifier`, `GlassCircleModifier`, `GlassMorphContainer`, and the `glassMorphID(_:in:)` extension. Direct copy with name swap (`LitterTheme` → `SweKittyTheme`).
+- Delete the old `glassPane()` / `glassChip()` modifiers and `GlassAppBackground` from `DesignSystem.swift`. Keep `HealthDot`, `InlineErrorBanner`, `HarnessBadge` but reskin them to use the new modifiers.
+
+**Step B.2 — Background + RootView reskin.** First visible change.
+- Replace the hardcoded dark `GlassAppBackground` with a `SweKittyTheme.backgroundGradient(for: colorScheme)` that respects light/dark. Light mode must work — the screenshot proves this is a current gap.
+- `RootView.swift` keeps its responsibilities (connect / pair / show project list) but its empty-state and reconnect affordances become `glassEffect`-backed cards.
+
+**Step B.3 — Home screen rewrite (`ProjectListView` → `HomeDashboardView`-shape).** This is what the user is looking at in the screenshot. The current "one server card + start-a-session card" layout becomes a real dashboard:
+- Title row with adaptive header, settings + new-session glass capsules (replaces top gear / + icons).
+- Server card uses `GlassRoundedRectModifier`. Status pill uses `GlassCapsuleModifier` tinted by `HarnessState` (refused → `danger`, linked → `accent`, live → `success`).
+- "Start a session" becomes a hero glass card with `GlassMorphContainer` so the Claude/Codex chips morph into a session row when tapped — using `glassMorphID` keyed by session UUID.
+- Use `LitterPalette.accentStrong` (`#00FF9C`) as our agent-tint while we hold onto the neon-cat brand.
+
+**Step B.4 — Settings + add-server sheet (`SettingsSheet` → `AlleycatAddServerSheet`-shape).** The current `SettingsSheet` is a `Form` — replace with litter's section-card pattern using `GlassRoundedRectModifier` per group. Bring over field/row styling from `AlleycatAddServerSheet.swift`.
+
+**Step B.5 — In-session shell (`ProjectView`, terminal/chat/browser tabs).** The bottom tab bar becomes a `HomeBottomBar`-shape glass dock. Terminal tab keeps SwiftTerm but its toolbar uses glass capsules. Quick-replies (planned, see [project memory](../.swe-kitty/memory/)) drop into this shell as a `GlassEffectContainer` chip rail.
+
+**Step B.6 — Optional polish.** `AnimatedSplashView` port if we want a real launch experience; `AppearanceSettingsView` port if we expose theme + font preferences.
+
+### Out of Scope For Package B
+
+Defer (matches the "Likely exclude or defer" list above):
+- CarPlay, Watch, Live Activities — no harness use case yet.
+- App Group / theme-store — single-app for now; revisit when watch lands.
+- Berkeley Mono shipping — use system mono until licence story is settled.
+
+### Success Criteria
+
+- Every glass surface in the app is one of the four `Glass*Modifier`s or `GlassMorphContainer` — zero remaining `.ultraThinMaterial` calls.
+- Light mode is functional (no hardcoded dark backgrounds).
+- On iOS 26 device, glass refracts correctly and chips morph when state changes.
+- Screenshot-equivalent state (idle, error, mid-session) reads as a litter-quality screen, not a scaffold.
+
+### Verification
+
+After each step, run on iPhone 16 simulator (iOS 26 + iOS 17 fallback) and visually diff against `AppsListView` / `HomeDashboardView` screenshots from litter. Track regressions in a small sub-document if needed.

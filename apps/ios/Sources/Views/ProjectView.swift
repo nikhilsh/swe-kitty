@@ -25,19 +25,13 @@ struct ProjectView: View {
             header
             tabContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: SweKittyTheme.cardCornerRadius, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: SweKittyTheme.cardCornerRadius, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
-                )
+                .glassRoundedRect()
                 .clipShape(RoundedRectangle(cornerRadius: SweKittyTheme.cardCornerRadius, style: .continuous))
         }
         .padding(12)
         .navigationTitle(session.name)
         .navigationBarTitleDisplayMode(.inline)
+        .tint(SweKittyTheme.accentStrong)
     }
 
     private var status: SessionStatus? { store.statusBySession[session.id] }
@@ -50,11 +44,11 @@ struct ProjectView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(session.name)
                         .font(.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(SweKittyTheme.textPrimary)
                         .lineLimit(1)
                     Text(subtitle)
                         .font(.caption2)
-                        .foregroundStyle(SweKittyTheme.mutedFG)
+                        .foregroundStyle(SweKittyTheme.textMuted)
                         .lineLimit(1)
                 }
                 Spacer()
@@ -65,14 +59,7 @@ struct ProjectView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: SweKittyTheme.cardCornerRadius, style: .continuous)
-                .fill(.ultraThinMaterial)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: SweKittyTheme.cardCornerRadius, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
-        )
+        .glassRoundedRect()
     }
 
     private var subtitle: String {
@@ -109,12 +96,10 @@ struct ProjectView: View {
                 Image(systemName: "chevron.down")
             }
             .font(.caption.bold())
-            .foregroundStyle(.white)
+            .foregroundStyle(SweKittyTheme.textPrimary)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(SweKittyTheme.accent.opacity(0.25))
-            .clipShape(Capsule())
-            .overlay(Capsule().strokeBorder(SweKittyTheme.accent.opacity(0.45), lineWidth: 1))
+            .glassCapsule(interactive: true, tint: SweKittyTheme.accentStrong.opacity(0.45))
         }
     }
 

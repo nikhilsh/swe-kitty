@@ -6,6 +6,7 @@ import SwiftUI
 struct SettingsSheet: View {
     @Environment(SessionStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var url: String = ""
     @State private var token: String = ""
@@ -14,16 +15,25 @@ struct SettingsSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                pairedSection
-                pairingSection
-                statusSection
-                aboutSection
+            ZStack {
+                SweKittyTheme.backgroundGradient(for: colorScheme)
+                    .ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: 14) {
+                        pairedCard
+                        pairingCard
+                        statusCard
+                        aboutCard
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 18)
+                }
+                .scrollIndicators(.hidden)
             }
-            .scrollContentBackground(.hidden)
-            .background(SettingsBackground())
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .tint(SweKittyTheme.accentStrong)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
@@ -41,12 +51,16 @@ struct SettingsSheet: View {
         }
     }
 
+    // MARK: - Section cards
+
     @ViewBuilder
-    private var pairedSection: some View {
+    private var pairedCard: some View {
         if store.endpoint.isComplete {
-            Section("Paired Harness") {
-                LabeledContent("Host", value: store.endpoint.displayHost)
-                LabeledContent("Token", value: "Stored in Keychain")
+            SettingsCard(title: "Paired Harness") {
+                FieldRow(label: "Host", value: store.endpoint.displayHost)
+                Divider().background(SweKittyTheme.separator)
+                FieldRow(label: "Token", value: "Stored in Keychain")
+                Divider().background(SweKittyTheme.separator)
                 Button(role: .destructive) {
                     store.endpoint = .empty
                     store.disconnect()
@@ -54,33 +68,51 @@ struct SettingsSheet: View {
                     token = ""
                 } label: {
                     Label("Forget harness", systemImage: "trash")
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .padding(.vertical, 4)
             }
         }
     }
 
-    private var pairingSection: some View {
-        Section(store.endpoint.isComplete ? "Re-pair" : "Pair a harness") {
+    private var pairingCard: some View {
+        SettingsCard(title: store.endpoint.isComplete ? "Re-pair" : "Pair a harness") {
             TextField("ws://192.168.1.10:1977", text: $url)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .keyboardType(.URL)
+                .textFieldStyle(.plain)
+                .padding(.vertical, 4)
+
+            Divider().background(SweKittyTheme.separator)
+
             SecureField("Bearer token", text: $token)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                .textFieldStyle(.plain)
+                .padding(.vertical, 4)
+
+            Divider().background(SweKittyTheme.separator)
 
             Button {
                 showScanner = true
             } label: {
                 Label("Scan pairing QR", systemImage: "qrcode.viewfinder")
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .padding(.vertical, 4)
 
             Button {
                 save()
             } label: {
                 Label("Save & Connect", systemImage: "link")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
             }
+            .buttonStyle(.borderedProminent)
             .disabled(url.isEmpty || token.isEmpty)
+            .padding(.top, 4)
 
             if let scanError {
                 Text(scanError)
@@ -90,33 +122,40 @@ struct SettingsSheet: View {
         }
     }
 
-    private var statusSection: some View {
-        Section("Harness Status") {
+    private var statusCard: some View {
+        SettingsCard(title: "Harness Status") {
             HStack {
                 Text("Link")
+                    .foregroundStyle(SweKittyTheme.textBody)
                 Spacer()
                 HarnessBadge(state: store.harness)
             }
             if let reason = store.harness.failureReason {
+                Divider().background(SweKittyTheme.separator)
                 Text(reason)
                     .font(.footnote)
                     .foregroundStyle(SweKittyTheme.danger)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             if store.endpoint.isComplete {
+                Divider().background(SweKittyTheme.separator)
                 Button {
                     store.reconnect()
                 } label: {
                     Label("Reconnect", systemImage: "arrow.clockwise")
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .padding(.vertical, 4)
             }
         }
     }
 
-    private var aboutSection: some View {
-        Section("About") {
-            LabeledContent("App", value: "SweKitty")
+    private var aboutCard: some View {
+        SettingsCard(title: "About") {
+            FieldRow(label: "App", value: "SweKitty")
             if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
-                LabeledContent("Version", value: version)
+                Divider().background(SweKittyTheme.separator)
+                FieldRow(label: "Version", value: version)
             }
         }
     }
@@ -157,17 +196,44 @@ enum PairingURL {
     }
 }
 
-private struct SettingsBackground: View {
+// MARK: - Building blocks
+
+private struct SettingsCard<Content: View>: View {
+    let title: String
+    @ViewBuilder var content: () -> Content
+
     var body: some View {
-        LinearGradient(
-            colors: [
-                Color(red: 0.08, green: 0.11, blue: 0.18),
-                Color(red: 0.13, green: 0.15, blue: 0.24),
-                Color(red: 0.07, green: 0.09, blue: 0.14),
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .ignoresSafeArea()
+        VStack(alignment: .leading, spacing: 0) {
+            Text(title.uppercased())
+                .font(.caption2.weight(.semibold))
+                .tracking(0.8)
+                .foregroundStyle(SweKittyTheme.textSecondary)
+                .padding(.bottom, 8)
+
+            VStack(alignment: .leading, spacing: 10) {
+                content()
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassRoundedRect()
+        }
+    }
+}
+
+private struct FieldRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .foregroundStyle(SweKittyTheme.textSecondary)
+            Spacer()
+            Text(value)
+                .foregroundStyle(SweKittyTheme.textBody)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
     }
 }
