@@ -362,6 +362,10 @@ func (m *Manager) Get(id string) (*Session, bool) {
 	return s, ok
 }
 
+func (m *Manager) AssistantNames() []string {
+	return m.registry.Names()
+}
+
 // GetOrCreate returns the existing session for id, or starts a new one
 // with the given assistant. assistant is honored only on creation.
 func (m *Manager) GetOrCreate(id, assistant string) (*Session, bool, error) {

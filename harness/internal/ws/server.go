@@ -51,18 +51,19 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("ok\n"))
 	})
+	mux.HandleFunc("/api/capabilities", s.serveCapabilities)
+	mux.HandleFunc("/api/session/start", s.serveSessionStart)
 	mux.HandleFunc("/api/fs/list", s.serveFSList)
 	return mux
 }
 
 func (s *Server) serveWS(w http.ResponseWriter, r *http.Request) {
-	if !s.Auth.Check(r) {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	if !s.requireAuth(w, r) {
 		return
 	}
 	id := strings.TrimPrefix(r.URL.Path, "/ws/")
 	if id == "" {
-		http.Error(w, "missing session id", http.StatusBadRequest)
+		writeAPIError(w, http.StatusBadRequest, "missing_session_id", "missing session id")
 		return
 	}
 	assistant := r.URL.Query().Get("assistant")
@@ -74,11 +75,15 @@ func (s *Server) serveWS(w http.ResponseWriter, r *http.Request) {
 		CWD: cwd,
 	})
 	if err != nil {
-		status := http.StatusInternalServerError
-		if strings.Contains(err.Error(), "unknown assistant") || strings.Contains(err.Error(), "invalid cwd") {
-			status = http.StatusBadRequest
+		msg := err.Error()
+		switch {
+		case strings.Contains(msg, "unknown assistant"):
+			writeAPIError(w, http.StatusBadRequest, "assistant_unknown", msg)
+		case strings.Contains(msg, "invalid cwd"):
+			writeAPIError(w, http.StatusBadRequest, "invalid_cwd", msg)
+		default:
+			writeAPIError(w, http.StatusInternalServerError, "session_start_failed", msg)
 		}
-		http.Error(w, "session: "+err.Error(), status)
 		return
 	}
 
