@@ -114,6 +114,9 @@ jobs:
         working-directory: apps/android
         env:
           SENTRY_DSN_ANDROID: ${{ secrets.SENTRY_DSN_ANDROID }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT_ANDROID: ${{ secrets.SENTRY_PROJECT_ANDROID }}
         run: ./gradlew assembleRelease --no-daemon
 
       - name: Upload to GitHub Release

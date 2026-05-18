@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("io.sentry.android.gradle") version "4.11.0"
 }
 
 android {
@@ -72,6 +73,19 @@ android {
             "/META-INF/NOTICE*",
         )
     }
+}
+
+sentry {
+    org = System.getenv("SENTRY_ORG")
+    projectName = System.getenv("SENTRY_PROJECT_ANDROID")
+    authToken = System.getenv("SENTRY_AUTH_TOKEN")
+
+    includeProguardMapping = true
+    autoUploadProguardMapping = true
+    uploadNativeSymbols = true
+    autoUploadNativeSymbols = true
+    includeNativeSources = true
+    includeSourceContext = true
 }
 
 dependencies {

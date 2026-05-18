@@ -174,6 +174,26 @@ jobs:
             -exportPath "$EXPORT_PATH" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
 
+      - name: Install sentry-cli
+        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' && secrets.SENTRY_ORG != '' && secrets.SENTRY_PROJECT_IOS != '' }}
+        run: |
+          curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION="2.40.0" sh
+
+      - name: Upload dSYMs to Sentry
+        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' && secrets.SENTRY_ORG != '' && secrets.SENTRY_PROJECT_IOS != '' }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT_IOS: ${{ secrets.SENTRY_PROJECT_IOS }}
+        run: |
+          test -d "$ARCHIVE_PATH/dSYMs"
+          sentry-cli debug-files upload \
+            --auth-token "$SENTRY_AUTH_TOKEN" \
+            --org "$SENTRY_ORG" \
+            --project "$SENTRY_PROJECT_IOS" \
+            --include-sources \
+            "$ARCHIVE_PATH/dSYMs"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:

@@ -9,7 +9,7 @@ Add these repository secrets before expecting remote events:
 - `SENTRY_DSN_IOS`
 - `SENTRY_DSN_ANDROID`
 
-Optional later, for symbol and source uploads:
+Add these too for release-time symbol and source uploads:
 
 - `SENTRY_AUTH_TOKEN`
 - `SENTRY_ORG`
@@ -26,6 +26,8 @@ Optional later, for symbol and source uploads:
   - session creation
   - agent switching
   are captured with endpoint, assistant, and session context.
+- iOS release builds upload dSYMs to Sentry with `sentry-cli`.
+- Android release builds use the Sentry Android Gradle plugin to upload JVM source context and native symbols.
 
 ## Why this exists
 
@@ -33,6 +35,25 @@ The harness bearer token is minted in memory on every server startup. A saved mo
 
 The current UI now treats that state as `Paired`, not verified, and maps auth failures to a re-pair instruction instead of a raw `Auth(message: "auth")` banner.
 
-## Next step
+## Secret values
 
-Once Sentry projects exist, add the DSNs as repo secrets and cut a new build. That is enough to start receiving these handled mobile errors remotely.
+- `SENTRY_DSN_IOS`: DSN for the `swe-kitty-ios` Sentry project
+- `SENTRY_DSN_ANDROID`: DSN for the `swe-kitty-android` Sentry project
+- `SENTRY_AUTH_TOKEN`: org token with release and project write access
+- `SENTRY_ORG`: Sentry org slug
+- `SENTRY_PROJECT_IOS`: iOS project slug
+- `SENTRY_PROJECT_ANDROID`: Android project slug
+
+## Relationship to Rust
+
+The shared error model can live in Rust, but Sentry SDK startup and final event submission stay native:
+
+- iOS needs the Apple Sentry SDK
+- Android needs the Android Sentry SDK
+
+So the right shared split is:
+
+- Rust: structured error classification, error codes, event context
+- Native apps: DSN injection, SDK initialization, crash/log upload, and platform breadcrumbs
+
+The current implementation already uses that boundary pragmatically: the apps capture Rust-surfaced failures with platform Sentry SDKs.
