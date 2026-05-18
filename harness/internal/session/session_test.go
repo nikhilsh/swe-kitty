@@ -207,6 +207,9 @@ func testRegistry(t *testing.T, root string, scripts map[string]string) *agents.
 
 func waitForOutput(t *testing.T, sess *Session, want string) {
 	t.Helper()
+	if bytes.Contains(sess.Snapshot(), []byte(want)) {
+		return
+	}
 	sub := sess.Subscribe()
 	defer sess.Unsubscribe(sub)
 
@@ -220,6 +223,9 @@ func waitForOutput(t *testing.T, sess *Session, want string) {
 				return
 			}
 		case <-deadline:
+			if bytes.Contains(sess.Snapshot(), []byte(want)) {
+				return
+			}
 			t.Fatalf("timed out waiting for %q in %q", want, out.String())
 		}
 	}
