@@ -6,6 +6,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.Article
 import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material.icons.outlined.Public
@@ -31,6 +32,7 @@ fun ProjectScreen(
     val statuses by store.statusBySession.collectAsState()
     val status = statuses[session.id]
     var menuExpanded by remember { mutableStateOf(false) }
+    var browserMode by remember { mutableStateOf(BrowserMode.Preview) }
     val scope = rememberCoroutineScope()
 
     Scaffold(
@@ -47,6 +49,12 @@ fun ProjectScreen(
                     IconButton(onClick = onOpenDrawer) { Icon(Icons.Default.Menu, contentDescription = "Sessions") }
                 },
                 actions = {
+                    IconButton(onClick = {
+                        browserMode = if (browserMode == BrowserMode.Memory) BrowserMode.Preview else BrowserMode.Memory
+                        scope.launch { pagerState.animateScrollToPage(ProjectTab.Browser.ordinal) }
+                    }) {
+                        Icon(Icons.Outlined.Article, contentDescription = "Memory")
+                    }
                     Box {
                         AssistChip(
                             onClick = { menuExpanded = true },
@@ -103,7 +111,7 @@ fun ProjectScreen(
                 when (ProjectTab.entries[page]) {
                     ProjectTab.Terminal -> TerminalPage(store, session)
                     ProjectTab.Chat     -> ChatPage(store, session)
-                    ProjectTab.Browser  -> BrowserPage(store, session)
+                    ProjectTab.Browser  -> BrowserPage(store, session, browserMode)
                 }
             }
         }

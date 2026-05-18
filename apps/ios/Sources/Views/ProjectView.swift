@@ -18,6 +18,7 @@ struct ProjectView: View {
     let session: ProjectSession
 
     @State private var tab: ProjectTab = .terminal
+    @State private var browserMode: BrowserMode = .preview
 
     var body: some View {
         VStack(spacing: 0) {
@@ -34,6 +35,7 @@ struct ProjectView: View {
             HealthDot(health: store.statusBySession[session.id]?.health ?? "unknown")
             Text(session.name).font(.headline)
             Spacer()
+            memoryButton
             agentBadge
         }
         .padding(.horizontal)
@@ -50,6 +52,16 @@ struct ProjectView: View {
             .offset(y: 40)
         }
         .padding(.bottom, 44)
+    }
+
+    private var memoryButton: some View {
+        Button {
+            tab = .browser
+            browserMode = (browserMode == .memory) ? .preview : .memory
+        } label: {
+            Image(systemName: browserMode == .memory ? "doc.text.fill" : "doc.text")
+        }
+        .accessibilityLabel("Open session memory")
     }
 
     private var agentBadge: some View {
@@ -81,7 +93,7 @@ struct ProjectView: View {
         switch tab {
         case .terminal: TerminalTab(session: session)
         case .chat:     ChatTab(session: session)
-        case .browser:  BrowserTab(session: session)
+        case .browser:  BrowserTab(session: session, mode: browserMode)
         }
     }
 }

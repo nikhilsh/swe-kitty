@@ -27,6 +27,28 @@ sealed class ConnectionState {
 
 data class Endpoint(val url: String = "", val token: String = "") {
     val isComplete get() = url.isNotBlank() && token.isNotBlank()
+
+    /**
+     * http(s) base for resolving relative server paths (`/preview/<uuid>/`,
+     * `/memory/sessions/<uuid>.html`). ws → http, wss → https; host + port
+     * preserved.
+     */
+    val httpBaseUrl: String?
+        get() {
+            val trimmed = url.trim().trimEnd('/')
+            if (trimmed.isEmpty()) return null
+            val (scheme, rest) = trimmed.split("://", limit = 2).let {
+                if (it.size == 2) it[0].lowercase() to it[1] else return null
+            }
+            val newScheme = when (scheme) {
+                "ws"   -> "http"
+                "wss"  -> "https"
+                "http", "https" -> scheme
+                else   -> return null
+            }
+            val authority = rest.substringBefore('/').substringBefore('?').substringBefore('#')
+            return "$newScheme://$authority"
+        }
 }
 
 /**

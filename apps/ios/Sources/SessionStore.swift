@@ -15,6 +15,23 @@ struct StoredEndpoint: Equatable {
     static let empty = StoredEndpoint(url: "", token: "")
 
     var isComplete: Bool { !url.isEmpty && !token.isEmpty }
+
+    /// HTTP(S) base for resolving relative paths the server sends back
+    /// (`/preview/<uuid>/`, `/memory/sessions/<uuid>.html`). The ws/wss
+    /// URL we store is converted scheme-only; host + port are preserved.
+    var httpBaseURL: URL? {
+        guard var components = URLComponents(string: url) else { return nil }
+        switch components.scheme?.lowercased() {
+        case "ws":   components.scheme = "http"
+        case "wss":  components.scheme = "https"
+        case "http", "https": break
+        default: return nil
+        }
+        components.path = ""
+        components.query = nil
+        components.fragment = nil
+        return components.url
+    }
 }
 
 @Observable
