@@ -44,6 +44,17 @@ mkdir -p "$JNI_DIR"
     --target x86 \
     build $CARGO_PROFILE_FLAG --lib )
 
+# UniFFI's generated Kotlin loader expects the component library name
+# `uniffi_swe_kitty_core`, while cargo names the cdylib from `[lib].name`
+# as `libswe_kitty_core.so`. Provide the UniFFI-expected filename in each
+# ABI directory so the packaged APK can actually load the Rust core.
+for abi_dir in "$JNI_DIR"/*; do
+  [[ -d "$abi_dir" ]] || continue
+  if [[ -f "$abi_dir/libswe_kitty_core.so" ]]; then
+    cp "$abi_dir/libswe_kitty_core.so" "$abi_dir/libuniffi_swe_kitty_core.so"
+  fi
+done
+
 # UniFFI Kotlin bindings.
 rm -rf "$KOTLIN_OUT"
 mkdir -p "$KOTLIN_OUT"
