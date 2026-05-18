@@ -124,4 +124,4 @@ jobs:
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           cp ../.deploy.yaml .deploy.yaml
-          fyra push --appname swekitty
+          script -q -e -c "fyra push --appname swekitty" /dev/null
