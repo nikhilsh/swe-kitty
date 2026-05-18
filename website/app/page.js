@@ -94,7 +94,7 @@ export default function HomePage() {
             <p className="prompt">session[alpha] :: attach</p>
             <p className="muted">terminal stream stable</p>
             <p className="muted">browser preview synchronized</p>
-            <p className="accent">assistant swap -> codex</p>
+            <p className="accent">assistant swap -&gt; codex</p>
             <p className="muted">handoff + memory rendering active</p>
           </div>
         </div>

@@ -10,7 +10,7 @@ const publicDir = path.join(root, "public");
 const repo = process.env.GITHUB_REPO || "nikhilsh/swe-kitty";
 const siteOrigin = process.env.SITE_ORIGIN || "https://swekitty.kaopeh.com";
 
-const response = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, {
+const response = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=10`, {
   headers: {
     "User-Agent": "swe-kitty-website-build",
     Accept: "application/vnd.github+json",
@@ -18,10 +18,19 @@ const response = await fetch(`https://api.github.com/repos/${repo}/releases/late
 });
 
 if (!response.ok) {
-  throw new Error(`failed to fetch latest release: ${response.status} ${response.statusText}`);
+  throw new Error(`failed to fetch releases: ${response.status} ${response.statusText}`);
 }
 
-const release = await response.json();
+const releases = await response.json();
+if (!Array.isArray(releases) || releases.length === 0) {
+  throw new Error("no releases returned from GitHub");
+}
+
+const release =
+  releases.find((item) => !item.draft && !item.prerelease) ??
+  releases.find((item) => !item.draft) ??
+  releases[0];
+
 const assets = Array.isArray(release.assets) ? release.assets : [];
 
 const ipa = assets.find((asset) => asset.name === "SweKitty.ipa");
