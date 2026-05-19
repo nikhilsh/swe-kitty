@@ -270,6 +270,7 @@ fun ChatPage(store: SessionStore, session: ProjectSession) {
                 exitCode = null,
                 durationMs = null,
                 diffSummary = null,
+                pendingOptions = emptyList(),
             )
         }
         ?: emptyList()
@@ -386,7 +387,10 @@ private fun ConversationEventRow(ev: ConversationItem, onQuickReply: (String) ->
 
 @Composable
 private fun PendingInputCard(ev: ConversationItem, onQuickReply: (String) -> Unit) {
-    val options = remember(ev.content) { ConversationRenderer.extractPendingOptions(ev.content) }
+    val options = remember(ev) {
+        ev.pendingOptions.takeIf { it.isNotEmpty() }
+            ?: ConversationRenderer.extractPendingOptions(ev.content)
+    }
     Card(
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.28f)),

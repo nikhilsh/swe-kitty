@@ -51,6 +51,7 @@ dictionary ConversationItem {
     i32? exit_code;
     u64? duration_ms;
     string? diff_summary;
+    sequence<string> pending_options;
 };
 
 [Error]

@@ -342,7 +342,10 @@ private struct ConversationPendingInputCard: View {
     let event: ConversationItem
     let onQuickReply: (String) -> Void
 
-    private var options: [String] { ConversationRenderer.extractPendingOptions(from: event.content) }
+    private var options: [String] {
+        if !event.pendingOptions.isEmpty { return event.pendingOptions }
+        return ConversationRenderer.extractPendingOptions(from: event.content)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {

@@ -81,7 +81,8 @@ struct ChatTab: View {
                 command: nil,
                 exitCode: nil,
                 durationMs: nil,
-                diffSummary: nil
+                diffSummary: nil,
+                pendingOptions: []
             )
         }
     }

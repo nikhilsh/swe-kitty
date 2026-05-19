@@ -24,6 +24,11 @@ pub fn item_from_chat_event(event: &ChatEvent, idx: usize) -> ConversationItem {
     };
     let kind = classify_kind(&role, &event.content, diff_summary.is_some());
     let status = classify_status(&event.content, exit_code);
+    let pending_options = if kind == "pending_input" {
+        extract_pending_options(&event.content)
+    } else {
+        Vec::new()
+    };
 
     ConversationItem {
         id: format!("{}-{}", event.ts, idx),
@@ -38,7 +43,90 @@ pub fn item_from_chat_event(event: &ChatEvent, idx: usize) -> ConversationItem {
         exit_code,
         duration_ms,
         diff_summary,
+        pending_options,
     }
+}
+
+fn extract_pending_options(text: &str) -> Vec<String> {
+    let mut opts: Vec<String> = Vec::new();
+    let mut push = |s: &str| {
+        let trimmed = s.trim().trim_matches(['.', ',', ' ', '`']).to_string();
+        if trimmed.is_empty() {
+            return;
+        }
+        if !opts.iter().any(|o| o.eq_ignore_ascii_case(&trimmed)) {
+            opts.push(trimmed);
+        }
+    };
+
+    for raw in text.lines() {
+        let line = raw.trim();
+        if line.is_empty() {
+            continue;
+        }
+
+        // Numbered menu: "1. Yes" / "2) No"
+        if let Some(rest) = strip_numbered_prefix(line) {
+            push(rest);
+            continue;
+        }
+
+        // Bullet list: "- option" / "* option"
+        if let Some(rest) = line.strip_prefix("- ").or_else(|| line.strip_prefix("* ")) {
+            push(rest);
+            continue;
+        }
+
+        // "option: foo" / "choice: foo"
+        let lower = line.to_ascii_lowercase();
+        for prefix in ["option:", "choice:"] {
+            if let Some(rest) = lower.strip_prefix(prefix) {
+                let orig_start = line.len() - rest.len();
+                push(&line[orig_start..]);
+            }
+        }
+
+        // Codex-style "[A]pprove / [E]dit / [R]eject"
+        if line.contains("[A]") || line.contains("[E]") || line.contains("[R]") {
+            for part in line.split('/') {
+                let cleaned = part.trim();
+                if cleaned.starts_with('[') {
+                    push(cleaned);
+                }
+            }
+        }
+    }
+
+    opts.truncate(8);
+    opts
+}
+
+fn strip_numbered_prefix(line: &str) -> Option<&str> {
+    let mut end = 0;
+    let mut saw_digit = false;
+    for (i, c) in line.char_indices() {
+        if c.is_ascii_digit() {
+            saw_digit = true;
+            end = i + c.len_utf8();
+            continue;
+        }
+        if !saw_digit {
+            return None;
+        }
+        // Accept "N. " or "N) "
+        if c == '.' || c == ')' {
+            let after = &line[end + c.len_utf8()..];
+            if let Some(stripped) = after.strip_prefix(' ') {
+                return Some(stripped);
+            }
+            if after.is_empty() {
+                return Some("");
+            }
+            return None;
+        }
+        return None;
+    }
+    None
 }
 
 fn normalized_role(role: &str) -> String {
@@ -387,5 +475,54 @@ mod tests {
         let item = item_from_chat_event(&ev("watchdog", "stall detected"), 0);
         assert_eq!(item.role, "system");
         assert_eq!(item.kind, "system");
+    }
+
+    #[test]
+    fn pending_options_numbered_menu() {
+        let item = item_from_chat_event(
+            &ev(
+                "assistant",
+                "Which one?\n1. Yes\n2. Yes, don't ask again\n3. No",
+            ),
+            0,
+        );
+        assert_eq!(item.kind, "pending_input");
+        assert_eq!(
+            item.pending_options,
+            vec![
+                "Yes".to_string(),
+                "Yes, don't ask again".to_string(),
+                "No".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn pending_options_bullets() {
+        let item = item_from_chat_event(
+            &ev(
+                "assistant",
+                "request_user_input: pick one\n- Run\n- Skip\n- Cancel",
+            ),
+            0,
+        );
+        assert_eq!(
+            item.pending_options,
+            vec!["Run".to_string(), "Skip".to_string(), "Cancel".to_string()]
+        );
+    }
+
+    #[test]
+    fn pending_options_codex_approval() {
+        let item = item_from_chat_event(&ev("assistant", "[A]pprove / [E]dit / [R]eject"), 0);
+        assert!(item.pending_options.iter().any(|o| o.contains("[A]")));
+        assert!(item.pending_options.iter().any(|o| o.contains("[E]")));
+        assert!(item.pending_options.iter().any(|o| o.contains("[R]")));
+    }
+
+    #[test]
+    fn pending_options_empty_when_not_pending() {
+        let item = item_from_chat_event(&ev("assistant", "Just a message"), 0);
+        assert!(item.pending_options.is_empty());
     }
 }

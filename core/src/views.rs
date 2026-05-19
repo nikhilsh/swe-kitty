@@ -73,4 +73,9 @@ pub struct ConversationItem {
     pub duration_ms: Option<u64>,
     #[serde(default)]
     pub diff_summary: Option<String>,
+    /// Detected reply options for `kind == "pending_input"` items —
+    /// numbered menus ("1. Yes / 2. No"), bullet lists, Codex
+    /// "[A]pprove / [E]dit / [R]eject", etc. Empty when no menu detected.
+    #[serde(default)]
+    pub pending_options: Vec<String>,
 }

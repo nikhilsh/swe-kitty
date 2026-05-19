@@ -956,10 +956,11 @@ public struct ConversationItem {
     public var exitCode: Int32?
     public var durationMs: UInt64?
     public var diffSummary: String?
+    public var pendingOptions: [String]
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(id: String, role: String, kind: String, status: String, content: String, ts: String, files: [ViewEventFile], toolName: String?, command: String?, exitCode: Int32?, durationMs: UInt64?, diffSummary: String?) {
+    public init(id: String, role: String, kind: String, status: String, content: String, ts: String, files: [ViewEventFile], toolName: String?, command: String?, exitCode: Int32?, durationMs: UInt64?, diffSummary: String?, pendingOptions: [String]) {
         self.id = id
         self.role = role
         self.kind = kind
@@ -972,6 +973,7 @@ public struct ConversationItem {
         self.exitCode = exitCode
         self.durationMs = durationMs
         self.diffSummary = diffSummary
+        self.pendingOptions = pendingOptions
     }
 }
 
@@ -1015,6 +1017,9 @@ extension ConversationItem: Equatable, Hashable {
         if lhs.diffSummary != rhs.diffSummary {
             return false
         }
+        if lhs.pendingOptions != rhs.pendingOptions {
+            return false
+        }
         return true
     }
 
@@ -1031,6 +1036,7 @@ extension ConversationItem: Equatable, Hashable {
         hasher.combine(exitCode)
         hasher.combine(durationMs)
         hasher.combine(diffSummary)
+        hasher.combine(pendingOptions)
     }
 }
 
@@ -1053,7 +1059,8 @@ public struct FfiConverterTypeConversationItem: FfiConverterRustBuffer {
                 command: FfiConverterOptionString.read(from: &buf), 
                 exitCode: FfiConverterOptionInt32.read(from: &buf), 
                 durationMs: FfiConverterOptionUInt64.read(from: &buf), 
-                diffSummary: FfiConverterOptionString.read(from: &buf)
+                diffSummary: FfiConverterOptionString.read(from: &buf), 
+                pendingOptions: FfiConverterSequenceString.read(from: &buf)
         )
     }
 
@@ -1070,6 +1077,7 @@ public struct FfiConverterTypeConversationItem: FfiConverterRustBuffer {
         FfiConverterOptionInt32.write(value.exitCode, into: &buf)
         FfiConverterOptionUInt64.write(value.durationMs, into: &buf)
         FfiConverterOptionString.write(value.diffSummary, into: &buf)
+        FfiConverterSequenceString.write(value.pendingOptions, into: &buf)
     }
 }
 
@@ -2030,6 +2038,31 @@ fileprivate struct FfiConverterOptionTypePreviewInfo: FfiConverterRustBuffer {
         case 1: return try FfiConverterTypePreviewInfo.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceString: FfiConverterRustBuffer {
+    typealias SwiftType = [String]
+
+    public static func write(_ value: [String], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterString.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [String] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [String]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterString.read(from: &buf))
+        }
+        return seq
     }
 }
 

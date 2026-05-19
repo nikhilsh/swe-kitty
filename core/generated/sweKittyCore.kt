@@ -1996,7 +1996,8 @@ data class ConversationItem (
     var `command`: kotlin.String?, 
     var `exitCode`: kotlin.Int?, 
     var `durationMs`: kotlin.ULong?, 
-    var `diffSummary`: kotlin.String?
+    var `diffSummary`: kotlin.String?, 
+    var `pendingOptions`: List<kotlin.String>
 ) {
     
     companion object
@@ -2020,6 +2021,7 @@ public object FfiConverterTypeConversationItem: FfiConverterRustBuffer<Conversat
             FfiConverterOptionalInt.read(buf),
             FfiConverterOptionalULong.read(buf),
             FfiConverterOptionalString.read(buf),
+            FfiConverterSequenceString.read(buf),
         )
     }
 
@@ -2035,7 +2037,8 @@ public object FfiConverterTypeConversationItem: FfiConverterRustBuffer<Conversat
             FfiConverterOptionalString.allocationSize(value.`command`) +
             FfiConverterOptionalInt.allocationSize(value.`exitCode`) +
             FfiConverterOptionalULong.allocationSize(value.`durationMs`) +
-            FfiConverterOptionalString.allocationSize(value.`diffSummary`)
+            FfiConverterOptionalString.allocationSize(value.`diffSummary`) +
+            FfiConverterSequenceString.allocationSize(value.`pendingOptions`)
     )
 
     override fun write(value: ConversationItem, buf: ByteBuffer) {
@@ -2051,6 +2054,7 @@ public object FfiConverterTypeConversationItem: FfiConverterRustBuffer<Conversat
             FfiConverterOptionalInt.write(value.`exitCode`, buf)
             FfiConverterOptionalULong.write(value.`durationMs`, buf)
             FfiConverterOptionalString.write(value.`diffSummary`, buf)
+            FfiConverterSequenceString.write(value.`pendingOptions`, buf)
     }
 }
 
@@ -2746,6 +2750,34 @@ public object FfiConverterOptionalTypePreviewInfo: FfiConverterRustBuffer<Previe
         } else {
             buf.put(1)
             FfiConverterTypePreviewInfo.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.String>> {
+    override fun read(buf: ByteBuffer): List<kotlin.String> {
+        val len = buf.getInt()
+        return List<kotlin.String>(len) {
+            FfiConverterString.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<kotlin.String>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterString.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<kotlin.String>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterString.write(it, buf)
         }
     }
 }
