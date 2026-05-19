@@ -616,6 +616,19 @@ class SessionStore : ViewModel(), SweKittyDelegate {
         } else {
             HarnessState.Failed("Disconnected: $reason")
         }
+        Telemetry.capture(
+            error = IllegalStateException(reason),
+            message = "Android disconnected from harness",
+            tags = mapOf(
+                "surface" to "android",
+                "phase" to "disconnect",
+                "reason_code" to connectionReasonCode(reason),
+            ),
+            extras = mapOf(
+                "endpoint" to _endpoint.value.displayHost,
+                "detail" to reason,
+            ),
+        )
     }
 
     override fun onConnectionHealth(sessionId: String, health: ConnectionHealth) {
@@ -634,6 +647,20 @@ class SessionStore : ViewModel(), SweKittyDelegate {
             is ConnectionHealth.Disconnected -> {
                 if (health.auth) {
                     _harness.value = HarnessState.Failed("Pairing expired. Scan a new QR code from the harness.")
+                    Telemetry.capture(
+                        error = IllegalStateException(health.reason),
+                        message = "Android connection health auth failure",
+                        tags = mapOf(
+                            "surface" to "android",
+                            "phase" to "connection_health",
+                            "reason_code" to "auth_expired",
+                        ),
+                        extras = mapOf(
+                            "endpoint" to _endpoint.value.displayHost,
+                            "session_id" to sessionId,
+                            "detail" to health.reason,
+                        ),
+                    )
                 } else {
                     onDisconnected(health.reason)
                 }
@@ -651,6 +678,17 @@ class SessionStore : ViewModel(), SweKittyDelegate {
     private fun isAuth(t: Throwable): Boolean {
         val text = (t.message ?: t.toString()).lowercase()
         return text.contains("auth(") || text == "auth" || text.contains("unauthorized")
+    }
+
+    private fun connectionReasonCode(reason: String): String {
+        val lower = reason.lowercase()
+        return when {
+            lower.contains("auth") || lower.contains("401") || lower.contains("unauthorized") -> "auth_expired"
+            lower.contains("timed out") || lower.contains("timeout") -> "timeout"
+            lower.contains("refused") -> "ws_refused"
+            lower.contains("network") -> "network_unavailable"
+            else -> "disconnected"
+        }
     }
 
     companion object {

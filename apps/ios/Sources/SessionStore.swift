@@ -562,6 +562,19 @@ final class SessionStore {
         } else {
             harness = .failed("Disconnected: \(reason)")
         }
+        Telemetry.capture(
+            error: NSError(domain: "SessionStore", code: 0, userInfo: [NSLocalizedDescriptionKey: reason]),
+            message: "iOS disconnected from harness",
+            tags: [
+                "surface": "ios",
+                "phase": "disconnect",
+                "reason_code": Self.connectionReasonCode(from: reason),
+            ],
+            extras: [
+                "endpoint": endpoint.displayHost,
+                "detail": reason,
+            ]
+        )
     }
 
     /// Per-session connection health, driven by the Rust core's reconnect
@@ -584,6 +597,20 @@ final class SessionStore {
             connectionHealthBySession[sessionID] = health
             if auth {
                 harness = .failed("Pairing expired. Scan a new QR code from the harness.")
+                Telemetry.capture(
+                    error: NSError(domain: "SessionStore", code: 401, userInfo: [NSLocalizedDescriptionKey: reason]),
+                    message: "iOS connection health auth failure",
+                    tags: [
+                        "surface": "ios",
+                        "phase": "connection_health",
+                        "reason_code": "auth_expired",
+                    ],
+                    extras: [
+                        "endpoint": endpoint.displayHost,
+                        "session_id": sessionID,
+                        "detail": reason,
+                    ]
+                )
             } else {
                 ingestDisconnected(reason)
             }
@@ -706,6 +733,23 @@ private extension SessionStore {
     static func isAuth(_ error: Error) -> Bool {
         let text = String(describing: error).lowercased()
         return text.contains("auth(") || text == "auth" || text.contains("unauthorized")
+    }
+
+    static func connectionReasonCode(from reason: String) -> String {
+        let lower = reason.lowercased()
+        if lower.contains("auth") || lower.contains("401") || lower.contains("unauthorized") {
+            return "auth_expired"
+        }
+        if lower.contains("timed out") || lower.contains("timeout") {
+            return "timeout"
+        }
+        if lower.contains("refused") {
+            return "ws_refused"
+        }
+        if lower.contains("network") {
+            return "network_unavailable"
+        }
+        return "disconnected"
     }
 }
 
