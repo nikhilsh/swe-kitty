@@ -15,6 +15,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -84,10 +85,7 @@ func runUp(args []string) int {
 	}
 	srv := ws.New(store, mgr)
 
-	hostURL := *publicURL
-	if hostURL == "" {
-		hostURL = "http://localhost" + *addr
-	}
+	hostURL := resolveHostURL(*addr, *local, *publicURL)
 
 	// Pairing URL consumed by the mobile QR scanner (apps/{ios,android}).
 	// Format: swekitty://<host>[:port]?token=<bearer>
@@ -146,6 +144,55 @@ func runUp(args []string) int {
 	_ = httpSrv.Shutdown(ctx)
 	mgr.Close()
 	return 0
+}
+
+func resolveHostURL(addr string, local bool, publicURL string) string {
+	if strings.TrimSpace(publicURL) != "" {
+		return publicURL
+	}
+	if local {
+		if ip := firstLANIPv4(); ip != "" {
+			return "http://" + ip + addr
+		}
+		if host := hostname(); host != "" {
+			return "http://" + host + ".local" + addr
+		}
+	}
+	return "http://localhost" + addr
+}
+
+func firstLANIPv4() string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return ""
+	}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, a := range addrs {
+			var ip net.IP
+			switch v := a.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip == nil {
+				continue
+			}
+			ip = ip.To4()
+			if ip == nil || ip.IsLoopback() {
+				continue
+			}
+			return ip.String()
+		}
+	}
+	return ""
 }
 
 // pairingURL builds the swekitty:// deep link encoded into the QR.
