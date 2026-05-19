@@ -114,11 +114,11 @@ private struct ConversationRenderer {
 
     static func toolSections(for event: ConversationItem) -> [ToolSection] {
         var sections: [ToolSection] = []
-        let meta = extractMetadata(from: event.content)
+        let meta = extractMetadata(from: event)
         if meta.exitCode != nil || meta.duration != nil {
             sections.append(.meta(meta))
         }
-        if let command = extractCommand(from: event.content) {
+        if let command = extractCommand(from: event) {
             sections.append(.command(command))
         }
 
@@ -169,6 +169,38 @@ private struct ConversationRenderer {
             }
         }
         return sections
+    }
+
+    /// Prefer the Rust classifier output where present; fall back to parsing.
+    /// Keeps the iOS renderer thin per the Rust-first rule in PLAN-2026-05-19.
+    static func extractMetadata(from event: ConversationItem) -> ToolMetadata {
+        let fromRust = ToolMetadata(
+            exitCode: event.exitCode.map { Int($0) },
+            duration: event.durationMs.map { Self.formatDuration($0) }
+        )
+        if fromRust.exitCode != nil || fromRust.duration != nil {
+            return fromRust
+        }
+        return extractMetadata(from: event.content)
+    }
+
+    static func extractCommand(from event: ConversationItem) -> String? {
+        if let typed = event.command, !typed.isEmpty {
+            return typed
+        }
+        return extractCommand(from: event.content)
+    }
+
+    static func formatDuration(_ ms: UInt64) -> String {
+        if ms < 1_000 {
+            return "\(ms)ms"
+        }
+        let seconds = Double(ms) / 1_000.0
+        if seconds < 60 {
+            return String(format: "%.1fs", seconds)
+        }
+        let mins = seconds / 60.0
+        return String(format: "%.1fmin", mins)
     }
 
     static func extractMetadata(from text: String) -> ToolMetadata {
@@ -466,6 +498,9 @@ private struct ConversationToolCard: View {
 
     private var sections: [ToolSection] { ConversationRenderer.toolSections(for: event) }
     private var summary: String {
+        if let command = event.command, !command.isEmpty {
+            return String(command.prefix(80))
+        }
         let firstLine = event.content
             .split(separator: "\n", omittingEmptySubsequences: true)
             .first
@@ -473,6 +508,12 @@ private struct ConversationToolCard: View {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard let firstLine, !firstLine.isEmpty else { return "Tool activity" }
         return String(firstLine.prefix(80))
+    }
+    private var headerLabel: String {
+        if let toolName = event.toolName, !toolName.isEmpty {
+            return toolName.uppercased()
+        }
+        return event.kind.uppercased()
     }
 
     var body: some View {
@@ -483,11 +524,20 @@ private struct ConversationToolCard: View {
                     .foregroundStyle(statusTint)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        Text(event.kind.uppercased())
+                        Text(headerLabel)
                             .font(.caption2.weight(.bold))
                             .tracking(0.7)
                             .foregroundStyle(SweKittyTheme.textSecondary)
                         ConversationStatusChip(status: event.status)
+                        if let diffSummary = event.diffSummary, !diffSummary.isEmpty {
+                            Text(diffSummary.uppercased())
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(SweKittyTheme.textSecondary)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(SweKittyTheme.surface.opacity(0.65))
+                                .clipShape(Capsule())
+                        }
                     }
                     Text(summary)
                         .font(.subheadline)

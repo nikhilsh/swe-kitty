@@ -134,11 +134,23 @@ private object ConversationRenderer {
 
     fun toolSections(event: ConversationItem): List<ToolSection> {
         val sections = mutableListOf<ToolSection>()
-        val (exitCode, duration) = extractToolMetadata(event.content)
-        if (exitCode != null || duration != null) {
-            sections += ToolSection.Meta(exitCode, duration)
+        // Prefer the Rust classifier output (event.exitCode / event.durationMs /
+        // event.command); fall back to in-Swift/Kotlin parsing for older
+        // payloads. Keeps the Kotlin renderer thin per PLAN-2026-05-19.md.
+        val typedExit = event.exitCode?.toInt()
+        val typedDuration = event.durationMs?.let { formatDuration(it) }
+        val (parsedExit, parsedDuration) = if (typedExit == null && typedDuration == null) {
+            extractToolMetadata(event.content)
+        } else {
+            null to null
         }
-        extractCommand(event.content)?.let { sections += ToolSection.Command(it) }
+        val finalExit = typedExit ?: parsedExit
+        val finalDuration = typedDuration ?: parsedDuration
+        if (finalExit != null || finalDuration != null) {
+            sections += ToolSection.Meta(finalExit, finalDuration)
+        }
+        val command = event.command?.takeIf { it.isNotBlank() } ?: extractCommand(event.content)
+        command?.let { sections += ToolSection.Command(it) }
         if (event.files.isNotEmpty()) sections += ToolSection.Files(event.files)
         val trimmed = event.content.trim()
         if (trimmed.isEmpty()) return sections
@@ -178,6 +190,15 @@ private object ConversationRenderer {
             }
         }
         return sections
+    }
+
+    private fun formatDuration(ms: ULong): String {
+        val msLong = ms.toLong()
+        if (msLong < 1_000) return "${msLong}ms"
+        val seconds = msLong / 1_000.0
+        if (seconds < 60) return String.format("%.1fs", seconds)
+        val mins = seconds / 60.0
+        return String.format("%.1fmin", mins)
     }
 
     private fun extractToolMetadata(text: String): Pair<Int?, String?> {
@@ -511,9 +532,12 @@ private fun CodeBlock(language: String?, content: String) {
 private fun ConversationToolCard(ev: ConversationItem) {
     var expanded by remember { mutableStateOf(true) }
     val sections = remember(ev) { ConversationRenderer.toolSections(ev) }
-    val summary = remember(ev.content) {
-        ev.content.lineSequence().firstOrNull()?.trim()?.takeIf { it.isNotEmpty() }?.take(80) ?: "Tool activity"
+    val summary = remember(ev) {
+        val cmd = ev.command?.takeIf { it.isNotBlank() }?.take(80)
+        cmd ?: ev.content.lineSequence().firstOrNull()?.trim()?.takeIf { it.isNotEmpty() }?.take(80)
+            ?: "Tool activity"
     }
+    val headerLabel = ev.toolName?.takeIf { it.isNotBlank() }?.uppercase() ?: ev.kind.uppercase()
 
     Card(
         shape = RoundedCornerShape(18.dp),
@@ -532,13 +556,28 @@ private fun ConversationToolCard(ev: ConversationItem) {
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            ev.kind.uppercase(),
+                            headerLabel,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Bold,
                         )
                         Spacer(Modifier.width(6.dp))
                         StatusChip(ev.status)
+                        ev.diffSummary?.takeIf { it.isNotBlank() }?.let { ds ->
+                            Spacer(Modifier.width(6.dp))
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+                            ) {
+                                Text(
+                                    ds.uppercase(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                )
+                            }
+                        }
                     }
                     Text(summary, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
                 }
