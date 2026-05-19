@@ -1,7 +1,13 @@
 name: release-android
+run-name: release-android (${{ github.event.inputs.release_tag || github.ref_name }})
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag/name to publish assets under (no git tag required)
+        required: false
+        type: string
   push:
     tags: ['v*']
 
@@ -15,19 +21,34 @@ jobs:
   ensure-release:
     name: ensure GitHub Release exists
     runs-on: ubuntu-24.04
+    outputs:
+      release_tag: ${{ steps.release-tag.outputs.value }}
     steps:
       - uses: actions/checkout@v4
+      - name: Resolve release tag
+        id: release-tag
+        run: |
+          if [ -n "${{ github.event.inputs.release_tag }}" ]; then
+            tag="${{ github.event.inputs.release_tag }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            tag="${GITHUB_REF_NAME}"
+          else
+            tag="manual-${GITHUB_SHA::7}-${GITHUB_RUN_NUMBER}"
+          fi
+          echo "value=$tag" >> "$GITHUB_OUTPUT"
       - name: Create release if missing
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.release-tag.outputs.value }}
         run: |
-          if ! gh release view "${{ github.ref_name }}" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "${{ github.ref_name }}" -R "$GITHUB_REPOSITORY" \
-              --title "swe-kitty ${{ github.ref_name }}" \
+          if ! gh release view "${RELEASE_TAG}" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "${RELEASE_TAG}" -R "$GITHUB_REPOSITORY" \
+              --target "${GITHUB_SHA}" \
+              --title "swe-kitty ${RELEASE_TAG}" \
               --notes "Auto-generated release. See workflow logs for build provenance." \
-              || gh release view "${{ github.ref_name }}" -R "$GITHUB_REPOSITORY" >/dev/null
+              || gh release view "${RELEASE_TAG}" -R "$GITHUB_REPOSITORY" >/dev/null
           else
-            echo "release ${{ github.ref_name }} already exists - leaving as is"
+            echo "release ${RELEASE_TAG} already exists - leaving as is"
           fi
 
   build-apk:
@@ -122,9 +143,10 @@ jobs:
       - name: Upload to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.ensure-release.outputs.release_tag }}
         run: |
           APK_PATH="$(find apps/android/app/build/outputs/apk/release -maxdepth 1 -name 'app-release*.apk' | head -n 1)"
           test -n "$APK_PATH"
-          gh release upload "${{ github.ref_name }}" \
+          gh release upload "${RELEASE_TAG}" \
             "$APK_PATH" \
             --clobber
