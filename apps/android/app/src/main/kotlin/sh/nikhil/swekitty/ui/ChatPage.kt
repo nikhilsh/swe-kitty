@@ -265,6 +265,11 @@ fun ChatPage(store: SessionStore, session: ProjectSession) {
                 content = ev.content,
                 ts = ev.ts,
                 files = ev.files,
+                toolName = null,
+                command = null,
+                exitCode = null,
+                durationMs = null,
+                diffSummary = null,
             )
         }
         ?: emptyList()

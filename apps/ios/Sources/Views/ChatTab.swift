@@ -76,7 +76,12 @@ struct ChatTab: View {
                 status: "done",
                 content: ev.content,
                 ts: ev.ts,
-                files: ev.files
+                files: ev.files,
+                toolName: nil,
+                command: nil,
+                exitCode: nil,
+                durationMs: nil,
+                diffSummary: nil
             )
         }
     }
