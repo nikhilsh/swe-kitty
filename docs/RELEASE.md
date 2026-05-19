@@ -61,23 +61,30 @@ git push origin main
 git push origin v0.0.X
 ```
 
-3. The tag now triggers four workflows:
+3. The tag triggers a single workflow, `release.yml`, which orchestrates everything as one DAG:
 
-- `release-ios`
-- `release-android`
-- `release-harness`
-- `release-orchestrator`
+```
+prepare ──┬── ios ─────┐
+          ├── android ─┼── deploy-website (Fyra)
+          └── harness ─┘
+```
 
-The orchestrator waits for the first three to finish, verifies the release assets, rebuilds the website, and pushes it to Fyra automatically.
+- `prepare` resolves the tag and ensures the GitHub Release exists
+- `ios`, `android`, `harness` are reusable workflows (`./.github/workflows/release-*.yml`) called in parallel via `workflow_call`
+- `deploy-website` verifies all required assets are present and then pushes the static site to Fyra
 
-Manual watch example:
+Manual release without a git tag (e.g. to ship `main` HEAD):
 
 ```sh
-gh run list --limit 10
-gh run watch <release-ios-run-id> --exit-status
-gh run watch <release-android-run-id> --exit-status
-gh run watch <release-harness-run-id> --exit-status
-gh run watch <release-orchestrator-run-id> --exit-status
+gh workflow run release.yml -f release_tag=manual-$(date -u +%Y-%m-%d)
+gh run watch --exit-status   # picks the latest run automatically
+```
+
+Or watch a specific run:
+
+```sh
+gh run list --workflow release --limit 5
+gh run watch <run-id> --exit-status
 ```
 
 4. Verify the GitHub Release has the expected assets:
@@ -94,7 +101,7 @@ gh release view v0.0.X -R nikhilsh/swe-kitty --json assets,tagName,url,name
 
 5. The website deploy is automatic after successful tagged releases.
 
-Manual fallback if the orchestrator fails after release assets are already present:
+Manual fallback if `deploy-website` fails after release assets are already present:
 
 ```sh
 cd website
@@ -161,18 +168,20 @@ gh secret list -R nikhilsh/swe-kitty
 
 ### Website shows no APK button
 
-The latest GitHub Release used by the site does not yet contain an APK asset. Fix the Android release first, then rerun the orchestrator or rebuild/push the website manually.
+The latest GitHub Release used by the site does not yet contain an APK asset. Re-run the failed `android` job from the `release` workflow, or rebuild the site manually.
 
-### Orchestrator fails before website deploy
+### `deploy-website` job fails
 
 Check:
 
 - `FYRA_TOKEN` exists in repo secrets
-- `release-ios`, `release-android`, and `release-harness` all succeeded for the same tag
-- the GitHub Release has:
+- The `ios`, `android`, and `harness` jobs in the same `release` run all succeeded
+- The GitHub Release has:
   - `SweKitty.ipa`
   - `app-release.apk`
-  - the four harness binaries
+  - the four harness binaries (`swe-kitty-harness-{linux,darwin}-{amd64,arm64}`)
+
+To re-run just the website deploy without rebuilding the apps, use "Re-run failed jobs" on the `release` workflow run — `prepare`, `ios`, `android`, `harness` are skipped if green and only `deploy-website` re-runs.
 
 ### Fyra push fails from `website/out`
 

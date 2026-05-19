@@ -1,0 +1,153 @@
+name: release
+run-name: release (${{ github.event.inputs.release_tag || github.ref_name }})
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag/name to publish assets under (no git tag required)
+        required: false
+        type: string
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.release_tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: resolve tag + ensure release
+    runs-on: ubuntu-24.04
+    outputs:
+      release_tag: ${{ steps.tag.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.release_tag }}" ]; then
+            tag="${{ github.event.inputs.release_tag }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            tag="${GITHUB_REF_NAME}"
+          else
+            tag="manual-${GITHUB_SHA::7}-${GITHUB_RUN_NUMBER}"
+          fi
+          echo "value=$tag" >> "$GITHUB_OUTPUT"
+      - name: Create release if missing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.tag.outputs.value }}
+        run: |
+          if ! gh release view "${RELEASE_TAG}" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "${RELEASE_TAG}" -R "$GITHUB_REPOSITORY" \
+              --target "${GITHUB_SHA}" \
+              --title "swe-kitty ${RELEASE_TAG}" \
+              --notes "Auto-generated release. See workflow logs for build provenance." \
+              || gh release view "${RELEASE_TAG}" -R "$GITHUB_REPOSITORY" >/dev/null
+          else
+            echo "release ${RELEASE_TAG} already exists - leaving as is"
+          fi
+
+  ios:
+    name: ios
+    needs: prepare
+    uses: ./.github/workflows/release-ios.yml
+    with:
+      release_tag: ${{ needs.prepare.outputs.release_tag }}
+    secrets: inherit
+
+  android:
+    name: android
+    needs: prepare
+    uses: ./.github/workflows/release-android.yml
+    with:
+      release_tag: ${{ needs.prepare.outputs.release_tag }}
+    secrets: inherit
+
+  harness:
+    name: harness
+    needs: prepare
+    uses: ./.github/workflows/release-harness.yml
+    with:
+      release_tag: ${{ needs.prepare.outputs.release_tag }}
+    secrets: inherit
+
+  deploy-website:
+    name: deploy website to Fyra
+    needs: [prepare, ios, android, harness]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    env:
+      RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          release_json="$(gh release view "${RELEASE_TAG}" -R "$GITHUB_REPOSITORY" --json assets,tagName,url)"
+          echo "${release_json}" | jq '.assets | map(.name)'
+          missing=()
+          for required in \
+            SweKitty.ipa \
+            app-release.apk \
+            swe-kitty-harness-linux-amd64 \
+            swe-kitty-harness-linux-arm64 \
+            swe-kitty-harness-darwin-amd64 \
+            swe-kitty-harness-darwin-arm64; do
+            if ! jq -e --arg name "$required" '.assets[] | select(.name == $name)' >/dev/null <<<"$release_json"; then
+              missing+=("$required")
+            fi
+          done
+          if [ "${#missing[@]}" -ne 0 ]; then
+            echo "release ${RELEASE_TAG} missing assets: ${missing[*]}" >&2
+            exit 1
+          fi
+          echo "release ${RELEASE_TAG} has all required assets"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install Fyra CLI
+        run: curl -fsSL https://fyra.sh/install.sh | sh
+
+      - name: Configure Fyra auth
+        env:
+          FYRA_TOKEN: ${{ secrets.FYRA_TOKEN }}
+          FYRA_SERVER: ${{ secrets.FYRA_SERVER }}
+        run: |
+          mkdir -p "$HOME/.fyra"
+          cat > "$HOME/.fyra/config.yaml" <<EOF
+          server_address: ${FYRA_SERVER:-server.fyra.sh:50051}
+          token: ${FYRA_TOKEN}
+          EOF
+
+      - name: Build website against latest release
+        working-directory: website
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy website to Fyra
+        working-directory: website/out
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          rm -f .deploy.yaml
+          script -q -e -c "fyra link swekitty" /dev/null
+          script -q -e -c "fyra push" /dev/null

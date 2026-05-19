@@ -1,60 +1,22 @@
 name: release-harness
-run-name: release-harness (${{ github.event.inputs.release_tag || github.ref_name }})
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       release_tag:
-        description: Release tag/name to publish assets under (no git tag required)
-        required: false
+        description: Release tag/name to publish assets under
+        required: true
         type: string
-  push:
-    tags: ['v*']
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
-permissions:
-  contents: write
-
 jobs:
-  ensure-release:
-    name: ensure GitHub Release exists
-    runs-on: ubuntu-24.04
-    outputs:
-      release_tag: ${{ steps.release-tag.outputs.value }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Resolve release tag
-        id: release-tag
-        run: |
-          if [ -n "${{ github.event.inputs.release_tag }}" ]; then
-            tag="${{ github.event.inputs.release_tag }}"
-          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            tag="${GITHUB_REF_NAME}"
-          else
-            tag="manual-${GITHUB_SHA::7}-${GITHUB_RUN_NUMBER}"
-          fi
-          echo "value=$tag" >> "$GITHUB_OUTPUT"
-      - name: Create release if missing
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ steps.release-tag.outputs.value }}
-        run: |
-          if ! gh release view "${RELEASE_TAG}" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "${RELEASE_TAG}" -R "$GITHUB_REPOSITORY" \
-              --target "${GITHUB_SHA}" \
-              --title "swe-kitty ${RELEASE_TAG}" \
-              --notes "Auto-generated release. See workflow logs for build provenance." \
-              || gh release view "${RELEASE_TAG}" -R "$GITHUB_REPOSITORY" >/dev/null
-          else
-            echo "release ${RELEASE_TAG} already exists — leaving as is"
-          fi
-
   build-binaries:
     name: cross-compile harness
-    needs: ensure-release
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     strategy:
       matrix:
         include:
@@ -74,7 +36,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: '0'
-          RELEASE_TAG: ${{ needs.ensure-release.outputs.release_tag }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
         working-directory: harness
         run: |
           mkdir -p dist
@@ -85,7 +47,7 @@ jobs:
         if: hashFiles('harness/go.mod') != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ needs.ensure-release.outputs.release_tag }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           gh release upload "${RELEASE_TAG}" \
             harness/dist/swe-kitty-harness-${{ matrix.goos }}-${{ matrix.goarch }} \
@@ -94,15 +56,15 @@ jobs:
   upload-installer:
     name: upload install.sh
     runs-on: ubuntu-24.04
-    needs:
-      - ensure-release
-      - build-binaries
+    needs: build-binaries
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Upload install.sh if present
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ needs.ensure-release.outputs.release_tag }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           if [ -f scripts/install.sh ]; then
             gh release upload "${RELEASE_TAG}" scripts/install.sh --clobber

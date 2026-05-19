@@ -1,64 +1,22 @@
 name: release-ios
-run-name: release-ios (${{ github.event.inputs.release_tag || github.ref_name }})
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       release_tag:
-        description: Release tag/name to publish assets under (no git tag required)
-        required: false
+        description: Release tag/name to publish assets under
+        required: true
         type: string
-  push:
-    tags: ['v*']
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
-permissions:
-  contents: write
-
-concurrency:
-  group: release-ios-${{ github.event.inputs.release_tag || github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  ensure-release:
-    name: ensure GitHub Release exists
-    runs-on: ubuntu-24.04
-    outputs:
-      release_tag: ${{ steps.release-tag.outputs.value }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Resolve release tag
-        id: release-tag
-        run: |
-          if [ -n "${{ github.event.inputs.release_tag }}" ]; then
-            tag="${{ github.event.inputs.release_tag }}"
-          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            tag="${GITHUB_REF_NAME}"
-          else
-            tag="manual-${GITHUB_SHA::7}-${GITHUB_RUN_NUMBER}"
-          fi
-          echo "value=$tag" >> "$GITHUB_OUTPUT"
-      - name: Create release if missing
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ steps.release-tag.outputs.value }}
-        run: |
-          if ! gh release view "${RELEASE_TAG}" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "${RELEASE_TAG}" -R "$GITHUB_REPOSITORY" \
-              --target "${GITHUB_SHA}" \
-              --title "swe-kitty ${RELEASE_TAG}" \
-              --notes "Auto-generated release. See workflow logs for build provenance." \
-              || gh release view "${RELEASE_TAG}" -R "$GITHUB_REPOSITORY" >/dev/null
-          else
-            echo "release ${RELEASE_TAG} already exists - leaving as is"
-          fi
-
   build-ipa:
     name: ad-hoc signed IPA
-    needs: ensure-release
     runs-on: macos-26
+    permissions:
+      contents: write
     env:
       APP_NAME: SweKitty
       SCHEME: SweKitty
@@ -217,18 +175,13 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SweKitty-ipa-${{ needs.ensure-release.outputs.release_tag }}
+          name: SweKitty-ipa-${{ inputs.release_tag }}
           path: ${{ env.EXPORT_PATH }}/SweKitty.ipa
 
       - name: Upload to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ needs.ensure-release.outputs.release_tag }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           gh release upload "${RELEASE_TAG}" \
-            "$EXPORT_PATH/SweKitty.ipa" --clobber \
-            || gh release create "${RELEASE_TAG}" \
-                 "$EXPORT_PATH/SweKitty.ipa" \
-                 --target "${GITHUB_SHA}" \
-                 --title "SweKitty ${RELEASE_TAG}" \
-                 --notes "Ad-hoc signed IPA for sideload. UDIDs must be in the provisioning profile."
+            "$EXPORT_PATH/SweKitty.ipa" --clobber
