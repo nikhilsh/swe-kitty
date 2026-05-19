@@ -18,8 +18,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -784,20 +782,18 @@ class SessionStore : ViewModel(), SweKittyDelegate {
     }
 
     private suspend fun waitUntilCommandReady(timeoutMs: Long = 6_000L): Boolean {
-        return runCatching {
-            withTimeoutOrNull(timeoutMs) {
-                while (true) {
-                    val h = _harness.value
-                    if (h is HarnessState.Linked || h is HarnessState.Live || h is HarnessState.Reconnecting) {
-                        return@withTimeoutOrNull true
-                    }
-                    if (h is HarnessState.Failed) {
-                        return@withTimeoutOrNull false
-                    }
-                    delay(100)
-                }
-            } ?: false
-        }.getOrDefault(false)
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            val h = _harness.value
+            if (h is HarnessState.Linked || h is HarnessState.Live || h is HarnessState.Reconnecting) {
+                return true
+            }
+            if (h is HarnessState.Failed) {
+                return false
+            }
+            delay(100)
+        }
+        return false
     }
 
     private fun shellQuoted(raw: String): String {
