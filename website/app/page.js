@@ -1,4 +1,5 @@
 import release from "../data/release.json";
+import PublishedLocal from "./PublishedLocal";
 
 const releaseUrl = release.releaseUrl || "https://github.com/nikhilsh/swe-kitty/releases/latest";
 const docsUrl = "https://github.com/nikhilsh/swe-kitty/tree/main/docs";
@@ -11,16 +12,6 @@ const publishedUtcLabel = release.publishedAt
       timeStyle: "short",
       timeZone: "UTC",
     })} UTC`
-  : null;
-const publishedLocalLabel = release.publishedAt
-  ? `${new Date(release.publishedAt).toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      timeZoneName: "short",
-    })} Local`
   : null;
 
 const featureCards = [
@@ -74,9 +65,8 @@ export default function HomePage() {
           {release.tagName ? (
             <p className="release-meta">
               Current release: <strong>{release.tagName}</strong>
-              {publishedUtcLabel || publishedLocalLabel
-                ? ` · published ${publishedUtcLabel ?? ""}${publishedUtcLabel && publishedLocalLabel ? " · " : ""}${publishedLocalLabel ?? ""}`
-                : ""}
+              {publishedUtcLabel ? <> · published {publishedUtcLabel}</> : null}
+              {release.publishedAt ? <PublishedLocal iso={release.publishedAt} /> : null}
             </p>
           ) : null}
           <div className="actions">
