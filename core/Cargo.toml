@@ -24,6 +24,8 @@ url = "2"
 parking_lot = "0.12"
 once_cell = "1"
 uuid = { version = "1", features = ["v4"] }
+russh = "0.45"
+russh-keys = "0.45"
 
 [build-dependencies]
 uniffi = { version = "0.28", features = ["build"] }
