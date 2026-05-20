@@ -105,6 +105,8 @@ function htmlPage({ tagName, publishedAt, releaseUrl, ipa, apk, manifestUrl, ota
 <meta name="description" content="Mobile harness for Claude Code and Codex sessions.">
 <meta name="theme-color" content="#0c0e12" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
 <style>
   :root {
     color-scheme: light dark;
@@ -171,14 +173,13 @@ function htmlPage({ tagName, publishedAt, releaseUrl, ipa, apk, manifestUrl, ota
     margin-bottom: clamp(10px, 2vw, 18px);
   }
   .mark {
-    width: 48px; height: 48px;
+    width: 56px; height: 56px;
     border-radius: 14px;
-    background: var(--accent);
-    display: grid; place-items: center;
+    overflow: hidden;
     box-shadow: var(--shadow-md);
     flex-shrink: 0;
   }
-  .mark svg { width: 28px; height: 28px; color: var(--accent-text); }
+  .mark img { width: 100%; height: 100%; display: block; }
   h1 {
     font-size: clamp(28px, 6vw, 36px);
     line-height: 1.05;
@@ -197,18 +198,17 @@ function htmlPage({ tagName, publishedAt, releaseUrl, ipa, apk, manifestUrl, ota
   .release {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px 6px 8px;
-    border-radius: 999px;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    padding: 8px 14px 8px 10px;
+    border-radius: 14px;
     background: var(--accent-soft);
     color: var(--fg-soft);
     font-size: 13px;
+    line-height: 1.35;
     margin-bottom: clamp(20px, 5vw, 32px);
     font-feature-settings: "tnum";
     max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
   .release .dot {
     width: 8px; height: 8px;
@@ -217,8 +217,14 @@ function htmlPage({ tagName, publishedAt, releaseUrl, ipa, apk, manifestUrl, ota
     box-shadow: 0 0 0 3px var(--accent-soft);
     flex-shrink: 0;
   }
-  .release strong { color: var(--fg); font-weight: 600; }
-  .release .sep { color: var(--muted); margin: 0 4px; }
+  .release strong {
+    color: var(--fg);
+    font-weight: 600;
+    word-break: break-all;
+    /* Long release tags like "manual-2026-05-20-polish3" can break at
+       the hyphens on narrow screens rather than overflowing. */
+  }
+  .release .sep { color: var(--muted); }
   .release .when { color: var(--muted); }
 
   /* --- sections --- */
@@ -331,10 +337,7 @@ function htmlPage({ tagName, publishedAt, releaseUrl, ipa, apk, manifestUrl, ota
 <main>
   <header class="hero">
     <div class="mark" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="14" r="6"/>
-        <path d="M5 8l1.5-3M19 8l-1.5-3M9 10v0M15 10v0M10.5 14h3"/>
-      </svg>
+      <img src="/icon-128.png" width="56" height="56" alt="">
     </div>
     <h1>SweKitty</h1>
   </header>
