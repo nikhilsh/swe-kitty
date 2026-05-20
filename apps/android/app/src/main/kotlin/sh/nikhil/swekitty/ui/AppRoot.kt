@@ -23,6 +23,10 @@ fun AppRoot(store: SessionStore) {
     val scope = rememberCoroutineScopeCompat()
     var showSettings by remember { mutableStateOf(false) }
     var showSplash by remember { mutableStateOf(true) }
+    var showAddServer by remember { mutableStateOf(false) }
+    var showAgentPicker by remember { mutableStateOf(false) }
+    var showSearch by remember { mutableStateOf(false) }
+    var showVoice by remember { mutableStateOf(false) }
 
     val selectedId by store.selectedId.collectAsState()
     val sessions by store.sessions.collectAsState()
@@ -55,12 +59,20 @@ fun AppRoot(store: SessionStore) {
                     onOpenDrawer = { scope.launch { drawerState.open() } },
                 )
             } else {
-                EmptyDetail(
-                    harness = harness,
-                    endpoint = endpoint,
-                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                HomeScreen(
+                    store = store,
                     onOpenSettings = { showSettings = true },
-                    onReconnect = { store.reconnect() },
+                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                    onAddServer = { showAddServer = true },
+                    onNewSession = {
+                        if (harness is HarnessState.Live || harness is HarnessState.Linked) {
+                            showAgentPicker = true
+                        } else {
+                            showAddServer = true
+                        }
+                    },
+                    onSearch = { showSearch = true },
+                    onVoice = { showVoice = true },
                 )
             }
         }
@@ -70,6 +82,36 @@ fun AppRoot(store: SessionStore) {
         SettingsScreen(
             store = store,
             onDismiss = { showSettings = false },
+        )
+    }
+
+    if (showAddServer) {
+        AddServerSheet(store = store, onDismiss = { showAddServer = false })
+    }
+
+    if (showAgentPicker) {
+        AgentPickerSheet(
+            store = store,
+            headerNote = null,
+            onDismiss = { showAgentPicker = false },
+        )
+    }
+
+    if (showSearch) {
+        SessionSearchScreen(store = store, onDismiss = { showSearch = false })
+    }
+
+    if (showVoice) {
+        VoiceDictationScreen(
+            onTranscript = { transcript ->
+                // No active session — Stage 5 will route the transcript
+                // into the agent picker as the initial prompt.
+                if (harness is HarnessState.Live || harness is HarnessState.Linked) {
+                    store.createSession(assistant = "claude")
+                }
+                @Suppress("UNUSED_EXPRESSION") transcript
+            },
+            onDismiss = { showVoice = false },
         )
     }
 

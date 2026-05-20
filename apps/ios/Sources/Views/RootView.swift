@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(SessionStore.self) private var store
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var showSettings = false
 
     var body: some View {
@@ -10,39 +11,42 @@ struct RootView: View {
         ZStack {
             GlassAppBackground()
 
-            NavigationSplitView {
-                ProjectListView(showSettings: $showSettings)
-            } detail: {
-                if let id = store.selectedSessionID,
-                   let session = store.sessions.first(where: { $0.id == id }) {
-                    ProjectView(session: session)
-                } else {
-                    DetailEmptyState(
-                        harness: store.harness,
-                        endpoint: store.endpoint,
-                        onConfigure: { showSettings = true },
-                        onReconnect: { store.reconnect() }
-                    )
+            if horizontalSizeClass == .compact {
+                HomeView()
+            } else {
+                NavigationSplitView {
+                    ProjectListView(showSettings: $showSettings)
+                } detail: {
+                    if let id = store.selectedSessionID,
+                       let session = store.sessions.first(where: { $0.id == id }) {
+                        ProjectView(session: session)
+                    } else {
+                        DetailEmptyState(
+                            harness: store.harness,
+                            endpoint: store.endpoint,
+                            onConfigure: { showSettings = true },
+                            onReconnect: { store.reconnect() }
+                        )
+                    }
                 }
-            }
-        }
-        .sheet(isPresented: $showSettings) {
-            SettingsSheet()
-        }
-        .onAppear {
-            // First launch: open settings if endpoint is unconfigured.
-            if !store.endpoint.isComplete {
-                showSettings = true
-            } else if store.harness == .disconnected {
-                store.connect()
+                .sheet(isPresented: $showSettings) {
+                    SettingsSheet()
+                }
+                .onAppear {
+                    if !store.endpoint.isComplete {
+                        showSettings = true
+                    } else if store.harness == .disconnected {
+                        store.connect()
+                    }
+                }
             }
         }
     }
 }
 
-/// Empty detail pane. Replaces the bare `ContentUnavailableView` so the
-/// user has a single place that explains harness state + actionable next
-/// step at any given moment.
+/// Empty detail pane (iPad-only path now). Replaces the bare
+/// `ContentUnavailableView` so the user has a single place that
+/// explains harness state + actionable next step at any given moment.
 private struct DetailEmptyState: View {
     let harness: HarnessState
     let endpoint: StoredEndpoint
