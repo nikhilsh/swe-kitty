@@ -8,17 +8,35 @@ sidesteps the host-permissions corner cases (claude refuses
 `--dangerously-skip-permissions` under root; bare-binary deploys hit
 this).
 
-## Recommended: docker compose
+## Recommended: docker compose (pull from GHCR)
+
+Every tagged or dispatched release of this repo publishes
+`ghcr.io/nikhilsh/swe-kitty:<tag>` and `ghcr.io/nikhilsh/swe-kitty:latest`
+to the GitHub Container Registry. Multi-arch (linux/amd64 + linux/arm64).
 
 ```bash
-git clone git@github.com:nikhilsh/swe-kitty.git
+git clone git@github.com:nikhilsh/swe-kitty.git    # for the compose file
 cd swe-kitty/harness/docker
 
 cp .env.example .env
-$EDITOR .env                                    # fill ANTHROPIC_API_KEY / OPENAI_API_KEY
+$EDITOR .env                                       # fill ANTHROPIC_API_KEY / OPENAI_API_KEY
 
-docker compose up -d --build                    # one container, port 1977
+docker compose pull                                # fetch latest image from ghcr.io
+docker compose up -d                               # one container, port 1977
 docker logs swe-kitty-harness 2>&1 | grep -E 'token:|pairing:' | tail -2
+```
+
+Pin to a specific version instead of `latest`:
+
+```bash
+HARNESS_IMAGE_TAG=v0.0.27 docker compose up -d
+```
+
+Build locally instead of pulling (useful while iterating on the
+Dockerfile / agent set):
+
+```bash
+docker compose up -d --build
 ```
 
 The pairing log line is your `swekitty://…?token=…` URL — tap it on the

@@ -15,7 +15,11 @@
 services:
   swe-kitty:
     container_name: swe-kitty-harness
-    image: swekitty/harness:latest
+    # Pull from GHCR by default (release.yml builds + pushes on every
+    # tagged or dispatched release). `docker compose up -d` pulls it.
+    # Pass `--build` to compile locally instead (uses the build: block
+    # below); useful while iterating on the Dockerfile.
+    image: ghcr.io/nikhilsh/swe-kitty:${HARNESS_IMAGE_TAG:-latest}
     build:
       # The build context is the repo root so we can COPY harness/ and
       # agents/ in. Relative-from-this-file: ../..

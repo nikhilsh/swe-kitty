@@ -13,9 +13,14 @@
 #   cd harness/docker && docker compose up -d --build
 
 # Stage 1: cross-compile the harness binary against the linux target the
-# runtime image uses. Pin Go to 1.22 to match CI.
-FROM golang:1.22-bookworm AS builder
+# runtime image uses. Pin Go to 1.22 to match CI. `--platform=$BUILDPLATFORM`
+# keeps the builder running on the runner's native arch (no qemu overhead),
+# while honouring $TARGETOS/$TARGETARCH for the output binary — this is the
+# canonical buildx pattern for cross-compiled Go images.
+FROM --platform=$BUILDPLATFORM golang:1.22-bookworm AS builder
 
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /src
 COPY harness/go.mod harness/go.sum ./harness/
 RUN cd harness && go mod download
@@ -23,7 +28,7 @@ RUN cd harness && go mod download
 COPY harness ./harness/
 ARG RELEASE_TAG=docker-dev
 RUN cd harness \
-    && CGO_ENABLED=0 GOOS=linux go build \
+    && CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build \
          -trimpath \
          -ldflags "-s -w -X main.version=${RELEASE_TAG}" \
          -o /out/swe-kitty-harness \
