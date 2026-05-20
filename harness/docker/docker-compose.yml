@@ -28,12 +28,17 @@ services:
       args:
         RELEASE_TAG: ${RELEASE_TAG:-docker-dev}
     restart: unless-stopped
-    ports:
-      - "1977:1977"
-      # Preview port range — agents that spawn dev servers (npm run dev,
-      # python -m http.server, etc.) get an allocated port here and the
-      # harness reverse-proxies it through /preview/<uuid>/ to mobile.
-      - "5000-5019:5000-5019"
+    # Host networking so the harness's `--local` mDNS advertisement
+    # (multicast on 224.0.0.251:5353) escapes the container and reaches
+    # the LAN — phone-side `_swe-kitty._tcp.local` browsers can't see
+    # the advertiser otherwise. Trade-off: `ports:` is ignored under
+    # host net, so :1977 + the preview range bind directly to the host
+    # IP. On a single-box dev/prod setup (docs/SELF-HOST.md) that's the
+    # intended deployment anyway.
+    network_mode: host
+    # Append `--local` so the harness advertises on LAN by default.
+    # Otherwise mirrors the Dockerfile's default CMD.
+    command: ["up", "--addr", ":1977", "--agents-dir", "/etc/swe-kitty/agents", "--local"]
     env_file:
       # Hold ANTHROPIC_API_KEY / OPENAI_API_KEY here. Sample at
       # .env.example.
