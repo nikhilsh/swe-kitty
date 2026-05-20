@@ -168,9 +168,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
+          # No node_modules or package-lock.json — the website is now a
+          # plain static generator (`website/build.mjs`) with zero deps.
+          # We only need Node itself for fetch() and the build script.
           node-version: '20'
-          cache: npm
-          cache-dependency-path: website/package-lock.json
 
       - name: Install Fyra CLI
         run: curl -fsSL https://fyra.sh/install.sh | sh
@@ -191,14 +192,13 @@ jobs:
         env:
           GITHUB_REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npm ci
-          npm run build
+        run: node build.mjs
 
       - name: Deploy website to Fyra
         working-directory: website/out
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          rm -f .deploy.yaml
-          script -q -e -c "fyra link swekitty" /dev/null
+          # `.deploy.yaml` is already written by build.mjs with the right
+          # slug + domain — no `fyra link` round-trip needed. `script`
+          # provides a PTY so fyra's progress bar doesn't error out.
           script -q -e -c "fyra push" /dev/null
