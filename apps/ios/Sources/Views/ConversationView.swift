@@ -557,6 +557,7 @@ private struct ConversationBlockStack: View {
 private struct ConversationMarkdownBlock: View {
     let text: String
     let role: ConversationRole
+    @Environment(AppearanceStore.self) private var appearance
 
     var body: some View {
         Group {
@@ -569,11 +570,10 @@ private struct ConversationMarkdownBlock: View {
                 Text(text)
             }
         }
-        // Monospaced body text for the litter / codex aesthetic —
-        // litter's conversation reference uses monospace for every
-        // user + assistant turn. SF Mono is the system mono on Apple
-        // platforms; .system(.body, design: .monospaced) picks it up.
-        .font(.system(.body, design: .monospaced))
+        // Body font picked from AppearanceStore — defaults to monospaced
+        // (litter / codex aesthetic) but the user can flip to system in
+        // Settings → Font.
+        .font(appearance.bodyFont())
         .foregroundStyle(role == .system ? SweKittyTheme.textSecondary : SweKittyTheme.textBody)
         .textSelection(.enabled)
         .frame(maxWidth: .infinity, alignment: .leading)

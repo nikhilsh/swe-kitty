@@ -615,14 +615,20 @@ private fun RoleIcon(role: ConversationRole, tint: Color = role.accent) {
 
 @Composable
 private fun MarkdownBlock(text: String, role: ConversationRole) {
+    val appearance = sh.nikhil.swekitty.LocalAppearanceStore.current
+    val fontChoice by appearance.fontFamily.collectAsState()
+    val resolvedFont = if (fontChoice == sh.nikhil.swekitty.AppearanceStore.FontFamily.Monospaced) {
+        FontFamily.Monospace
+    } else {
+        FontFamily.Default
+    }
     SelectionContainer {
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,
-            // Monospaced body text matches litter's chat — every turn
-            // (user + assistant) renders in mono for the codex
-            // aesthetic. See iOS ConversationView for parity.
-            fontFamily = FontFamily.Monospace,
+            // Body font driven by AppearanceStore — defaults to monospace
+            // (litter / codex aesthetic), switchable via Settings → Font.
+            fontFamily = resolvedFont,
             color = if (role == ConversationRole.System) {
                 MaterialTheme.colorScheme.onSurfaceVariant
             } else {

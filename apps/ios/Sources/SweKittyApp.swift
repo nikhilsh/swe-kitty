@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct SweKittyApp: App {
     @State private var store = SessionStore()
+    @State private var appearance = AppearanceStore()
     @State private var showSplash: Bool = true
 
     init() {
@@ -14,6 +15,8 @@ struct SweKittyApp: App {
             ZStack {
                 RootView()
                     .environment(store)
+                    .environment(appearance)
+                    .preferredColorScheme(appearance.themeMode.colorScheme)
                     .onOpenURL { url in
                         applyPairingURL(url)
                     }

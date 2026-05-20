@@ -1,15 +1,20 @@
 import SwiftUI
 
-/// Settings — focused on managing **existing** servers and inspecting
-/// state. Adding a new server (any of QR / mDNS / SSH / manual) goes
-/// through [`AddServerSheet`] now, so this screen no longer has the
-/// huge pairing form that used to dominate it.
+/// Settings — sectioned IA matching the litter reference: Support /
+/// Appearance / Font / Conversation / Servers / Harness / About /
+/// Experimental. The big pairing form is gone — adding a server (any of
+/// QR / mDNS / SSH / manual) goes through [`AddServerSheet`].
 struct SettingsSheet: View {
     @Environment(SessionStore.self) private var store
+    @Environment(AppearanceStore.self) private var appearance
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openURL
 
     @State private var showAddServer = false
+    @State private var showAppearance = false
+
+    private let sponsorURL = URL(string: "https://github.com/sponsors/nikhilsh")!
 
     var body: some View {
         NavigationStack {
@@ -18,12 +23,15 @@ struct SettingsSheet: View {
                     .ignoresSafeArea()
 
                 ScrollView {
-                    VStack(spacing: 14) {
-                        savedServersCard
-                        addServerCTA
-                        pairedCard
-                        statusCard
-                        aboutCard
+                    VStack(spacing: 22) {
+                        supportSection
+                        appearanceSection
+                        fontSection
+                        conversationSection
+                        serversSection
+                        harnessSection
+                        aboutSection
+                        experimentalSection
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 18)
@@ -42,161 +50,181 @@ struct SettingsSheet: View {
                 AddServerSheet()
                     .environment(store)
             }
+            .sheet(isPresented: $showAppearance) {
+                AppearanceSheet()
+                    .environment(appearance)
+                    .presentationDetents([.medium, .large])
+            }
         }
     }
 
-    // MARK: - Section cards
+    // MARK: - Sections
+
+    private var supportSection: some View {
+        SettingsSection(title: "Support") {
+            SettingsRow(
+                icon: "heart.fill",
+                title: "Sponsor on GitHub",
+                subtitle: "Help fund continued development"
+            ) {
+                openURL(sponsorURL)
+            }
+        }
+    }
+
+    private var appearanceSection: some View {
+        SettingsSection(title: "Appearance") {
+            SettingsRow(
+                icon: "paintpalette.fill",
+                title: "Theme",
+                subtitle: appearance.themeMode.label
+            ) {
+                showAppearance = true
+            }
+        }
+    }
+
+    private var fontSection: some View {
+        SettingsSection(title: "Font") {
+            @Bindable var bindable = appearance
+            ForEach(Array(AppearanceStore.FontFamily.allCases.enumerated()), id: \.element.id) { idx, choice in
+                SettingsPickerRow(
+                    icon: choice == .monospaced ? "chevron.left.forwardslash.chevron.right" : "textformat",
+                    title: choice.label,
+                    isSelected: appearance.fontFamily == choice
+                ) {
+                    bindable.fontFamily = choice
+                }
+                if idx < AppearanceStore.FontFamily.allCases.count - 1 {
+                    Divider().background(SweKittyTheme.separator)
+                }
+            }
+        }
+    }
+
+    private var conversationSection: some View {
+        SettingsSection(title: "Conversation") {
+            @Bindable var bindable = appearance
+            SettingsToggleRow(
+                icon: "rectangle.compress.vertical",
+                title: "Collapse Turns",
+                subtitle: "Show only summaries; tap to expand",
+                isOn: $bindable.collapseTurns
+            )
+        }
+    }
 
     @ViewBuilder
-    private var savedServersCard: some View {
-        if !store.savedServers.isEmpty {
-            SettingsCard(title: "Saved Servers") {
-                ForEach(store.savedServers) { server in
-                    HStack(spacing: 10) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(server.name)
-                                .foregroundStyle(SweKittyTheme.textBody)
-                            Text(server.endpoint.displayHost)
-                                .font(.caption)
-                                .foregroundStyle(SweKittyTheme.textSecondary)
-                        }
-                        Spacer()
-                        if server.isDefault {
-                            Text("Default")
-                                .font(.caption2.weight(.bold))
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 3)
-                                .glassCapsule(interactive: false, tint: SweKittyTheme.accentStrong.opacity(0.22))
-                        }
-                        Button("Use") {
-                            store.selectSavedServer(server.id, autoConnect: true)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(SweKittyTheme.accentStrong)
-                        Button(role: .destructive) {
-                            store.removeSavedServer(server.id)
-                        } label: {
-                            Image(systemName: "trash")
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    if server.id != store.savedServers.last?.id {
+    private var serversSection: some View {
+        SettingsSection(title: "Servers") {
+            if !store.savedServers.isEmpty {
+                ForEach(Array(store.savedServers.enumerated()), id: \.element.id) { idx, server in
+                    ServerListRow(server: server, store: store)
+                    if idx < store.savedServers.count - 1 {
                         Divider().background(SweKittyTheme.separator)
                     }
                 }
+                Divider().background(SweKittyTheme.separator)
+            }
+            SettingsRow(
+                icon: "plus.circle.fill",
+                title: "Add server",
+                subtitle: "QR · LAN discover · SSH · paste URL+token"
+            ) {
+                showAddServer = true
             }
         }
-    }
-
-    private var addServerCTA: some View {
-        Button {
-            showAddServer = true
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.title3)
-                    .foregroundStyle(SweKittyTheme.accentStrong)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Add server")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(SweKittyTheme.textPrimary)
-                    Text("QR · LAN discover · SSH · paste URL+token")
-                        .font(.caption)
-                        .foregroundStyle(SweKittyTheme.textMuted)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(SweKittyTheme.textMuted)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 14)
-            .glassRoundedRect()
-        }
-        .buttonStyle(.plain)
     }
 
     @ViewBuilder
-    private var pairedCard: some View {
+    private var harnessSection: some View {
         if store.endpoint.isComplete {
-            SettingsCard(title: "Paired Harness") {
-                FieldRow(label: "Host", value: store.endpoint.displayHost)
-                Divider().background(SweKittyTheme.separator)
-                FieldRow(label: "Token", value: "Stored in Keychain")
-                Divider().background(SweKittyTheme.separator)
-                Button(role: .destructive) {
-                    store.endpoint = .empty
-                    store.disconnect()
-                } label: {
-                    HStack(spacing: 10) {
-                        Label("Forget harness", systemImage: "trash")
-                            .foregroundStyle(SweKittyTheme.danger)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(SweKittyTheme.textMuted)
+            SettingsSection(title: "Harness") {
+                HStack {
+                    Image(systemName: "link")
+                        .frame(width: 22)
+                        .foregroundStyle(SweKittyTheme.accentStrong)
+                    Text("Link")
+                        .foregroundStyle(SweKittyTheme.textBody)
+                    Spacer()
+                    HarnessBadge(state: store.harness)
+                }
+                if let reason = store.harness.failureReason {
+                    Divider().background(SweKittyTheme.separator)
+                    Text(reason)
+                        .font(.footnote)
+                        .foregroundStyle(SweKittyTheme.danger)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                if shouldShowReconnect {
+                    Divider().background(SweKittyTheme.separator)
+                    SettingsRow(
+                        icon: "arrow.clockwise",
+                        title: "Reconnect",
+                        subtitle: nil
+                    ) {
+                        store.reconnect()
                     }
                 }
-                .buttonStyle(.plain)
-                .padding(.vertical, 4)
+                Divider().background(SweKittyTheme.separator)
+                SettingsRow(
+                    icon: "trash",
+                    title: "Forget harness",
+                    subtitle: store.endpoint.displayHost,
+                    iconTint: SweKittyTheme.danger,
+                    titleTint: SweKittyTheme.danger
+                ) {
+                    store.endpoint = .empty
+                    store.disconnect()
+                }
             }
         }
     }
 
-    private var statusCard: some View {
-        SettingsCard(title: "Harness Status") {
+    private var aboutSection: some View {
+        SettingsSection(title: "About") {
             HStack {
-                Text("Link")
+                Image(systemName: "app.fill")
+                    .frame(width: 22)
+                    .foregroundStyle(SweKittyTheme.accentStrong)
+                Text("App")
                     .foregroundStyle(SweKittyTheme.textBody)
                 Spacer()
-                HarnessBadge(state: store.harness)
+                Text("SweKitty")
+                    .foregroundStyle(SweKittyTheme.textSecondary)
             }
-            if let reason = store.harness.failureReason {
+            if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
                 Divider().background(SweKittyTheme.separator)
-                Text(reason)
-                    .font(.footnote)
-                    .foregroundStyle(SweKittyTheme.danger)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            if shouldShowReconnect {
-                Divider().background(SweKittyTheme.separator)
-                Button {
-                    store.reconnect()
-                } label: {
-                    HStack(spacing: 10) {
-                        Label("Reconnect", systemImage: "arrow.clockwise")
-                            .foregroundStyle(SweKittyTheme.textBody)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(SweKittyTheme.textMuted)
-                    }
+                HStack {
+                    Image(systemName: "number")
+                        .frame(width: 22)
+                        .foregroundStyle(SweKittyTheme.accentStrong)
+                    Text("Version")
+                        .foregroundStyle(SweKittyTheme.textBody)
+                    Spacer()
+                    Text(version)
+                        .foregroundStyle(SweKittyTheme.textSecondary)
                 }
-                .buttonStyle(.plain)
-                .padding(.vertical, 4)
             }
+        }
+    }
+
+    private var experimentalSection: some View {
+        SettingsSection(title: "Experimental") {
+            Text("Voice dictation and debug flags arrive in a later stage of the litter rebuild.")
+                .font(.footnote)
+                .foregroundStyle(SweKittyTheme.textMuted)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
     /// Only show the manual Reconnect affordance when the link
-    /// actually needs intervention. While the harness is live or
-    /// in the middle of an auto-reconnect, surfacing a button labeled
-    /// "Reconnect" reads like the connection is broken when it isn't.
+    /// actually needs intervention.
     private var shouldShowReconnect: Bool {
         guard store.endpoint.isComplete else { return false }
         switch store.harness {
         case .disconnected, .failed: return true
         default: return false
-        }
-    }
-
-    private var aboutCard: some View {
-        SettingsCard(title: "About") {
-            FieldRow(label: "App", value: "SweKitty")
-            if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
-                Divider().background(SweKittyTheme.separator)
-                FieldRow(label: "Version", value: version)
-            }
         }
     }
 }
@@ -227,17 +255,18 @@ enum PairingURL {
 
 // MARK: - Building blocks
 
-private struct SettingsCard<Content: View>: View {
+/// Section: small uppercased mono label + a glass card containing rows.
+struct SettingsSection<Content: View>: View {
     let title: String
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(title.uppercased())
-                .font(.caption2.weight(.semibold))
-                .tracking(0.8)
+                .font(.system(.caption2, design: .monospaced).weight(.semibold))
+                .tracking(0.9)
                 .foregroundStyle(SweKittyTheme.textSecondary)
-                .padding(.bottom, 8)
+                .padding(.horizontal, 4)
 
             VStack(alignment: .leading, spacing: 10) {
                 content()
@@ -250,19 +279,145 @@ private struct SettingsCard<Content: View>: View {
     }
 }
 
-private struct FieldRow: View {
-    let label: String
-    let value: String
+/// Tap-to-perform row: copper icon · title (+ optional subtitle) · chevron.
+struct SettingsRow: View {
+    let icon: String
+    let title: String
+    var subtitle: String? = nil
+    var iconTint: Color = SweKittyTheme.accentStrong
+    var titleTint: Color = SweKittyTheme.textPrimary
+    let action: () -> Void
 
     var body: some View {
-        HStack {
-            Text(label)
-                .foregroundStyle(SweKittyTheme.textSecondary)
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.body)
+                    .frame(width: 22)
+                    .foregroundStyle(iconTint)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(titleTint)
+                    if let subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.caption)
+                            .foregroundStyle(SweKittyTheme.textMuted)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(SweKittyTheme.textMuted)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Toggle row: copper icon · title/subtitle · trailing Switch.
+struct SettingsToggleRow: View {
+    let icon: String
+    let title: String
+    var subtitle: String? = nil
+    @Binding var isOn: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.body)
+                .frame(width: 22)
+                .foregroundStyle(SweKittyTheme.accentStrong)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(SweKittyTheme.textPrimary)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(SweKittyTheme.textMuted)
+                }
+            }
             Spacer()
-            Text(value)
-                .foregroundStyle(SweKittyTheme.textBody)
-                .lineLimit(1)
-                .truncationMode(.middle)
+            Toggle("", isOn: $isOn)
+                .labelsHidden()
+                .tint(SweKittyTheme.accentStrong)
+        }
+    }
+}
+
+/// Radio-style picker row used by the inline Font section.
+struct SettingsPickerRow: View {
+    let icon: String
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.body)
+                    .frame(width: 22)
+                    .foregroundStyle(SweKittyTheme.accentStrong)
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(SweKittyTheme.textPrimary)
+                Spacer()
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.body)
+                    .foregroundStyle(isSelected ? SweKittyTheme.accentStrong : SweKittyTheme.textMuted)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Single row in the Servers section: name, host, Default badge, Use,
+/// trash. The previous implementation lived inline in `savedServersCard`.
+private struct ServerListRow: View {
+    let server: SavedServer
+    let store: SessionStore
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "server.rack")
+                .font(.body)
+                .frame(width: 22)
+                .foregroundStyle(SweKittyTheme.accentStrong)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(server.name)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(SweKittyTheme.textPrimary)
+                Text(server.endpoint.displayHost)
+                    .font(.caption)
+                    .foregroundStyle(SweKittyTheme.textMuted)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            Spacer()
+            if server.isDefault {
+                Text("Default")
+                    .font(.caption2.weight(.bold))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .glassCapsule(interactive: false, tint: SweKittyTheme.accentStrong.opacity(0.22))
+            }
+            Button("Use") {
+                store.selectSavedServer(server.id, autoConnect: true)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(SweKittyTheme.accentStrong)
+            Button(role: .destructive) {
+                store.removeSavedServer(server.id)
+            } label: {
+                Image(systemName: "trash")
+            }
+            .buttonStyle(.plain)
         }
     }
 }
