@@ -15,7 +15,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.outlined.AccountCircle
@@ -996,76 +999,106 @@ private fun parseDiffFiles(content: String): List<DiffFileSection> {
     return sections
 }
 
+/**
+ * Litter-style composer (Stage 2):
+ *  - Single rounded-rect with leading `+`, message field, trailing mic/send
+ *  - Send button only appears when draft is non-empty (mic otherwise)
+ *  - Agent selector moved to the chat header dropdown, not per-row
+ */
 @Composable
 private fun ConversationComposer(
     draft: String,
     quickReplies: List<String>,
     agentAccent: Color,
     currentAssistant: String,
-    onSwitchAgent: (String) -> Unit,
+    @Suppress("UNUSED_PARAMETER") onSwitchAgent: (String) -> Unit,
     onDraftChange: (String) -> Unit,
     onQuickReply: (String) -> Unit,
     onSend: () -> Unit,
 ) {
-    Surface(
-        tonalElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth().padding(10.dp).windowInsetsPadding(WindowInsets.navigationBars),
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.24f),
+    val hasDraft = draft.trim().isNotEmpty()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(10.dp)
+            .windowInsetsPadding(WindowInsets.navigationBars),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.SmartToy, null, tint = agentAccent, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Reply", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.weight(1f))
-                // Inline agent switcher — reachable when the keyboard
-                // pushes the session header off-screen.
-                AgentSwitchChip(currentAssistant = currentAssistant, tint = agentAccent, onSwitch = onSwitchAgent)
-            }
-            if (quickReplies.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    quickReplies.forEach { reply ->
-                        AssistChip(
-                            onClick = { onQuickReply(reply) },
-                            label = { Text(reply) },
-                        )
-                        Spacer(Modifier.width(2.dp))
-                    }
+        if (quickReplies.isNotEmpty()) {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                quickReplies.forEach { reply ->
+                    AssistChip(
+                        onClick = { onQuickReply(reply) },
+                        label = { Text(reply) },
+                    )
                 }
             }
-            Row(verticalAlignment = Alignment.Bottom) {
-                OutlinedTextField(
+        }
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilledIconButton(
+                    // Reserved `+` affordance for file attach / snippets;
+                    // wired in Stage 5.
+                    onClick = {},
+                    colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Attach")
+                }
+                BasicTextField(
                     value = draft,
                     onValueChange = onDraftChange,
-                    placeholder = { Text("Message agent…") },
-                    modifier = Modifier.weight(1f),
-                    minLines = 1,
-                    maxLines = 6,
-                )
-                Spacer(Modifier.width(10.dp))
-                InlineVoiceButton { transcript ->
-                    val trimmed = transcript.trim()
-                    if (trimmed.isNotEmpty()) {
-                        val next = if (draft.isBlank()) trimmed else "$draft $trimmed"
-                        onDraftChange(next)
-                    }
-                }
-                Spacer(Modifier.width(10.dp))
-                FilledIconButton(
-                    onClick = onSend,
-                    enabled = draft.trim().isNotEmpty(),
-                    colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(
-                        containerColor = agentAccent,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurface,
                     ),
-                ) {
-                    Icon(Icons.Default.Send, contentDescription = "Send")
+                    cursorBrush = androidx.compose.ui.graphics.SolidColor(agentAccent),
+                    decorationBox = { inner ->
+                        Box(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 4.dp)) {
+                            if (draft.isEmpty()) {
+                                Text(
+                                    "Message $currentAssistant…",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            inner()
+                        }
+                    },
+                    maxLines = 6,
+                    modifier = Modifier.weight(1f),
+                )
+                if (!hasDraft) {
+                    InlineVoiceButton { transcript ->
+                        val trimmed = transcript.trim()
+                        if (trimmed.isNotEmpty()) {
+                            val next = if (draft.isBlank()) trimmed else "$draft $trimmed"
+                            onDraftChange(next)
+                        }
+                    }
+                } else {
+                    FilledIconButton(
+                        onClick = onSend,
+                        colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(
+                            containerColor = agentAccent,
+                        ),
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Send")
+                    }
                 }
             }
         }

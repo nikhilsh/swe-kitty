@@ -106,39 +106,13 @@ struct ChatTab: View {
         .glassRect(cornerRadius: 18, tint: agentTint.opacity(0.16))
     }
 
+    /// Litter-style composer: single rounded-rect with a leading `+`
+    /// button, the message field, and a trailing mic. Send becomes a
+    /// dedicated copper circle only when the draft has content (mic
+    /// otherwise — same row position, no layout jump). Agent selector
+    /// moved to the header dropdown; no per-row pill here.
     private var composer: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "message.badge.waveform")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(agentTint)
-                Text("Reply")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(SweKittyTheme.textSecondary)
-                Spacer()
-                // Inline agent switcher — same menu as the session
-                // header's agentBadge, but reachable when the keyboard
-                // pushes the header off-screen.
-                Menu {
-                    Button("Switch to Claude") { store.switchAgent(sessionID: session.id, to: "claude") }
-                        .disabled(session.assistant == "claude")
-                    Button("Switch to Codex") { store.switchAgent(sessionID: session.id, to: "codex") }
-                        .disabled(session.assistant == "codex")
-                } label: {
-                    HStack(spacing: 3) {
-                        Image(systemName: "cpu")
-                            .font(.caption2.weight(.semibold))
-                        Text(session.assistant)
-                            .font(.caption.weight(.semibold))
-                        Image(systemName: "chevron.down")
-                            .font(.caption2.weight(.semibold))
-                    }
-                    .foregroundStyle(agentTint)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .glassCapsule(interactive: true, tint: agentTint.opacity(0.20))
-                }
-            }
+        VStack(alignment: .leading, spacing: 8) {
             if !quickReplies.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
@@ -160,48 +134,58 @@ struct ChatTab: View {
                 }
             }
 
-            HStack(alignment: .bottom, spacing: 10) {
-                TextField("Message agent…", text: $draft, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .lineLimit(1...6)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(SweKittyTheme.surface.opacity(0.65))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-                InlineVoiceButton { transcript in
-                    let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !trimmed.isEmpty else { return }
-                    if draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        draft = trimmed
-                    } else {
-                        draft += " " + trimmed
-                    }
-                }
-
+            HStack(alignment: .bottom, spacing: 8) {
                 Button {
-                    let msg = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !msg.isEmpty else { return }
-                    store.sendChat(sessionID: session.id, message: msg)
-                    draft = ""
-                    autoFollow = true
+                    // Reserved for the litter `+` affordance — file
+                    // attach / quick-snippet / image. Stage 5 wires it.
                 } label: {
-                    Image(systemName: "paperplane.fill")
+                    Image(systemName: "plus")
                         .font(.subheadline.weight(.bold))
-                        .foregroundStyle(SweKittyTheme.textOnAccent)
-                        .frame(width: 42, height: 42)
-                        .background(agentTint)
-                        .clipShape(Circle())
+                        .foregroundStyle(SweKittyTheme.textPrimary)
+                        .frame(width: 36, height: 36)
+                        .glassCircle(tint: SweKittyTheme.surface.opacity(0.7))
                 }
                 .buttonStyle(.plain)
-                .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .opacity(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.55 : 1)
+
+                TextField("Message \(session.assistant)…", text: $draft, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .lineLimit(1...6)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    InlineVoiceButton { transcript in
+                        let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !trimmed.isEmpty else { return }
+                        if draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            draft = trimmed
+                        } else {
+                            draft += " " + trimmed
+                        }
+                    }
+                } else {
+                    Button {
+                        let msg = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !msg.isEmpty else { return }
+                        store.sendChat(sessionID: session.id, message: msg)
+                        draft = ""
+                        autoFollow = true
+                    } label: {
+                        Image(systemName: "arrow.up")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(SweKittyTheme.textOnAccent)
+                            .frame(width: 36, height: 36)
+                            .background(agentTint)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
             }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .glassRoundedRect(cornerRadius: 24)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
-        .glassRoundedRect(cornerRadius: 20)
     }
 
     private var quickReplies: [String] {

@@ -19,9 +19,10 @@ struct ProjectView: View {
 
     @State private var tab: ProjectTab = .terminal
     @State private var browserMode: BrowserMode = .preview
+    @State private var showInfo: Bool = false
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 10) {
             header
             tabContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -34,34 +35,58 @@ struct ProjectView: View {
         .navigationTitle(session.name)
         .navigationBarTitleDisplayMode(.inline)
         .tint(SweKittyTheme.accentStrong)
+        .sheet(isPresented: $showInfo) {
+            SessionInfoView(session: session)
+                .environment(store)
+                .presentationDetents([.large])
+        }
     }
 
     private var status: SessionStatus? { store.statusBySession[session.id] }
     private var lifecycle: SessionLifecycle? { store.sessionLifecycle[session.id] }
 
+    /// Litter-style header card:
+    /// Row 1: status dot · agent dropdown · spacer · refresh · info
+    /// Row 2: project path (mono, muted, middle-truncated)
+    /// Row 3: Terminal / Chat / Browser segmented picker (heightened — this
+    ///        is the "main idea" per chat window in our app, per the plan).
     private var header: some View {
-        VStack(spacing: 6) {
-            HStack(alignment: .center, spacing: 8) {
-                HealthDot(health: status?.health ?? "unknown", size: 8)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(session.name)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(SweKittyTheme.textPrimary)
-                        .lineLimit(1)
+        VStack(spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
+                agentDropdown
+                Spacer()
+                MemoryButton(tab: $tab, mode: $browserMode)
+                refreshButton
+                infoButton
+            }
+            HStack(spacing: 6) {
+                Image(systemName: "folder")
+                    .font(.caption2)
+                    .foregroundStyle(SweKittyTheme.textMuted)
+                Text(pathLabel)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(SweKittyTheme.textMuted)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer()
+                if !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.caption2)
                         .foregroundStyle(SweKittyTheme.textMuted)
-                        .lineLimit(1)
                 }
-                Spacer()
-                MemoryButton(tab: $tab, mode: $browserMode)
-                agentBadge
             }
             tabPicker
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
         .glassRoundedRect()
+    }
+
+    private var pathLabel: String {
+        // No first-class `cwd` on ProjectSession yet — `name` is the best
+        // proxy we have. Stage 3 will surface the real cwd via the
+        // SessionInfo screen + Rust core.
+        session.name
     }
 
     private var subtitle: String {
@@ -81,7 +106,9 @@ struct ProjectView: View {
         }
     }
 
-    private var agentBadge: some View {
+    /// Row 1's main affordance: status dot + agent name + chevron, opens
+    /// menu to switch agent or end the session.
+    private var agentDropdown: some View {
         Menu {
             Button("Switch to Claude") { store.switchAgent(sessionID: session.id, to: "claude") }
                 .disabled(session.assistant == "claude")
@@ -92,19 +119,52 @@ struct ProjectView: View {
                 store.exit(sessionID: session.id)
             }
         } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "cpu")
+            HStack(spacing: 6) {
+                HealthDot(health: status?.health ?? "unknown", size: 8)
                 Text(session.assistant)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(SweKittyTheme.textPrimary)
                 Image(systemName: "chevron.down")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(SweKittyTheme.textSecondary)
             }
-            .font(.caption.bold())
-            .foregroundStyle(SweKittyTheme.textPrimary)
             .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .glassCapsule(interactive: true, tint: SweKittyTheme.accentStrong.opacity(0.45))
+            .padding(.vertical, 6)
+            .glassCapsule(interactive: true, tint: SweKittyTheme.accent(forAgent: session.assistant).opacity(0.32))
         }
     }
 
+    private var refreshButton: some View {
+        Button {
+            store.reconnect()
+        } label: {
+            Image(systemName: "arrow.clockwise")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(SweKittyTheme.textPrimary)
+                .frame(width: 32, height: 32)
+                .glassCircle(tint: SweKittyTheme.surface.opacity(0.6))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Reconnect")
+    }
+
+    private var infoButton: some View {
+        Button {
+            showInfo = true
+        } label: {
+            Image(systemName: "info.circle")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(SweKittyTheme.textPrimary)
+                .frame(width: 32, height: 32)
+                .glassCircle(tint: SweKittyTheme.surface.opacity(0.6))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Session info")
+    }
+
+    /// The Terminal / Chat / Browser segmented picker. Plan calls for this
+    /// to be visually heightened — it's the per-session "main idea" for
+    /// SweKitty (we keep it where litter only has a single chat surface).
     private var tabPicker: some View {
         Picker("View", selection: $tab) {
             ForEach(ProjectTab.allCases) { t in
@@ -112,6 +172,7 @@ struct ProjectView: View {
             }
         }
         .pickerStyle(.segmented)
+        .controlSize(.large)
     }
 
     @ViewBuilder
