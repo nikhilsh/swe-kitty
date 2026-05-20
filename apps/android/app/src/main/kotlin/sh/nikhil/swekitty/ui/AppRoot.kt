@@ -22,6 +22,7 @@ fun AppRoot(store: SessionStore) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScopeCompat()
     var showSettings by remember { mutableStateOf(false) }
+    var showSplash by remember { mutableStateOf(true) }
 
     val selectedId by store.selectedId.collectAsState()
     val sessions by store.sessions.collectAsState()
@@ -79,6 +80,10 @@ fun AppRoot(store: SessionStore) {
             onAccept = { store.resolveHostKeyPrompt(true) },
             onReject = { store.resolveHostKeyPrompt(false) },
         )
+    }
+
+    if (showSplash) {
+        AnimatedSplash(onFinish = { showSplash = false })
     }
 }
 

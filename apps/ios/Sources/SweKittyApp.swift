@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct SweKittyApp: App {
     @State private var store = SessionStore()
+    @State private var showSplash: Bool = true
 
     init() {
         Telemetry.configure()
@@ -10,17 +11,25 @@ struct SweKittyApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environment(store)
-                .onOpenURL { url in
-                    applyPairingURL(url)
-                }
-                .sheet(item: hostKeyBinding) { prompt in
-                    HostKeyPromptSheet(prompt: prompt) { accepted in
-                        store.resolveHostKeyPrompt(accept: accepted)
+            ZStack {
+                RootView()
+                    .environment(store)
+                    .onOpenURL { url in
+                        applyPairingURL(url)
                     }
-                    .presentationDetents([.medium])
+                    .sheet(item: hostKeyBinding) { prompt in
+                        HostKeyPromptSheet(prompt: prompt) { accepted in
+                            store.resolveHostKeyPrompt(accept: accepted)
+                        }
+                        .presentationDetents([.medium])
+                    }
+                if showSplash {
+                    AnimatedSplashView { showSplash = false }
+                        .transition(.opacity)
+                        .zIndex(1)
                 }
+            }
+            .animation(.easeOut(duration: 0.3), value: showSplash)
         }
     }
 
