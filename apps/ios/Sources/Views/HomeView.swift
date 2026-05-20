@@ -72,17 +72,16 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showVoice) {
                 VoiceDictationSheet { transcript in
-                    // No active session → seed the agent picker with the
-                    // transcript when Stage 5 wires it. For now we route
-                    // dictation into a new claude session as a sensible
-                    // default; the user can switch agents from the chat
-                    // header dropdown after the session is up.
-                    guard store.harness.canIssueCommands else { return }
-                    store.createSession(assistant: "claude")
-                    // The new session will be selectable after refresh —
-                    // sendChat needs the id, which is async, so we just
-                    // present the picker fallback for now.
-                    _ = transcript
+                    // If a session is already selected, push the transcript
+                    // into it as a chat message. Otherwise spin up a new
+                    // claude session with the transcript as its first
+                    // prompt — this matches the litter "speak to start"
+                    // flow rather than dumping the transcript on the floor.
+                    if let id = store.selectedSessionID {
+                        store.sendChat(sessionID: id, message: transcript)
+                    } else if store.harness.canIssueCommands {
+                        store.createSession(assistant: "claude", initialPrompt: transcript)
+                    }
                 }
             }
             .onChange(of: store.selectedSessionID) { _, new in

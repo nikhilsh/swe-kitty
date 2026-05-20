@@ -219,6 +219,7 @@ private struct EmptySessionsHint: View {
 }
 
 private struct SessionRow: View {
+    @Environment(SessionStore.self) private var store
     let entry: VisibleSession
     let status: SessionStatus?
     let lifecycle: SessionLifecycle?
@@ -270,7 +271,7 @@ private struct SessionRow: View {
 
     private var displayName: String {
         switch entry {
-        case .real(let s):  return s.name
+        case .real(let s):  return store.displayName(for: s)
         case .creating:     return "Starting session…"
         }
     }

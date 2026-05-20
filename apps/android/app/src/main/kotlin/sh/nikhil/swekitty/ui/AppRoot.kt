@@ -104,12 +104,14 @@ fun AppRoot(store: SessionStore) {
     if (showVoice) {
         VoiceDictationScreen(
             onTranscript = { transcript ->
-                // No active session — Stage 5 will route the transcript
-                // into the agent picker as the initial prompt.
-                if (harness is HarnessState.Live || harness is HarnessState.Linked) {
-                    store.createSession(assistant = "claude")
+                // Push transcript into the active session if there is one;
+                // otherwise spin up a new claude session seeded with it.
+                val activeId = selectedId
+                if (activeId != null) {
+                    store.sendChat(activeId, transcript)
+                } else if (harness is HarnessState.Live || harness is HarnessState.Linked) {
+                    store.createSession(assistant = "claude", initialPrompt = transcript)
                 }
-                @Suppress("UNUSED_EXPRESSION") transcript
             },
             onDismiss = { showVoice = false },
         )

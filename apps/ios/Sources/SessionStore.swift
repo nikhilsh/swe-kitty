@@ -547,7 +547,12 @@ final class SessionStore {
 
     // MARK: - Session lifecycle
 
-    func createSession(assistant: String, branch: String? = nil, startupCwd: String? = nil) {
+    func createSession(
+        assistant: String,
+        branch: String? = nil,
+        startupCwd: String? = nil,
+        initialPrompt: String? = nil
+    ) {
         guard let client else { return }
         sessionCreationError = nil
         let pendingID = "pending-\(UUID().uuidString)"
@@ -561,6 +566,12 @@ final class SessionStore {
                         let cmd = "cd \(Self.shellQuoted(trimmed)) && pwd\n"
                         try? await client.sendInput(sessionId: id, data: Data(cmd.utf8))
                         self.rememberRecentDirectory(trimmed)
+                    }
+                }
+                if let initialPrompt {
+                    let trimmed = initialPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        try? await client.sendChat(sessionId: id, msg: trimmed)
                     }
                 }
                 self.sessionLifecycle[pendingID] = nil

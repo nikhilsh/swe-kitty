@@ -19,15 +19,18 @@ private struct GlassSurfaceModifier<S: InsettableShape>: ViewModifier {
 
         content
             .background {
+                // Bumped from .ultraThinMaterial → .thinMaterial to make
+                // cards feel solid like litter's surfaces. The highlight
+                // gradient stays for a subtle catch on top edges.
                 shape
-                    .fill(.ultraThinMaterial)
+                    .fill(.thinMaterial)
                     .overlay {
                         shape
                             .fill(
                                 LinearGradient(
                                     colors: [
                                         glow,
-                                        SweKittyTheme.surfaceLight.opacity(0.08),
+                                        SweKittyTheme.surfaceLight.opacity(0.06),
                                         .clear,
                                     ],
                                     startPoint: .topLeading,

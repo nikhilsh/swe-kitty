@@ -643,7 +643,12 @@ class SessionStore : ViewModel(), SweKittyDelegate {
 
     fun select(sessionId: String?) { _selectedId.value = sessionId }
 
-    fun createSession(assistant: String, branch: String? = null, startupCwd: String? = null) {
+    fun createSession(
+        assistant: String,
+        branch: String? = null,
+        startupCwd: String? = null,
+        initialPrompt: String? = null,
+    ) {
         val c = client ?: return
         _sessionCreationError.value = null
         val pendingId = "pending-${UUID.randomUUID()}"
@@ -655,6 +660,9 @@ class SessionStore : ViewModel(), SweKittyDelegate {
                     val cmd = "cd ${shellQuoted(cwd)} && pwd\n"
                     runCatching { withContext(Dispatchers.IO) { c.sendInput(id, cmd.toByteArray()) } }
                     rememberRecentDirectory(cwd)
+                }
+                initialPrompt?.trim()?.takeIf { it.isNotEmpty() }?.let { prompt ->
+                    runCatching { withContext(Dispatchers.IO) { c.sendChat(id, prompt) } }
                 }
                 updateLifecycle { (it - pendingId) + (id to SessionLifecycle.Live) }
                 _harness.value = HarnessState.Live
