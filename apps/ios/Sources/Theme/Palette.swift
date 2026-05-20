@@ -11,7 +11,12 @@ enum SweKittyPalette {
     }
 
     static let accent          = Pair(light: "#4A4A4A", dark: "#B0B0B0")
-    static let accentStrong    = Pair(light: "#00A86B", dark: "#34C759")
+    // Brand accent — switched from green (#00A86B / #34C759) to
+    // Anthropic copper to match the litter visual reference (the
+    // entire UI in their screenshots tints orange — badges, +,
+    // user bubble, status, stat numbers). Keep the green available
+    // as `codexAccent` for per-agent tinting where appropriate.
+    static let accentStrong    = Pair(light: "#CC785C", dark: "#E89677")
     /// Anthropic copper. Used when the active agent is Claude.
     static let claudeAccent    = Pair(light: "#CC785C", dark: "#E89677")
     /// OpenAI green. Used when the active agent is Codex.

@@ -563,47 +563,40 @@ private fun ConversationBubble(
     modifier: Modifier,
     alignEnd: Boolean,
 ) {
-    // Litter-style: NO bubbles. Render as a Discord/Slack-style row —
-    // role icon + label + timestamp on a single header line, content
-    // flowing below as plain text. Left-aligned for everyone; the
-    // accent color does the differentiation.
-    val accent = if (role == ConversationRole.Assistant) agentAccent else role.accent
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Box(modifier = Modifier.size(20.dp).padding(top = 2.dp)) {
-            RoleIcon(role, accent)
-        }
-        Spacer(Modifier.width(10.dp))
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    role.label,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = accent,
-                )
-                if (ev.ts.isNotEmpty()) {
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        ConversationTimestamp.relative(ev.ts),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
+    // Litter pattern: subtle light-gray rounded rect for USER messages
+    // (right-aligned), assistant messages flow as plain text full
+    // width with no container at all.
+    when (role) {
+        ConversationRole.User -> Row(modifier = modifier.fillMaxWidth()) {
+            Spacer(Modifier.weight(0.18f))
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                modifier = Modifier.weight(0.82f, fill = false),
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    ConversationRenderer.blocks(ev.content).forEach { block ->
+                        when (block) {
+                            is ConversationBlock.Markdown -> MarkdownBlock(block.text, role)
+                            is ConversationBlock.Code -> CodeBlock(block.language, block.content)
+                        }
+                    }
+                    if (ev.files.isNotEmpty()) FileStrip(ev.files)
                 }
             }
+        }
+        else -> Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
             ConversationRenderer.blocks(ev.content).forEach { block ->
                 when (block) {
                     is ConversationBlock.Markdown -> MarkdownBlock(block.text, role)
                     is ConversationBlock.Code -> CodeBlock(block.language, block.content)
                 }
-            }
-            if (role == ConversationRole.User && ev.files.isNotEmpty()) {
-                FileStrip(ev.files)
             }
         }
     }
@@ -626,6 +619,10 @@ private fun MarkdownBlock(text: String, role: ConversationRole) {
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,
+            // Monospaced body text matches litter's chat — every turn
+            // (user + assistant) renders in mono for the codex
+            // aesthetic. See iOS ConversationView for parity.
+            fontFamily = FontFamily.Monospace,
             color = if (role == ConversationRole.System) {
                 MaterialTheme.colorScheme.onSurfaceVariant
             } else {

@@ -502,35 +502,36 @@ private struct ConversationPendingInputCard: View {
 private struct ConversationBubbleContainer<Content: View>: View {
     let role: ConversationRole
     let timestamp: String
-    let alignTrailing: Bool  // ignored — kept for source compat with call sites
+    let alignTrailing: Bool  // ignored — role decides layout now
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        // Litter-style: NO bubbles. Discord/Slack-shaped row — role
-        // icon on the left, role name + timestamp on a header line,
-        // content flowing below as plain text. Left-aligned regardless
-        // of role; the accent color does the differentiation.
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: role.icon)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(role.accent)
-                .frame(width: 16, height: 16)
-                .padding(.top, 3)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(role.label)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(role.accent)
-                    if !timestamp.isEmpty {
-                        Text(ConversationTimestamp.relative(timestamp))
-                            .font(.caption2)
-                            .foregroundStyle(SweKittyTheme.textMuted)
-                    }
-                }
+        // Litter's actual conversation pattern (from the generative-UI
+        // screenshot): user messages get a SUBTLE light-gray rounded
+        // rect right-aligned; assistant messages flow as plain text,
+        // full width, no role label, no container. No avatars, no
+        // big timestamps — just the text itself. Body uses a
+        // monospaced font (codex aesthetic).
+        switch role {
+        case .user:
+            HStack {
+                Spacer(minLength: 48)
                 content()
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(SweKittyTheme.surfaceLight.opacity(0.75))
+                    )
             }
-            Spacer(minLength: 0)
+        case .assistant:
+            content()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        case .tool, .system:
+            // These are rendered by dedicated branches; this fallback
+            // shouldn't normally hit, but stays safe.
+            content()
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
@@ -568,7 +569,11 @@ private struct ConversationMarkdownBlock: View {
                 Text(text)
             }
         }
-        .font(.body)
+        // Monospaced body text for the litter / codex aesthetic —
+        // litter's conversation reference uses monospace for every
+        // user + assistant turn. SF Mono is the system mono on Apple
+        // platforms; .system(.body, design: .monospaced) picks it up.
+        .font(.system(.body, design: .monospaced))
         .foregroundStyle(role == .system ? SweKittyTheme.textSecondary : SweKittyTheme.textBody)
         .textSelection(.enabled)
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -19,7 +19,9 @@ internal data class AdaptiveColor(val light: Long, val dark: Long) {
 
 internal object SweKittyPalette {
     val accent          = AdaptiveColor(0xFF4A4A4A, 0xFFB0B0B0)
-    val accentStrong    = AdaptiveColor(0xFF00A86B, 0xFF34C759)
+    // Brand accent moved from green to Anthropic copper to match
+    // litter's visual reference (see iOS Palette.swift comment).
+    val accentStrong    = AdaptiveColor(0xFFCC785C, 0xFFE89677)
     val claudeAccent    = AdaptiveColor(0xFFCC785C, 0xFFE89677)
     val codexAccent     = AdaptiveColor(0xFF10A37F, 0xFF1FCB9C)
     val textPrimary     = AdaptiveColor(0xFF1A1A1A, 0xFFFFFFFF)
