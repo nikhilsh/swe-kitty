@@ -3,6 +3,8 @@ import SwiftUI
 struct ProjectListView: View {
     @Environment(SessionStore.self) private var store
     @Binding var showSettings: Bool
+    @State private var showAgentPicker: Bool = false
+    @State private var showAddServer: Bool = false
     @Namespace private var glassNS
 
     var body: some View {
@@ -34,23 +36,28 @@ struct ProjectListView: View {
                 .accessibilityLabel("Settings")
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button {
-                        store.createSession(assistant: "claude")
-                    } label: {
-                        Label("Claude", systemImage: "sparkles")
-                    }
-                    Button {
-                        store.createSession(assistant: "codex")
-                    } label: {
-                        Label("Codex", systemImage: "chevron.left.forwardslash.chevron.right")
+                Button {
+                    if store.harness.canIssueCommands {
+                        showAgentPicker = true
+                    } else {
+                        // No harness yet — most useful next step is to
+                        // add one, not to fail-open a session picker.
+                        showAddServer = true
                     }
                 } label: {
                     Image(systemName: "plus")
+                        .font(.body.weight(.semibold))
                 }
-                .disabled(!store.harness.canIssueCommands)
                 .accessibilityLabel("New session")
             }
+        }
+        .sheet(isPresented: $showAgentPicker) {
+            AgentPickerSheet(headerNote: nil)
+                .environment(store)
+        }
+        .sheet(isPresented: $showAddServer) {
+            AddServerSheet()
+                .environment(store)
         }
         .tint(SweKittyTheme.accentStrong)
     }

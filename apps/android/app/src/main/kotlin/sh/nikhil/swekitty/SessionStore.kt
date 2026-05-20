@@ -145,6 +145,10 @@ data class Endpoint(val url: String = "", val token: String = "") {
         }
 }
 
+/** One-shot UI cue triggered after a successful pairing. AppRoot
+ *  observes this and presents the agent-picker bottom sheet. */
+data class PendingAgentPick(val hostNote: String)
+
 data class SavedServer(
     val id: String,
     val name: String,
@@ -218,6 +222,33 @@ class SessionStore : ViewModel(), SweKittyDelegate {
     /** Outstanding TOFU prompt; MainActivity observes this and shows a dialog. */
     private val _pendingHostKey = MutableStateFlow<HostKeyPrompt?>(null)
     val pendingHostKey: StateFlow<HostKeyPrompt?> = _pendingHostKey.asStateFlow()
+
+    /**
+     * Set after a fresh pairing (deep link, QR scan). AppRoot observes
+     * this and presents the agent-picker bottom sheet so the user lands
+     * on "pick Claude or Codex" instead of an empty session list.
+     */
+    private val _pendingAgentPick = MutableStateFlow<PendingAgentPick?>(null)
+    val pendingAgentPick: StateFlow<PendingAgentPick?> = _pendingAgentPick.asStateFlow()
+
+    fun setPendingAgentPick(pick: PendingAgentPick?) {
+        _pendingAgentPick.value = pick
+    }
+
+    /**
+     * Parse a `swekitty://...` URL, save the endpoint, connect, and
+     * arm `pendingAgentPick` so the picker sheet shows automatically.
+     * Called from MainActivity on intent.data arrival.
+     */
+    fun applyDeepLink(raw: String) {
+        val parsed = sh.nikhil.swekitty.PairingURL.parse(raw) ?: return
+        val ep = Endpoint(url = parsed.endpoint, token = parsed.token)
+        setEndpoint(ep.url, ep.token)
+        upsertSavedServer(name = ep.displayHost, endpoint = ep, makeDefault = true)
+        disconnect()
+        connect()
+        _pendingAgentPick.value = PendingAgentPick(hostNote = ep.displayHost)
+    }
 
     /** Wired by the bridge; consumed by the dialog's Accept/Reject buttons. */
     @Volatile private var hostKeyResolver: ((Boolean) -> Unit)? = null

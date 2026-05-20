@@ -23,6 +23,10 @@ struct SweKittyApp: App {
                         }
                         .presentationDetents([.medium])
                     }
+                    .sheet(item: agentPickBinding) { pick in
+                        AgentPickerSheet(headerNote: pick.hostNote)
+                            .environment(store)
+                    }
                 if showSplash {
                     AnimatedSplashView { showSplash = false }
                         .transition(.opacity)
@@ -31,6 +35,15 @@ struct SweKittyApp: App {
             }
             .animation(.easeOut(duration: 0.3), value: showSplash)
         }
+    }
+
+    /// Auto-binding the `pendingAgentPick` to a sheet so SwiftUI clears
+    /// the store flag when the user dismisses without picking.
+    private var agentPickBinding: Binding<PendingAgentPick?> {
+        Binding(
+            get: { store.pendingAgentPick },
+            set: { store.pendingAgentPick = $0 }
+        )
     }
 
     private var hostKeyBinding: Binding<HostKeyPrompt?> {
@@ -57,5 +70,9 @@ struct SweKittyApp: App {
         store.upsertSavedServer(name: next.displayHost, endpoint: next, makeDefault: true)
         store.disconnect()
         store.connect()
+        // After dialling in, drop the user straight onto the agent
+        // picker so a deep-link tap is a single user motion: tap →
+        // (paired) → pick Claude/Codex → in.
+        store.pendingAgentPick = PendingAgentPick(hostNote: next.displayHost)
     }
 }

@@ -1,407 +1,234 @@
 package sh.nikhil.swekitty.ui
 
-import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import kotlinx.coroutines.launch
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import sh.nikhil.swekitty.Endpoint
-import sh.nikhil.swekitty.PairingURL
-import sh.nikhil.swekitty.RemoteDirectoryEntry
-import sh.nikhil.swekitty.SavedServer
 import sh.nikhil.swekitty.SessionStore
 
+/**
+ * Settings — manage existing servers + inspect harness state.
+ * Adding a new server (any of QR / mDNS / SSH / manual) lives in
+ * [AddServerSheet] now, opened via the "Add server" CTA.
+ *
+ * Mirrors `apps/ios/Sources/Views/SettingsSheet.swift`.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(store: SessionStore, onDismiss: () -> Unit) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val endpoint by store.endpoint.collectAsState()
     val harness by store.harness.collectAsState()
     val savedServers by store.savedServers.collectAsState()
-    val recentDirectories by store.recentDirectories.collectAsState()
+    var showAddServer by remember { mutableStateOf(false) }
 
-    var url by remember(endpoint.url) { mutableStateOf(endpoint.url) }
-    var token by remember(endpoint.token) { mutableStateOf(endpoint.token) }
-    var startCwd by remember { mutableStateOf("~") }
-    var showDirectoryPicker by remember { mutableStateOf(false) }
-    var browsingPath by remember { mutableStateOf("~") }
-    var browsingParent by remember { mutableStateOf("~") }
-    var directoryEntries by remember { mutableStateOf<List<RemoteDirectoryEntry>>(emptyList()) }
-    var directoryError by remember { mutableStateOf<String?>(null) }
-    var directoryLoading by remember { mutableStateOf(false) }
-    var pendingAssistantAfterConnect by remember { mutableStateOf<String?>(null) }
-    var scanError by remember { mutableStateOf<String?>(null) }
-    var showSshSheet by remember { mutableStateOf(false) }
-    var showDiscoverSheet by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(harness, pendingAssistantAfterConnect) {
-        if (pendingAssistantAfterConnect != null && harness.canIssueCommands) {
-            showDirectoryPicker = true
-            directoryLoading = true
-            directoryError = null
-            runCatching { store.listDirectories(startCwd) }
-                .onSuccess { listing ->
-                    browsingPath = listing.path
-                    browsingParent = listing.parent
-                    directoryEntries = listing.entries.filter { it.isDir }
-                }
-                .onFailure { directoryError = it.message ?: it.toString() }
-            directoryLoading = false
-        }
-    }
-
-    val scanner = rememberLauncherForActivityResult(SweKittyScanContract()) { result ->
-        if (result == null) return@rememberLauncherForActivityResult
-        val parsed = PairingURL.parse(result)
-        if (parsed == null) {
-            scanError = "Not a SweKitty pairing URL: ${result.take(40)}…"
-        } else {
-            scanError = null
-            url = parsed.endpoint
-            token = parsed.token
-        }
-    }
-
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text("Settings", style = MaterialTheme.typography.titleLarge)
+            Text("Settings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
 
             if (savedServers.isNotEmpty()) {
-                SectionTitle("Saved Servers")
-                savedServers.forEach { server ->
-                    SavedServerRow(
-                        server = server,
-                        onUse = {
-                            store.selectSavedServer(server.id, autoConnect = true)
-                            url = server.endpoint.url
-                            token = server.endpoint.token
-                        },
-                        onRemove = { store.removeSavedServer(server.id) },
-                    )
+                Section("Saved Servers") {
+                    savedServers.forEachIndexed { idx, server ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(server.name, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    server.endpoint.displayHost,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            if (server.isDefault) {
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = SweKittyTheme.accentStrong().copy(alpha = 0.22f),
+                                ) {
+                                    Text(
+                                        "Default",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                                Spacer(Modifier.width(6.dp))
+                            }
+                            TextButton(onClick = { store.selectSavedServer(server.id, autoConnect = true) }) {
+                                Text("Use")
+                            }
+                            IconButton(onClick = { store.removeSavedServer(server.id) }) {
+                                Icon(Icons.Filled.Delete, contentDescription = "Remove")
+                            }
+                        }
+                        if (idx != savedServers.lastIndex) HorizontalDivider()
+                    }
                 }
-                HorizontalDivider()
+            }
+
+            // The "Add server" entry — replaces the long pairing form
+            // that used to live here.
+            Surface(
+                shape = RoundedCornerShape(SweKittyTheme.cardCornerRadiusDp.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(SweKittyTheme.cardCornerRadiusDp.dp))
+                    .clickable { showAddServer = true },
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Filled.AddCircle,
+                        contentDescription = null,
+                        tint = SweKittyTheme.accentStrong(),
+                        modifier = Modifier.size(28.dp),
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Add server", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "QR · LAN discover · SSH · paste URL+token",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Icon(Icons.Filled.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
 
             if (endpoint.isComplete) {
-                SectionTitle("Paired Harness")
-                LabeledRow("Host", endpoint.displayHost)
-                LabeledRow("Token", "Stored in EncryptedSharedPreferences")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { store.reconnect() }) {
-                        Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(6.dp)); Text("Reconnect")
-                    }
-                    TextButton(onClick = {
-                        store.forgetEndpoint()
-                        url = ""
-                        token = ""
-                    }) {
-                        Icon(Icons.Default.Delete, null); Spacer(Modifier.width(6.dp)); Text("Forget")
-                    }
-                }
-                HorizontalDivider()
-            }
-
-            SectionTitle(if (endpoint.isComplete) "Re-pair" else "Pair a harness")
-
-            OutlinedTextField(
-                value = url,
-                onValueChange = { url = it },
-                label = { Text("Endpoint (ws://host:1977)") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
-                value = token,
-                onValueChange = { token = it },
-                label = { Text("Bearer token") },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
-                value = startCwd,
-                onValueChange = { startCwd = it },
-                label = { Text("Start directory (~/projects/kitty)") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            if (recentDirectories.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    recentDirectories.forEach { path ->
-                        AssistChip(onClick = { startCwd = path }, label = { Text(path) })
+                Section("Paired Harness") {
+                    KeyValueRow(label = "Host", value = endpoint.displayHost)
+                    HorizontalDivider()
+                    KeyValueRow(label = "Token", value = "Stored in EncryptedSharedPreferences")
+                    HorizontalDivider()
+                    TextButton(
+                        onClick = {
+                            store.setEndpoint("", "")
+                            store.disconnect()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Forget harness", color = MaterialTheme.colorScheme.error)
                     }
                 }
             }
 
-            OutlinedButton(
-                onClick = {
-                    showDirectoryPicker = true
-                    scope.launch {
-                        directoryLoading = true
-                        directoryError = null
-                        store.setEndpoint(url, token)
-                        runCatching { store.listDirectories(startCwd) }
-                            .onSuccess { listing ->
-                                browsingPath = listing.path
-                                browsingParent = listing.parent
-                                directoryEntries = listing.entries.filter { it.isDir }
-                            }
-                            .onFailure { directoryError = it.message ?: it.toString() }
-                        directoryLoading = false
+            Section("Harness Status") {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Text("Link", modifier = Modifier.weight(1f))
+                    HarnessBadge(state = harness)
+                }
+                harness.failureReason?.let { reason ->
+                    HorizontalDivider()
+                    Text(
+                        reason,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                if (endpoint.isComplete) {
+                    HorizontalDivider()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { store.reconnect() }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Filled.Refresh, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Reconnect", modifier = Modifier.weight(1f))
+                        Icon(Icons.Filled.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                },
-                enabled = url.isNotBlank() && token.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Browse directory") }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(
-                    onClick = { scanner.launch(Unit) },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(Icons.Default.QrCodeScanner, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text("Scan QR")
                 }
-                OutlinedButton(
-                    onClick = { showDiscoverSheet = true },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(Icons.Default.Wifi, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text("On LAN")
-                }
-                OutlinedButton(
-                    onClick = { showSshSheet = true },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(Icons.Default.Terminal, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text("Via SSH")
-                }
-                Button(
-                    onClick = {
-                        store.setEndpoint(url, token)
-                        store.upsertSavedServer(
-                            name = Endpoint(url, token).displayHost,
-                            endpoint = Endpoint(url, token),
-                            makeDefault = true,
-                        )
-                        store.disconnect()
-                        store.connect()
-                        onDismiss()
-                    },
-                    enabled = url.isNotBlank() && token.isNotBlank(),
-                    modifier = Modifier.weight(1f),
-                ) { Text("Save & Connect") }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(
-                    onClick = {
-                        pendingAssistantAfterConnect = "claude"
-                        store.setEndpoint(url, token)
-                        store.upsertSavedServer(
-                            name = Endpoint(url, token).displayHost,
-                            endpoint = Endpoint(url, token),
-                            makeDefault = true,
-                        )
-                        store.disconnect()
-                        store.connect()
-                    },
-                    enabled = url.isNotBlank() && token.isNotBlank(),
-                    modifier = Modifier.weight(1f),
-                ) { Text("Connect + Claude") }
-
-                Button(
-                    onClick = {
-                        pendingAssistantAfterConnect = "codex"
-                        store.setEndpoint(url, token)
-                        store.upsertSavedServer(
-                            name = Endpoint(url, token).displayHost,
-                            endpoint = Endpoint(url, token),
-                            makeDefault = true,
-                        )
-                        store.disconnect()
-                        store.connect()
-                    },
-                    enabled = url.isNotBlank() && token.isNotBlank(),
-                    modifier = Modifier.weight(1f),
-                ) { Text("Connect + Codex") }
+            Section("About") {
+                KeyValueRow(label = "App", value = "SweKitty")
             }
-
-            scanError?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            }
-
-            HorizontalDivider()
-            SectionTitle("Harness Status")
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                HarnessBadge(harness)
-                Spacer(Modifier.width(8.dp))
-                Text(harness.badgeLabel, style = MaterialTheme.typography.bodyMedium)
-            }
-            harness.failureReason?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Spacer(Modifier.height(12.dp))
         }
     }
 
-    if (showDiscoverSheet) {
-        DiscoveryScreen(store = store, onDismiss = { showDiscoverSheet = false })
+    if (showAddServer) {
+        AddServerSheet(store = store, onDismiss = { showAddServer = false })
     }
+}
 
-    if (showSshSheet) {
-        SSHLoginSheet(store = store, onDismiss = { showSshSheet = false })
-    }
-
-    if (showDirectoryPicker) {
-        AlertDialog(
-            onDismissRequest = { showDirectoryPicker = false },
-            title = { Text("Select Directory") },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(browsingPath, style = MaterialTheme.typography.labelSmall)
-                    if (directoryLoading) {
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    }
-                    directoryError?.let {
-                        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                    }
-                    TextButton(onClick = {
-                        scope.launch {
-                            directoryLoading = true
-                            directoryError = null
-                            runCatching { store.listDirectories(browsingParent) }
-                                .onSuccess { listing ->
-                                    browsingPath = listing.path
-                                    browsingParent = listing.parent
-                                    directoryEntries = listing.entries.filter { it.isDir }
-                                }
-                                .onFailure { directoryError = it.message ?: it.toString() }
-                            directoryLoading = false
-                        }
-                    }) { Text(".. (up)") }
-                    directoryEntries.forEach { entry ->
-                        TextButton(onClick = {
-                            scope.launch {
-                                directoryLoading = true
-                                directoryError = null
-                                runCatching { store.listDirectories(entry.path) }
-                                    .onSuccess { listing ->
-                                        browsingPath = listing.path
-                                        browsingParent = listing.parent
-                                        directoryEntries = listing.entries.filter { it.isDir }
-                                    }
-                                    .onFailure { directoryError = it.message ?: it.toString() }
-                                directoryLoading = false
-                            }
-                        }) { Text(entry.name) }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    startCwd = browsingPath
-                    pendingAssistantAfterConnect?.let { assistant ->
-                        store.createSession(assistant = assistant, startupCwd = browsingPath)
-                        pendingAssistantAfterConnect = null
-                        showDirectoryPicker = false
-                        onDismiss()
-                        return@TextButton
-                    }
-                    showDirectoryPicker = false
-                }) { Text("Use This") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDirectoryPicker = false }) { Text("Close") }
-            },
+@Composable
+private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            title.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(bottom = 6.dp, start = 4.dp),
         )
+        Surface(
+            shape = RoundedCornerShape(SweKittyTheme.cardCornerRadiusDp.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                content()
+            }
+        }
     }
 }
 
 @Composable
-private fun SavedServerRow(
-    server: SavedServer,
-    onUse: () -> Unit,
-    onRemove: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(server.name, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                server.endpoint.displayHost,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        if (server.isDefault) {
-            AssistChip(onClick = {}, enabled = false, label = { Text("Default") })
-        }
-        TextButton(onClick = onUse) { Text("Use") }
-        TextButton(onClick = onRemove) { Text("Remove") }
-    }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-    )
-}
-
-@Composable
-private fun LabeledRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, modifier = Modifier.width(100.dp), style = MaterialTheme.typography.bodyMedium)
+private fun KeyValueRow(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.weight(1f))
         Text(
             value,
-            modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

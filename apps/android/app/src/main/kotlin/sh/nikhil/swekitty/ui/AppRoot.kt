@@ -82,6 +82,15 @@ fun AppRoot(store: SessionStore) {
         )
     }
 
+    val pendingPick by store.pendingAgentPick.collectAsState()
+    pendingPick?.let { pick ->
+        AgentPickerSheet(
+            store = store,
+            headerNote = pick.hostNote,
+            onDismiss = { store.setPendingAgentPick(null) },
+        )
+    }
+
     if (showSplash) {
         AnimatedSplash(onFinish = { showSplash = false })
     }

@@ -1,27 +1,15 @@
 import SwiftUI
 
-/// v1: manual endpoint + bearer token entry, or paste from a scanned
-/// `swekitty://<host>?token=<bearer>` QR. mDNS browser lands in a
-/// post-v1 task.
+/// Settings — focused on managing **existing** servers and inspecting
+/// state. Adding a new server (any of QR / mDNS / SSH / manual) goes
+/// through [`AddServerSheet`] now, so this screen no longer has the
+/// huge pairing form that used to dominate it.
 struct SettingsSheet: View {
     @Environment(SessionStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
-    @State private var url: String = ""
-    @State private var token: String = ""
-    @State private var startCwd: String = "~"
-    @State private var showScanner: Bool = false
-    @State private var showSshLogin: Bool = false
-    @State private var showDiscover: Bool = false
-    @State private var showDirectoryPicker: Bool = false
-    @State private var browsingPath: String = "~"
-    @State private var directoryEntries: [RemoteDirectoryEntry] = []
-    @State private var directoryParent: String = "~"
-    @State private var directoryLoading: Bool = false
-    @State private var directoryError: String?
-    @State private var pendingAssistantAfterConnect: String?
-    @State private var scanError: String?
+    @State private var showAddServer = false
 
     var body: some View {
         NavigationStack {
@@ -32,8 +20,8 @@ struct SettingsSheet: View {
                 ScrollView {
                     VStack(spacing: 14) {
                         savedServersCard
+                        addServerCTA
                         pairedCard
-                        pairingCard
                         statusCard
                         aboutCard
                     }
@@ -50,33 +38,9 @@ struct SettingsSheet: View {
                     Button("Close") { dismiss() }
                 }
             }
-            .onAppear {
-                url = store.endpoint.url
-                token = store.endpoint.token
-                startCwd = store.recentDirectories.first ?? "~"
-            }
-            .onChange(of: store.harness) { _, next in
-                guard let _ = pendingAssistantAfterConnect else { return }
-                if next.canIssueCommands {
-                    showDirectoryPicker = true
-                    Task { await loadDirectories(path: startCwd) }
-                }
-            }
-            .sheet(isPresented: $showScanner) {
-                QRScannerSheet { code in
-                    handleScan(code)
-                }
-            }
-            .sheet(isPresented: $showSshLogin) {
-                SSHLoginSheet()
+            .sheet(isPresented: $showAddServer) {
+                AddServerSheet()
                     .environment(store)
-            }
-            .sheet(isPresented: $showDiscover) {
-                DiscoveryView()
-                    .environment(store)
-            }
-            .sheet(isPresented: $showDirectoryPicker) {
-                directoryPickerSheet
             }
         }
     }
@@ -106,8 +70,6 @@ struct SettingsSheet: View {
                         }
                         Button("Use") {
                             store.selectSavedServer(server.id, autoConnect: true)
-                            url = server.endpoint.url
-                            token = server.endpoint.token
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(SweKittyTheme.accentStrong)
@@ -126,6 +88,34 @@ struct SettingsSheet: View {
         }
     }
 
+    private var addServerCTA: some View {
+        Button {
+            showAddServer = true
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(SweKittyTheme.accentStrong)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Add server")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(SweKittyTheme.textPrimary)
+                    Text("QR · LAN discover · SSH · paste URL+token")
+                        .font(.caption)
+                        .foregroundStyle(SweKittyTheme.textMuted)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(SweKittyTheme.textMuted)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 14)
+            .glassRoundedRect()
+        }
+        .buttonStyle(.plain)
+    }
+
     @ViewBuilder
     private var pairedCard: some View {
         if store.endpoint.isComplete {
@@ -137,8 +127,6 @@ struct SettingsSheet: View {
                 Button(role: .destructive) {
                     store.endpoint = .empty
                     store.disconnect()
-                    url = ""
-                    token = ""
                 } label: {
                     HStack(spacing: 10) {
                         Label("Forget harness", systemImage: "trash")
@@ -151,161 +139,6 @@ struct SettingsSheet: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.vertical, 4)
-            }
-        }
-    }
-
-    private var pairingCard: some View {
-        SettingsCard(title: store.endpoint.isComplete ? "Re-pair" : "Pair a harness") {
-            TextField("ws://192.168.1.10:1977", text: $url)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .keyboardType(.URL)
-                .textFieldStyle(.plain)
-                .padding(.vertical, 4)
-
-            Divider().background(SweKittyTheme.separator)
-
-            SecureField("Bearer token", text: $token)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .textFieldStyle(.plain)
-                .padding(.vertical, 4)
-
-            Divider().background(SweKittyTheme.separator)
-
-            TextField("Start directory (e.g. ~/projects/kitty)", text: $startCwd)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .textFieldStyle(.plain)
-                .padding(.vertical, 4)
-
-            if !store.recentDirectories.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(store.recentDirectories, id: \.self) { path in
-                            Button(path) { startCwd = path }
-                                .buttonStyle(.plain)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .glassCapsule(interactive: true, tint: SweKittyTheme.surface.opacity(0.65))
-                        }
-                    }
-                }
-            }
-
-            Divider().background(SweKittyTheme.separator)
-
-            Button {
-                showScanner = true
-            } label: {
-                HStack(spacing: 10) {
-                    Label("Scan pairing QR", systemImage: "qrcode.viewfinder")
-                        .foregroundStyle(SweKittyTheme.textBody)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(SweKittyTheme.textMuted)
-                }
-            }
-            .buttonStyle(.plain)
-            .padding(.vertical, 4)
-
-            Divider().background(SweKittyTheme.separator)
-
-            Button {
-                showDiscover = true
-            } label: {
-                HStack(spacing: 10) {
-                    Label("Discover on LAN", systemImage: "wifi.circle")
-                        .foregroundStyle(SweKittyTheme.textBody)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(SweKittyTheme.textMuted)
-                }
-            }
-            .buttonStyle(.plain)
-            .padding(.vertical, 4)
-
-            Divider().background(SweKittyTheme.separator)
-
-            Button {
-                showSshLogin = true
-            } label: {
-                HStack(spacing: 10) {
-                    Label("Add server via SSH", systemImage: "terminal")
-                        .foregroundStyle(SweKittyTheme.textBody)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(SweKittyTheme.textMuted)
-                }
-            }
-            .buttonStyle(.plain)
-            .padding(.vertical, 4)
-
-            Button { save() } label: {
-                Label("Save & Connect", systemImage: "link")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(SweKittyTheme.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .glassCapsule(
-                        interactive: true,
-                        tint: SweKittyTheme.accentStrong.opacity(0.55)
-                    )
-            }
-            .buttonStyle(.plain)
-            .disabled(url.isEmpty || token.isEmpty)
-            .padding(.top, 4)
-
-            HStack(spacing: 8) {
-                Button {
-                    showDirectoryPicker = true
-                    Task { await loadDirectories(path: startCwd) }
-                } label: {
-                    Label("Browse", systemImage: "folder")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(SweKittyTheme.textPrimary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
-                        .glassCapsule(interactive: true, tint: SweKittyTheme.warning.opacity(0.40))
-                }
-                .buttonStyle(.plain)
-                .disabled(url.isEmpty || token.isEmpty)
-
-                Button {
-                    connectAndStart(assistant: "claude")
-                } label: {
-                    Label("Connect + Start Claude", systemImage: "sparkles")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(SweKittyTheme.textPrimary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
-                        .glassCapsule(interactive: true, tint: SweKittyTheme.success.opacity(0.45))
-                }
-                .buttonStyle(.plain)
-                .disabled(url.isEmpty || token.isEmpty)
-
-                Button {
-                    connectAndStart(assistant: "codex")
-                } label: {
-                    Label("Connect + Start Codex", systemImage: "chevron.left.forwardslash.chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(SweKittyTheme.textPrimary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
-                        .glassCapsule(interactive: true, tint: SweKittyTheme.accentStrong.opacity(0.50))
-                }
-                .buttonStyle(.plain)
-                .disabled(url.isEmpty || token.isEmpty)
-            }
-
-            if let scanError {
-                Text(scanError)
-                    .font(.footnote)
-                    .foregroundStyle(SweKittyTheme.danger)
             }
         }
     }
@@ -353,122 +186,6 @@ struct SettingsSheet: View {
                 FieldRow(label: "Version", value: version)
             }
         }
-    }
-
-    private func save() {
-        let next = StoredEndpoint(
-            url: url.trimmingCharacters(in: .whitespaces),
-            token: token.trimmingCharacters(in: .whitespaces)
-        )
-        store.endpoint = next
-        store.upsertSavedServer(name: next.displayHost, endpoint: next, makeDefault: true)
-        store.disconnect()
-        store.connect()
-        dismiss()
-    }
-
-    private func connectAndStart(assistant: String) {
-        let next = StoredEndpoint(
-            url: url.trimmingCharacters(in: .whitespaces),
-            token: token.trimmingCharacters(in: .whitespaces)
-        )
-        pendingAssistantAfterConnect = assistant
-        store.endpoint = next
-        store.upsertSavedServer(name: next.displayHost, endpoint: next, makeDefault: true)
-        store.disconnect()
-        store.connect()
-    }
-
-    @ViewBuilder
-    private var directoryPickerSheet: some View {
-        NavigationStack {
-            VStack(spacing: 10) {
-                HStack {
-                    Text(browsingPath)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(SweKittyTheme.textSecondary)
-                        .lineLimit(2)
-                    Spacer()
-                    if directoryLoading {
-                        ProgressView().controlSize(.small)
-                    }
-                }
-                .padding(.horizontal, 16)
-                if let directoryError {
-                    Text(directoryError)
-                        .font(.footnote)
-                        .foregroundStyle(SweKittyTheme.danger)
-                        .padding(.horizontal, 16)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                List {
-                    Button {
-                        Task { await loadDirectories(path: directoryParent) }
-                    } label: {
-                        Label("..", systemImage: "arrow.up.left")
-                    }
-                    ForEach(directoryEntries) { entry in
-                        Button {
-                            Task { await loadDirectories(path: entry.path) }
-                        } label: {
-                            Label(entry.name, systemImage: "folder")
-                        }
-                    }
-                }
-                .listStyle(.plain)
-            }
-            .navigationTitle("Select Directory")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { showDirectoryPicker = false }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Use This") {
-                        startCwd = browsingPath
-                        if let assistant = pendingAssistantAfterConnect {
-                            store.createSession(assistant: assistant, startupCwd: browsingPath)
-                            pendingAssistantAfterConnect = nil
-                            dismiss()
-                            return
-                        }
-                        showDirectoryPicker = false
-                    }
-                }
-            }
-        }
-    }
-
-    private func loadDirectories(path: String?) async {
-        let next = StoredEndpoint(
-            url: url.trimmingCharacters(in: .whitespaces),
-            token: token.trimmingCharacters(in: .whitespaces)
-        )
-        guard !next.url.isEmpty, !next.token.isEmpty else {
-            directoryError = "Set endpoint and token first."
-            return
-        }
-        directoryLoading = true
-        directoryError = nil
-        store.endpoint = next
-        do {
-            let listing = try await store.listDirectories(path: path)
-            browsingPath = listing.path
-            directoryParent = listing.parent
-            directoryEntries = listing.entries.filter(\.is_dir)
-        } catch {
-            directoryError = String(describing: error)
-        }
-        directoryLoading = false
-    }
-
-    private func handleScan(_ code: String) {
-        guard let parsed = PairingURL.parse(code) else {
-            scanError = "Not a SweKitty pairing URL: \(code.prefix(40))…"
-            return
-        }
-        scanError = nil
-        url = parsed.endpoint
-        token = parsed.token
     }
 }
 

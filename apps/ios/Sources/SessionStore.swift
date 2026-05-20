@@ -106,6 +106,15 @@ struct StoredEndpoint: Equatable {
     }
 }
 
+/// One-shot UI cue triggered after a pairing completes.
+/// `Identifiable` so it can drive `.sheet(item:)` cleanly — when the
+/// sheet dismisses, the binding clears this back to nil and stale
+/// pairings don't re-trigger the sheet on next launch.
+struct PendingAgentPick: Identifiable, Equatable {
+    let id: UUID = UUID()
+    let hostNote: String
+}
+
 struct SavedServer: Codable, Equatable, Identifiable {
     var id: String
     var name: String
@@ -201,6 +210,12 @@ final class SessionStore {
     /// Exposed for UI affordances that want session-scoped state instead
     /// of the aggregated harness state.
     var connectionHealthBySession: [String: ConnectionHealth] = [:]
+
+    /// Set when a fresh pairing (deep link, QR scan, etc.) completes;
+    /// drives the `AgentPickerSheet` so the user lands directly on
+    /// "pick Claude or Codex" instead of an empty session list. UI
+    /// resets this to nil when the sheet dismisses.
+    var pendingAgentPick: PendingAgentPick?
 
     private var client: SweKittyClient?
     private var delegate: StoreDelegate?

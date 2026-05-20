@@ -14,6 +14,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         Telemetry.configure(applicationContext)
         store.hydrate(applicationContext)
+        handlePairingIntent(intent)
         setContent {
             MaterialTheme {
                 // GlassAppBackground inside AppRoot supplies the canvas; no
@@ -21,5 +22,17 @@ class MainActivity : ComponentActivity() {
                 AppRoot(store)
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handlePairingIntent(intent)
+    }
+
+    private fun handlePairingIntent(intent: android.content.Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme?.lowercase() != "swekitty") return
+        store.applyDeepLink(data.toString())
     }
 }

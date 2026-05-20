@@ -47,7 +47,8 @@ fun ProjectListScreen(
     val harness by store.harness.collectAsState()
     val endpoint by store.endpoint.collectAsState()
     val creationError by store.sessionCreationError.collectAsState()
-    var showAgentMenu by remember { mutableStateOf(false) }
+    var showAgentPicker by remember { mutableStateOf(false) }
+    var showAddServer by remember { mutableStateOf(false) }
 
     val visible = remember(sessions, lifecycle) { store.visibleSessions() }
 
@@ -69,22 +70,9 @@ fun ProjectListScreen(
                     )
                 }
                 IconButton(onClick = onOpenSettings) { Icon(Icons.Default.Settings, "Settings") }
-                Box {
-                    IconButton(
-                        onClick = { showAgentMenu = true },
-                        enabled = harness.canIssueCommands,
-                    ) { Icon(Icons.Default.Add, "New session") }
-                    DropdownMenu(expanded = showAgentMenu, onDismissRequest = { showAgentMenu = false }) {
-                        DropdownMenuItem(text = { Text("Claude") }, onClick = {
-                            showAgentMenu = false
-                            store.createSession("claude")
-                        })
-                        DropdownMenuItem(text = { Text("Codex") }, onClick = {
-                            showAgentMenu = false
-                            store.createSession("codex")
-                        })
-                    }
-                }
+                IconButton(onClick = {
+                    if (harness.canIssueCommands) showAgentPicker = true else showAddServer = true
+                }) { Icon(Icons.Default.Add, "New session") }
             }
 
             HarnessStatusStrip(
@@ -133,6 +121,17 @@ fun ProjectListScreen(
                 }
             }
         }
+    }
+
+    if (showAgentPicker) {
+        AgentPickerSheet(
+            store = store,
+            headerNote = null,
+            onDismiss = { showAgentPicker = false },
+        )
+    }
+    if (showAddServer) {
+        AddServerSheet(store = store, onDismiss = { showAddServer = false })
     }
 }
 
