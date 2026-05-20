@@ -251,6 +251,7 @@ func (c *client) handleText(payload []byte) {
 		Type      string `json:"type"`
 		Assistant string `json:"assistant"`
 		Name      string `json:"name"`
+		Msg       string `json:"msg"`
 	}
 	if err := json.Unmarshal(payload, &env); err != nil {
 		return
@@ -322,7 +323,19 @@ func (c *client) handleText(payload []byte) {
 			"reason_code": "agent_switched",
 			"ts":          time.Now().UTC().Format(time.RFC3339Nano),
 		})
-	case "rename_session", "toggle_yolo", "chat":
+	case "chat":
+		// Route mobile chat sends into the agent's PTY stdin. Until we
+		// wire a structured chat_event channel (AGENT_CHAT_PORT —
+		// claude.toml/codex.toml define the env var but no agent
+		// currently connects to it), this is how the agent actually
+		// receives what the user typed. The reply comes back through
+		// PTY output, which mobile renders in the terminal tab.
+		// Mobile-side optimistic local echo (SessionStore.sendChat)
+		// handles the chat-tab visibility for the outgoing message.
+		if env.Msg != "" {
+			_, _ = c.sess.Write([]byte(env.Msg + "\n"))
+		}
+	case "rename_session", "toggle_yolo":
 		// Acknowledged in v1 protocol but still no-op here.
 	default:
 		// Per protocol §3.3: unknown types are logged and ignored.
