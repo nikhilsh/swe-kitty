@@ -45,7 +45,7 @@ object SweKittyTheme {
 
     /** Per-agent accent. Falls back to [accentStrong] for unknown agents. */
     @Composable @ReadOnlyComposable
-    fun accent(forAgent assistant: String): Color = when (assistant.lowercase()) {
+    fun accent(forAgent: String): Color = when (forAgent.lowercase()) {
         "claude" -> claudeAccent()
         "codex"  -> codexAccent()
         else     -> accentStrong()
