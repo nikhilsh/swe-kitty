@@ -23,7 +23,9 @@ pub struct SshCredentials {
 /// fraught and most users will paste a key or use a password.
 #[derive(Clone, Debug)]
 pub enum SshAuth {
-    Password(String),
+    Password {
+        password: String,
+    },
     PrivateKey {
         key_pem: String,
         passphrase: Option<String>,

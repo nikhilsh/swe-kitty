@@ -1383,6 +1383,178 @@ public func FfiConverterTypeSessionStatus_lower(_ value: SessionStatus) -> RustB
 }
 
 
+public struct SshBootstrapResult {
+    public var remotePort: UInt16
+    public var localPort: UInt16
+    public var token: String
+    public var hostKeyFingerprint: String
+    public var reused: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(remotePort: UInt16, localPort: UInt16, token: String, hostKeyFingerprint: String, reused: Bool) {
+        self.remotePort = remotePort
+        self.localPort = localPort
+        self.token = token
+        self.hostKeyFingerprint = hostKeyFingerprint
+        self.reused = reused
+    }
+}
+
+
+
+extension SshBootstrapResult: Equatable, Hashable {
+    public static func ==(lhs: SshBootstrapResult, rhs: SshBootstrapResult) -> Bool {
+        if lhs.remotePort != rhs.remotePort {
+            return false
+        }
+        if lhs.localPort != rhs.localPort {
+            return false
+        }
+        if lhs.token != rhs.token {
+            return false
+        }
+        if lhs.hostKeyFingerprint != rhs.hostKeyFingerprint {
+            return false
+        }
+        if lhs.reused != rhs.reused {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(remotePort)
+        hasher.combine(localPort)
+        hasher.combine(token)
+        hasher.combine(hostKeyFingerprint)
+        hasher.combine(reused)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSshBootstrapResult: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SshBootstrapResult {
+        return
+            try SshBootstrapResult(
+                remotePort: FfiConverterUInt16.read(from: &buf), 
+                localPort: FfiConverterUInt16.read(from: &buf), 
+                token: FfiConverterString.read(from: &buf), 
+                hostKeyFingerprint: FfiConverterString.read(from: &buf), 
+                reused: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SshBootstrapResult, into buf: inout [UInt8]) {
+        FfiConverterUInt16.write(value.remotePort, into: &buf)
+        FfiConverterUInt16.write(value.localPort, into: &buf)
+        FfiConverterString.write(value.token, into: &buf)
+        FfiConverterString.write(value.hostKeyFingerprint, into: &buf)
+        FfiConverterBool.write(value.reused, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSshBootstrapResult_lift(_ buf: RustBuffer) throws -> SshBootstrapResult {
+    return try FfiConverterTypeSshBootstrapResult.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSshBootstrapResult_lower(_ value: SshBootstrapResult) -> RustBuffer {
+    return FfiConverterTypeSshBootstrapResult.lower(value)
+}
+
+
+public struct SshCredentials {
+    public var host: String
+    public var port: UInt16
+    public var username: String
+    public var auth: SshAuth
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(host: String, port: UInt16, username: String, auth: SshAuth) {
+        self.host = host
+        self.port = port
+        self.username = username
+        self.auth = auth
+    }
+}
+
+
+
+extension SshCredentials: Equatable, Hashable {
+    public static func ==(lhs: SshCredentials, rhs: SshCredentials) -> Bool {
+        if lhs.host != rhs.host {
+            return false
+        }
+        if lhs.port != rhs.port {
+            return false
+        }
+        if lhs.username != rhs.username {
+            return false
+        }
+        if lhs.auth != rhs.auth {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(host)
+        hasher.combine(port)
+        hasher.combine(username)
+        hasher.combine(auth)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSshCredentials: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SshCredentials {
+        return
+            try SshCredentials(
+                host: FfiConverterString.read(from: &buf), 
+                port: FfiConverterUInt16.read(from: &buf), 
+                username: FfiConverterString.read(from: &buf), 
+                auth: FfiConverterTypeSshAuth.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SshCredentials, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.host, into: &buf)
+        FfiConverterUInt16.write(value.port, into: &buf)
+        FfiConverterString.write(value.username, into: &buf)
+        FfiConverterTypeSshAuth.write(value.auth, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSshCredentials_lift(_ buf: RustBuffer) throws -> SshCredentials {
+    return try FfiConverterTypeSshCredentials.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSshCredentials_lower(_ value: SshCredentials) -> RustBuffer {
+    return FfiConverterTypeSshCredentials.lower(value)
+}
+
+
 public struct ViewEventFile {
     public var path: String
     public var rev: String
@@ -1527,6 +1699,220 @@ extension ConnectionHealth: Equatable, Hashable {}
 
 
 
+// Note that we don't yet support `indirect` for enums.
+// See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
+
+public enum SshAuth {
+    
+    case password(password: String
+    )
+    case privateKey(keyPem: String, passphrase: String?
+    )
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSshAuth: FfiConverterRustBuffer {
+    typealias SwiftType = SshAuth
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SshAuth {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .password(password: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 2: return .privateKey(keyPem: try FfiConverterString.read(from: &buf), passphrase: try FfiConverterOptionString.read(from: &buf)
+        )
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: SshAuth, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case let .password(password):
+            writeInt(&buf, Int32(1))
+            FfiConverterString.write(password, into: &buf)
+            
+        
+        case let .privateKey(keyPem,passphrase):
+            writeInt(&buf, Int32(2))
+            FfiConverterString.write(keyPem, into: &buf)
+            FfiConverterOptionString.write(passphrase, into: &buf)
+            
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSshAuth_lift(_ buf: RustBuffer) throws -> SshAuth {
+    return try FfiConverterTypeSshAuth.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSshAuth_lower(_ value: SshAuth) -> RustBuffer {
+    return FfiConverterTypeSshAuth.lower(value)
+}
+
+
+
+extension SshAuth: Equatable, Hashable {}
+
+
+
+
+public enum SshError {
+
+    
+    
+    case Dial(message: String)
+    
+    case Handshake(message: String)
+    
+    case HostKeyRejected(message: String)
+    
+    case AuthFailed(message: String)
+    
+    case DockerMissing(message: String)
+    
+    case DockerPermission(message: String)
+    
+    case PortConflict(message: String)
+    
+    case HarnessStartTimeout(message: String)
+    
+    case BootstrapExitCode(message: String)
+    
+    case BootstrapParse(message: String)
+    
+    case PortForward(message: String)
+    
+    case Io(message: String)
+    
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSshError: FfiConverterRustBuffer {
+    typealias SwiftType = SshError
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SshError {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+
+        
+
+        
+        case 1: return .Dial(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 2: return .Handshake(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 3: return .HostKeyRejected(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 4: return .AuthFailed(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 5: return .DockerMissing(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 6: return .DockerPermission(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 7: return .PortConflict(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 8: return .HarnessStartTimeout(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 9: return .BootstrapExitCode(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 10: return .BootstrapParse(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 11: return .PortForward(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 12: return .Io(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: SshError, into buf: inout [UInt8]) {
+        switch value {
+
+        
+
+        
+        case .Dial(_ /* message is ignored*/):
+            writeInt(&buf, Int32(1))
+        case .Handshake(_ /* message is ignored*/):
+            writeInt(&buf, Int32(2))
+        case .HostKeyRejected(_ /* message is ignored*/):
+            writeInt(&buf, Int32(3))
+        case .AuthFailed(_ /* message is ignored*/):
+            writeInt(&buf, Int32(4))
+        case .DockerMissing(_ /* message is ignored*/):
+            writeInt(&buf, Int32(5))
+        case .DockerPermission(_ /* message is ignored*/):
+            writeInt(&buf, Int32(6))
+        case .PortConflict(_ /* message is ignored*/):
+            writeInt(&buf, Int32(7))
+        case .HarnessStartTimeout(_ /* message is ignored*/):
+            writeInt(&buf, Int32(8))
+        case .BootstrapExitCode(_ /* message is ignored*/):
+            writeInt(&buf, Int32(9))
+        case .BootstrapParse(_ /* message is ignored*/):
+            writeInt(&buf, Int32(10))
+        case .PortForward(_ /* message is ignored*/):
+            writeInt(&buf, Int32(11))
+        case .Io(_ /* message is ignored*/):
+            writeInt(&buf, Int32(12))
+
+        
+        }
+    }
+}
+
+
+extension SshError: Equatable, Hashable {}
+
+extension SshError: Foundation.LocalizedError {
+    public var errorDescription: String? {
+        String(reflecting: self)
+    }
+}
+
 
 public enum SweKittyError {
 
@@ -1625,6 +2011,111 @@ extension SweKittyError: Foundation.LocalizedError {
 
 
 
+public protocol SshHostKeyDelegate : AnyObject {
+    
+    func acceptHostKey(fingerprint: String)  -> Bool
+    
+}
+
+// Magic number for the Rust proxy to call using the same mechanism as every other method,
+// to free the callback once it's dropped by Rust.
+private let IDX_CALLBACK_FREE: Int32 = 0
+// Callback return codes
+private let UNIFFI_CALLBACK_SUCCESS: Int32 = 0
+private let UNIFFI_CALLBACK_ERROR: Int32 = 1
+private let UNIFFI_CALLBACK_UNEXPECTED_ERROR: Int32 = 2
+
+// Put the implementation in a struct so we don't pollute the top-level namespace
+fileprivate struct UniffiCallbackInterfaceSshHostKeyDelegate {
+
+    // Create the VTable using a series of closures.
+    // Swift automatically converts these into C callback functions.
+    static var vtable: UniffiVTableCallbackInterfaceSshHostKeyDelegate = UniffiVTableCallbackInterfaceSshHostKeyDelegate(
+        acceptHostKey: { (
+            uniffiHandle: UInt64,
+            fingerprint: RustBuffer,
+            uniffiOutReturn: UnsafeMutablePointer<Int8>,
+            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
+        ) in
+            let makeCall = {
+                () throws -> Bool in
+                guard let uniffiObj = try? FfiConverterCallbackInterfaceSshHostKeyDelegate.handleMap.get(handle: uniffiHandle) else {
+                    throw UniffiInternalError.unexpectedStaleHandle
+                }
+                return uniffiObj.acceptHostKey(
+                     fingerprint: try FfiConverterString.lift(fingerprint)
+                )
+            }
+
+            
+            let writeReturn = { uniffiOutReturn.pointee = FfiConverterBool.lower($0) }
+            uniffiTraitInterfaceCall(
+                callStatus: uniffiCallStatus,
+                makeCall: makeCall,
+                writeReturn: writeReturn
+            )
+        },
+        uniffiFree: { (uniffiHandle: UInt64) -> () in
+            let result = try? FfiConverterCallbackInterfaceSshHostKeyDelegate.handleMap.remove(handle: uniffiHandle)
+            if result == nil {
+                print("Uniffi callback interface SshHostKeyDelegate: handle missing in uniffiFree")
+            }
+        }
+    )
+}
+
+private func uniffiCallbackInitSshHostKeyDelegate() {
+    uniffi_swe_kitty_core_fn_init_callback_vtable_sshhostkeydelegate(&UniffiCallbackInterfaceSshHostKeyDelegate.vtable)
+}
+
+// FfiConverter protocol for callback interfaces
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterCallbackInterfaceSshHostKeyDelegate {
+    fileprivate static var handleMap = UniffiHandleMap<SshHostKeyDelegate>()
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+extension FfiConverterCallbackInterfaceSshHostKeyDelegate : FfiConverter {
+    typealias SwiftType = SshHostKeyDelegate
+    typealias FfiType = UInt64
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public static func lift(_ handle: UInt64) throws -> SwiftType {
+        try handleMap.get(handle: handle)
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        let handle: UInt64 = try readInt(&buf)
+        return try lift(handle)
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public static func lower(_ v: SwiftType) -> UInt64 {
+        return handleMap.insert(obj: v)
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public static func write(_ v: SwiftType, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(v))
+    }
+}
+
+
+
+
 public protocol SweKittyDelegate : AnyObject {
     
     func onPtyData(sessionId: String, data: Data) 
@@ -1645,13 +2136,7 @@ public protocol SweKittyDelegate : AnyObject {
     
 }
 
-// Magic number for the Rust proxy to call using the same mechanism as every other method,
-// to free the callback once it's dropped by Rust.
-private let IDX_CALLBACK_FREE: Int32 = 0
-// Callback return codes
-private let UNIFFI_CALLBACK_SUCCESS: Int32 = 0
-private let UNIFFI_CALLBACK_ERROR: Int32 = 1
-private let UNIFFI_CALLBACK_UNEXPECTED_ERROR: Int32 = 2
+
 
 // Put the implementation in a struct so we don't pollute the top-level namespace
 fileprivate struct UniffiCallbackInterfaceSweKittyDelegate {
@@ -2186,6 +2671,20 @@ fileprivate func uniffiFutureContinuationCallback(handle: UInt64, pollResult: In
         print("uniffiFutureContinuationCallback invalid handle")
     }
 }
+public func sshBootstrap(credentials: SshCredentials, preAllocatedToken: String, anthropicApiKey: String, openaiApiKey: String, imageRef: String?, hostKeyDelegate: SshHostKeyDelegate)async throws  -> SshBootstrapResult {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_swe_kitty_core_fn_func_ssh_bootstrap(FfiConverterTypeSshCredentials.lower(credentials),FfiConverterString.lower(preAllocatedToken),FfiConverterString.lower(anthropicApiKey),FfiConverterString.lower(openaiApiKey),FfiConverterOptionString.lower(imageRef),FfiConverterCallbackInterfaceSshHostKeyDelegate.lower(hostKeyDelegate)
+                )
+            },
+            pollFunc: ffi_swe_kitty_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_swe_kitty_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_swe_kitty_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterTypeSshBootstrapResult.lift,
+            errorHandler: FfiConverterTypeSshError.lift
+        )
+}
 
 private enum InitializationResult {
     case ok
@@ -2201,6 +2700,9 @@ private var initializationResult: InitializationResult = {
     let scaffolding_contract_version = ffi_swe_kitty_core_uniffi_contract_version()
     if bindings_contract_version != scaffolding_contract_version {
         return InitializationResult.contractVersionMismatch
+    }
+    if (uniffi_swe_kitty_core_checksum_func_ssh_bootstrap() != 48558) {
+        return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_swe_kitty_core_checksum_method_swekittyclient_connect() != 53401) {
         return InitializationResult.apiChecksumMismatch
@@ -2244,6 +2746,9 @@ private var initializationResult: InitializationResult = {
     if (uniffi_swe_kitty_core_checksum_constructor_swekittyclient_new() != 52948) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_swe_kitty_core_checksum_method_sshhostkeydelegate_accept_host_key() != 58107) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_pty_data() != 39005) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -2269,6 +2774,7 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
 
+    uniffiCallbackInitSshHostKeyDelegate()
     uniffiCallbackInitSweKittyDelegate()
     return InitializationResult.ok
 }()

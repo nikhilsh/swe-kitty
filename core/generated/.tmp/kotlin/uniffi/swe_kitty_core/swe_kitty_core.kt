@@ -661,6 +661,9 @@ internal open class UniffiForeignFutureStructVoid(
 internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
     fun callback(`callbackData`: Long,`result`: UniffiForeignFutureStructVoid.UniffiByValue,)
 }
+internal interface UniffiCallbackInterfaceSshHostKeyDelegateMethod0 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`fingerprint`: RustBuffer.ByValue,`uniffiOutReturn`: ByteByReference,uniffiCallStatus: UniffiRustCallStatus,)
+}
 internal interface UniffiCallbackInterfaceSweKittyDelegateMethod0 : com.sun.jna.Callback {
     fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`data`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
 }
@@ -684,6 +687,22 @@ internal interface UniffiCallbackInterfaceSweKittyDelegateMethod6 : com.sun.jna.
 }
 internal interface UniffiCallbackInterfaceSweKittyDelegateMethod7 : com.sun.jna.Callback {
     fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`health`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+@Structure.FieldOrder("acceptHostKey", "uniffiFree")
+internal open class UniffiVTableCallbackInterfaceSshHostKeyDelegate(
+    @JvmField internal var `acceptHostKey`: UniffiCallbackInterfaceSshHostKeyDelegateMethod0? = null,
+    @JvmField internal var `uniffiFree`: UniffiCallbackInterfaceFree? = null,
+) : Structure() {
+    class UniffiByValue(
+        `acceptHostKey`: UniffiCallbackInterfaceSshHostKeyDelegateMethod0? = null,
+        `uniffiFree`: UniffiCallbackInterfaceFree? = null,
+    ): UniffiVTableCallbackInterfaceSshHostKeyDelegate(`acceptHostKey`,`uniffiFree`,), Structure.ByValue
+
+   internal fun uniffiSetValue(other: UniffiVTableCallbackInterfaceSshHostKeyDelegate) {
+        `acceptHostKey` = other.`acceptHostKey`
+        `uniffiFree` = other.`uniffiFree`
+    }
+
 }
 @Structure.FieldOrder("onPtyData", "onChatEvent", "onPreviewReady", "onStatus", "onSnapshot", "onExit", "onDisconnected", "onConnectionHealth", "uniffiFree")
 internal open class UniffiVTableCallbackInterfaceSweKittyDelegate(
@@ -819,6 +838,10 @@ internal open class UniffiVTableCallbackInterfaceSweKittyDelegate(
 
 
 
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -829,6 +852,7 @@ internal interface UniffiLib : Library {
             .also { lib: UniffiLib ->
                 uniffiCheckContractApiVersion(lib)
                 uniffiCheckApiChecksums(lib)
+                uniffiCallbackInterfaceSshHostKeyDelegate.register(lib)
                 uniffiCallbackInterfaceSweKittyDelegate.register(lib)
                 }
         }
@@ -871,8 +895,12 @@ internal interface UniffiLib : Library {
     ): Long
     fun uniffi_swe_kitty_core_fn_method_swekittyclient_switch_agent(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`assistant`: RustBuffer.ByValue,
     ): Long
+    fun uniffi_swe_kitty_core_fn_init_callback_vtable_sshhostkeydelegate(`vtable`: UniffiVTableCallbackInterfaceSshHostKeyDelegate,
+    ): Unit
     fun uniffi_swe_kitty_core_fn_init_callback_vtable_swekittydelegate(`vtable`: UniffiVTableCallbackInterfaceSweKittyDelegate,
     ): Unit
+    fun uniffi_swe_kitty_core_fn_func_ssh_bootstrap(`credentials`: RustBuffer.ByValue,`preAllocatedToken`: RustBuffer.ByValue,`anthropicApiKey`: RustBuffer.ByValue,`openaiApiKey`: RustBuffer.ByValue,`imageRef`: RustBuffer.ByValue,`hostKeyDelegate`: Long,
+    ): Long
     fun ffi_swe_kitty_core_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun ffi_swe_kitty_core_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -985,6 +1013,8 @@ internal interface UniffiLib : Library {
     ): Unit
     fun ffi_swe_kitty_core_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
+    fun uniffi_swe_kitty_core_checksum_func_ssh_bootstrap(
+    ): Short
     fun uniffi_swe_kitty_core_checksum_method_swekittyclient_connect(
     ): Short
     fun uniffi_swe_kitty_core_checksum_method_swekittyclient_create_session(
@@ -1012,6 +1042,8 @@ internal interface UniffiLib : Library {
     fun uniffi_swe_kitty_core_checksum_method_swekittyclient_switch_agent(
     ): Short
     fun uniffi_swe_kitty_core_checksum_constructor_swekittyclient_new(
+    ): Short
+    fun uniffi_swe_kitty_core_checksum_method_sshhostkeydelegate_accept_host_key(
     ): Short
     fun uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_pty_data(
     ): Short
@@ -1046,6 +1078,9 @@ private fun uniffiCheckContractApiVersion(lib: UniffiLib) {
 
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: UniffiLib) {
+    if (lib.uniffi_swe_kitty_core_checksum_func_ssh_bootstrap() != 48558.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_connect() != 53401.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1086,6 +1121,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_swe_kitty_core_checksum_constructor_swekittyclient_new() != 52948.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_swe_kitty_core_checksum_method_sshhostkeydelegate_accept_host_key() != 58107.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_pty_data() != 39005.toShort()) {
@@ -1265,6 +1303,29 @@ public object FfiConverterInt: FfiConverter<Int, Int> {
 
     override fun write(value: Int, buf: ByteBuffer) {
         buf.putInt(value)
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterULong: FfiConverter<ULong, Long> {
+    override fun lift(value: Long): ULong {
+        return value.toULong()
+    }
+
+    override fun read(buf: ByteBuffer): ULong {
+        return lift(buf.getLong())
+    }
+
+    override fun lower(value: ULong): Long {
+        return value.toLong()
+    }
+
+    override fun allocationSize(value: ULong) = 8UL
+
+    override fun write(value: ULong, buf: ByteBuffer) {
+        buf.putLong(value.toLong())
     }
 }
 
@@ -1968,7 +2029,13 @@ data class ConversationItem (
     var `status`: kotlin.String, 
     var `content`: kotlin.String, 
     var `ts`: kotlin.String, 
-    var `files`: List<ViewEventFile>
+    var `files`: List<ViewEventFile>, 
+    var `toolName`: kotlin.String?, 
+    var `command`: kotlin.String?, 
+    var `exitCode`: kotlin.Int?, 
+    var `durationMs`: kotlin.ULong?, 
+    var `diffSummary`: kotlin.String?, 
+    var `pendingOptions`: List<kotlin.String>
 ) {
     
     companion object
@@ -1987,6 +2054,12 @@ public object FfiConverterTypeConversationItem: FfiConverterRustBuffer<Conversat
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
             FfiConverterSequenceTypeViewEventFile.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalInt.read(buf),
+            FfiConverterOptionalULong.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterSequenceString.read(buf),
         )
     }
 
@@ -1997,7 +2070,13 @@ public object FfiConverterTypeConversationItem: FfiConverterRustBuffer<Conversat
             FfiConverterString.allocationSize(value.`status`) +
             FfiConverterString.allocationSize(value.`content`) +
             FfiConverterString.allocationSize(value.`ts`) +
-            FfiConverterSequenceTypeViewEventFile.allocationSize(value.`files`)
+            FfiConverterSequenceTypeViewEventFile.allocationSize(value.`files`) +
+            FfiConverterOptionalString.allocationSize(value.`toolName`) +
+            FfiConverterOptionalString.allocationSize(value.`command`) +
+            FfiConverterOptionalInt.allocationSize(value.`exitCode`) +
+            FfiConverterOptionalULong.allocationSize(value.`durationMs`) +
+            FfiConverterOptionalString.allocationSize(value.`diffSummary`) +
+            FfiConverterSequenceString.allocationSize(value.`pendingOptions`)
     )
 
     override fun write(value: ConversationItem, buf: ByteBuffer) {
@@ -2008,6 +2087,12 @@ public object FfiConverterTypeConversationItem: FfiConverterRustBuffer<Conversat
             FfiConverterString.write(value.`content`, buf)
             FfiConverterString.write(value.`ts`, buf)
             FfiConverterSequenceTypeViewEventFile.write(value.`files`, buf)
+            FfiConverterOptionalString.write(value.`toolName`, buf)
+            FfiConverterOptionalString.write(value.`command`, buf)
+            FfiConverterOptionalInt.write(value.`exitCode`, buf)
+            FfiConverterOptionalULong.write(value.`durationMs`, buf)
+            FfiConverterOptionalString.write(value.`diffSummary`, buf)
+            FfiConverterSequenceString.write(value.`pendingOptions`, buf)
     }
 }
 
@@ -2153,6 +2238,90 @@ public object FfiConverterTypeSessionStatus: FfiConverterRustBuffer<SessionStatu
 
 
 
+data class SshBootstrapResult (
+    var `remotePort`: kotlin.UShort, 
+    var `localPort`: kotlin.UShort, 
+    var `token`: kotlin.String, 
+    var `hostKeyFingerprint`: kotlin.String, 
+    var `reused`: kotlin.Boolean
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSshBootstrapResult: FfiConverterRustBuffer<SshBootstrapResult> {
+    override fun read(buf: ByteBuffer): SshBootstrapResult {
+        return SshBootstrapResult(
+            FfiConverterUShort.read(buf),
+            FfiConverterUShort.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SshBootstrapResult) = (
+            FfiConverterUShort.allocationSize(value.`remotePort`) +
+            FfiConverterUShort.allocationSize(value.`localPort`) +
+            FfiConverterString.allocationSize(value.`token`) +
+            FfiConverterString.allocationSize(value.`hostKeyFingerprint`) +
+            FfiConverterBoolean.allocationSize(value.`reused`)
+    )
+
+    override fun write(value: SshBootstrapResult, buf: ByteBuffer) {
+            FfiConverterUShort.write(value.`remotePort`, buf)
+            FfiConverterUShort.write(value.`localPort`, buf)
+            FfiConverterString.write(value.`token`, buf)
+            FfiConverterString.write(value.`hostKeyFingerprint`, buf)
+            FfiConverterBoolean.write(value.`reused`, buf)
+    }
+}
+
+
+
+data class SshCredentials (
+    var `host`: kotlin.String, 
+    var `port`: kotlin.UShort, 
+    var `username`: kotlin.String, 
+    var `auth`: SshAuth
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSshCredentials: FfiConverterRustBuffer<SshCredentials> {
+    override fun read(buf: ByteBuffer): SshCredentials {
+        return SshCredentials(
+            FfiConverterString.read(buf),
+            FfiConverterUShort.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterTypeSshAuth.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SshCredentials) = (
+            FfiConverterString.allocationSize(value.`host`) +
+            FfiConverterUShort.allocationSize(value.`port`) +
+            FfiConverterString.allocationSize(value.`username`) +
+            FfiConverterTypeSshAuth.allocationSize(value.`auth`)
+    )
+
+    override fun write(value: SshCredentials, buf: ByteBuffer) {
+            FfiConverterString.write(value.`host`, buf)
+            FfiConverterUShort.write(value.`port`, buf)
+            FfiConverterString.write(value.`username`, buf)
+            FfiConverterTypeSshAuth.write(value.`auth`, buf)
+    }
+}
+
+
+
 data class ViewEventFile (
     var `path`: kotlin.String, 
     var `rev`: kotlin.String
@@ -2277,6 +2446,199 @@ public object FfiConverterTypeConnectionHealth : FfiConverterRustBuffer<Connecti
 
 
 
+sealed class SshAuth {
+    
+    data class Password(
+        val `password`: kotlin.String) : SshAuth() {
+        companion object
+    }
+    
+    data class PrivateKey(
+        val `keyPem`: kotlin.String, 
+        val `passphrase`: kotlin.String?) : SshAuth() {
+        companion object
+    }
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSshAuth : FfiConverterRustBuffer<SshAuth>{
+    override fun read(buf: ByteBuffer): SshAuth {
+        return when(buf.getInt()) {
+            1 -> SshAuth.Password(
+                FfiConverterString.read(buf),
+                )
+            2 -> SshAuth.PrivateKey(
+                FfiConverterString.read(buf),
+                FfiConverterOptionalString.read(buf),
+                )
+            else -> throw RuntimeException("invalid enum value, something is very wrong!!")
+        }
+    }
+
+    override fun allocationSize(value: SshAuth) = when(value) {
+        is SshAuth.Password -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`password`)
+            )
+        }
+        is SshAuth.PrivateKey -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`keyPem`)
+                + FfiConverterOptionalString.allocationSize(value.`passphrase`)
+            )
+        }
+    }
+
+    override fun write(value: SshAuth, buf: ByteBuffer) {
+        when(value) {
+            is SshAuth.Password -> {
+                buf.putInt(1)
+                FfiConverterString.write(value.`password`, buf)
+                Unit
+            }
+            is SshAuth.PrivateKey -> {
+                buf.putInt(2)
+                FfiConverterString.write(value.`keyPem`, buf)
+                FfiConverterOptionalString.write(value.`passphrase`, buf)
+                Unit
+            }
+        }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
+    }
+}
+
+
+
+
+
+
+
+sealed class SshException(message: String): kotlin.Exception(message) {
+        
+        class Dial(message: String) : SshException(message)
+        
+        class Handshake(message: String) : SshException(message)
+        
+        class HostKeyRejected(message: String) : SshException(message)
+        
+        class AuthFailed(message: String) : SshException(message)
+        
+        class DockerMissing(message: String) : SshException(message)
+        
+        class DockerPermission(message: String) : SshException(message)
+        
+        class PortConflict(message: String) : SshException(message)
+        
+        class HarnessStartTimeout(message: String) : SshException(message)
+        
+        class BootstrapExitCode(message: String) : SshException(message)
+        
+        class BootstrapParse(message: String) : SshException(message)
+        
+        class PortForward(message: String) : SshException(message)
+        
+        class Io(message: String) : SshException(message)
+        
+
+    companion object ErrorHandler : UniffiRustCallStatusErrorHandler<SshException> {
+        override fun lift(error_buf: RustBuffer.ByValue): SshException = FfiConverterTypeSshError.lift(error_buf)
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeSshError : FfiConverterRustBuffer<SshException> {
+    override fun read(buf: ByteBuffer): SshException {
+        
+            return when(buf.getInt()) {
+            1 -> SshException.Dial(FfiConverterString.read(buf))
+            2 -> SshException.Handshake(FfiConverterString.read(buf))
+            3 -> SshException.HostKeyRejected(FfiConverterString.read(buf))
+            4 -> SshException.AuthFailed(FfiConverterString.read(buf))
+            5 -> SshException.DockerMissing(FfiConverterString.read(buf))
+            6 -> SshException.DockerPermission(FfiConverterString.read(buf))
+            7 -> SshException.PortConflict(FfiConverterString.read(buf))
+            8 -> SshException.HarnessStartTimeout(FfiConverterString.read(buf))
+            9 -> SshException.BootstrapExitCode(FfiConverterString.read(buf))
+            10 -> SshException.BootstrapParse(FfiConverterString.read(buf))
+            11 -> SshException.PortForward(FfiConverterString.read(buf))
+            12 -> SshException.Io(FfiConverterString.read(buf))
+            else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
+        }
+        
+    }
+
+    override fun allocationSize(value: SshException): ULong {
+        return 4UL
+    }
+
+    override fun write(value: SshException, buf: ByteBuffer) {
+        when(value) {
+            is SshException.Dial -> {
+                buf.putInt(1)
+                Unit
+            }
+            is SshException.Handshake -> {
+                buf.putInt(2)
+                Unit
+            }
+            is SshException.HostKeyRejected -> {
+                buf.putInt(3)
+                Unit
+            }
+            is SshException.AuthFailed -> {
+                buf.putInt(4)
+                Unit
+            }
+            is SshException.DockerMissing -> {
+                buf.putInt(5)
+                Unit
+            }
+            is SshException.DockerPermission -> {
+                buf.putInt(6)
+                Unit
+            }
+            is SshException.PortConflict -> {
+                buf.putInt(7)
+                Unit
+            }
+            is SshException.HarnessStartTimeout -> {
+                buf.putInt(8)
+                Unit
+            }
+            is SshException.BootstrapExitCode -> {
+                buf.putInt(9)
+                Unit
+            }
+            is SshException.BootstrapParse -> {
+                buf.putInt(10)
+                Unit
+            }
+            is SshException.PortForward -> {
+                buf.putInt(11)
+                Unit
+            }
+            is SshException.Io -> {
+                buf.putInt(12)
+                Unit
+            }
+        }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
+    }
+
+}
+
+
+
 
 
 sealed class SweKittyException(message: String): kotlin.Exception(message) {
@@ -2356,23 +2718,9 @@ public object FfiConverterTypeSweKittyError : FfiConverterRustBuffer<SweKittyExc
 
 
 
-public interface SweKittyDelegate {
+public interface SshHostKeyDelegate {
     
-    fun `onPtyData`(`sessionId`: kotlin.String, `data`: kotlin.ByteArray)
-    
-    fun `onChatEvent`(`sessionId`: kotlin.String, `event`: ChatEvent)
-    
-    fun `onPreviewReady`(`sessionId`: kotlin.String, `preview`: PreviewInfo)
-    
-    fun `onStatus`(`status`: SessionStatus)
-    
-    fun `onSnapshot`(`sessionId`: kotlin.String, `gunzipped`: kotlin.ByteArray)
-    
-    fun `onExit`(`sessionId`: kotlin.String, `code`: kotlin.Int)
-    
-    fun `onDisconnected`(`reason`: kotlin.String)
-    
-    fun `onConnectionHealth`(`sessionId`: kotlin.String, `health`: ConnectionHealth)
+    fun `acceptHostKey`(`fingerprint`: kotlin.String): kotlin.Boolean
     
     companion object
 }
@@ -2409,6 +2757,73 @@ public abstract class FfiConverterCallbackInterface<CallbackInterface: Any>: Ffi
         buf.putLong(lower(value))
     }
 }
+
+// Put the implementation in an object so we don't pollute the top-level namespace
+internal object uniffiCallbackInterfaceSshHostKeyDelegate {
+    internal object `acceptHostKey`: UniffiCallbackInterfaceSshHostKeyDelegateMethod0 {
+        override fun callback(`uniffiHandle`: Long,`fingerprint`: RustBuffer.ByValue,`uniffiOutReturn`: ByteByReference,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeSshHostKeyDelegate.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`acceptHostKey`(
+                    FfiConverterString.lift(`fingerprint`),
+                )
+            }
+            val writeReturn = { value: kotlin.Boolean -> uniffiOutReturn.setValue(FfiConverterBoolean.lower(value)) }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+
+    internal object uniffiFree: UniffiCallbackInterfaceFree {
+        override fun callback(handle: Long) {
+            FfiConverterTypeSshHostKeyDelegate.handleMap.remove(handle)
+        }
+    }
+
+    internal var vtable = UniffiVTableCallbackInterfaceSshHostKeyDelegate.UniffiByValue(
+        `acceptHostKey`,
+        uniffiFree,
+    )
+
+    // Registers the foreign callback with the Rust side.
+    // This method is generated for each callback interface.
+    internal fun register(lib: UniffiLib) {
+        lib.uniffi_swe_kitty_core_fn_init_callback_vtable_sshhostkeydelegate(vtable)
+    }
+}
+
+/**
+ * The ffiConverter which transforms the Callbacks in to handles to pass to Rust.
+ *
+ * @suppress
+ */
+public object FfiConverterTypeSshHostKeyDelegate: FfiConverterCallbackInterface<SshHostKeyDelegate>()
+
+
+
+
+
+public interface SweKittyDelegate {
+    
+    fun `onPtyData`(`sessionId`: kotlin.String, `data`: kotlin.ByteArray)
+    
+    fun `onChatEvent`(`sessionId`: kotlin.String, `event`: ChatEvent)
+    
+    fun `onPreviewReady`(`sessionId`: kotlin.String, `preview`: PreviewInfo)
+    
+    fun `onStatus`(`status`: SessionStatus)
+    
+    fun `onSnapshot`(`sessionId`: kotlin.String, `gunzipped`: kotlin.ByteArray)
+    
+    fun `onExit`(`sessionId`: kotlin.String, `code`: kotlin.Int)
+    
+    fun `onDisconnected`(`reason`: kotlin.String)
+    
+    fun `onConnectionHealth`(`sessionId`: kotlin.String, `health`: ConnectionHealth)
+    
+    companion object
+}
+
+
 
 // Put the implementation in an object so we don't pollute the top-level namespace
 internal object uniffiCallbackInterfaceSweKittyDelegate {
@@ -2585,6 +3000,70 @@ public object FfiConverterOptionalUInt: FfiConverterRustBuffer<kotlin.UInt?> {
 /**
  * @suppress
  */
+public object FfiConverterOptionalInt: FfiConverterRustBuffer<kotlin.Int?> {
+    override fun read(buf: ByteBuffer): kotlin.Int? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterInt.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.Int?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterInt.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.Int?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterInt.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalULong: FfiConverterRustBuffer<kotlin.ULong?> {
+    override fun read(buf: ByteBuffer): kotlin.ULong? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterULong.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.ULong?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterULong.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.ULong?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterULong.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?> {
     override fun read(buf: ByteBuffer): kotlin.String? {
         if (buf.get().toInt() == 0) {
@@ -2639,6 +3118,34 @@ public object FfiConverterOptionalTypePreviewInfo: FfiConverterRustBuffer<Previe
         } else {
             buf.put(1)
             FfiConverterTypePreviewInfo.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.String>> {
+    override fun read(buf: ByteBuffer): List<kotlin.String> {
+        val len = buf.getInt()
+        return List<kotlin.String>(len) {
+            FfiConverterString.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<kotlin.String>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterString.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<kotlin.String>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterString.write(it, buf)
         }
     }
 }
@@ -2733,5 +3240,20 @@ public object FfiConverterSequenceTypeViewEventFile: FfiConverterRustBuffer<List
 
 
 
+
+    @Throws(SshException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+     suspend fun `sshBootstrap`(`credentials`: SshCredentials, `preAllocatedToken`: kotlin.String, `anthropicApiKey`: kotlin.String, `openaiApiKey`: kotlin.String, `imageRef`: kotlin.String?, `hostKeyDelegate`: SshHostKeyDelegate) : SshBootstrapResult {
+        return uniffiRustCallAsync(
+        UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_func_ssh_bootstrap(FfiConverterTypeSshCredentials.lower(`credentials`),FfiConverterString.lower(`preAllocatedToken`),FfiConverterString.lower(`anthropicApiKey`),FfiConverterString.lower(`openaiApiKey`),FfiConverterOptionalString.lower(`imageRef`),FfiConverterTypeSshHostKeyDelegate.lower(`hostKeyDelegate`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeSshBootstrapResult.lift(it) },
+        // Error FFI converter
+        SshException.ErrorHandler,
+    )
+    }
 
 

@@ -251,6 +251,13 @@ typedef void (*UniffiForeignFutureCompleteVoid)(uint64_t, UniffiForeignFutureStr
     );
 
 #endif
+#ifndef UNIFFI_FFIDEF_CALLBACK_INTERFACE_SSH_HOST_KEY_DELEGATE_METHOD0
+#define UNIFFI_FFIDEF_CALLBACK_INTERFACE_SSH_HOST_KEY_DELEGATE_METHOD0
+typedef void (*UniffiCallbackInterfaceSshHostKeyDelegateMethod0)(uint64_t, RustBuffer, int8_t* _Nonnull, 
+        RustCallStatus *_Nonnull uniffiCallStatus
+    );
+
+#endif
 #ifndef UNIFFI_FFIDEF_CALLBACK_INTERFACE_SWE_KITTY_DELEGATE_METHOD0
 #define UNIFFI_FFIDEF_CALLBACK_INTERFACE_SWE_KITTY_DELEGATE_METHOD0
 typedef void (*UniffiCallbackInterfaceSweKittyDelegateMethod0)(uint64_t, RustBuffer, RustBuffer, void* _Nonnull, 
@@ -305,6 +312,14 @@ typedef void (*UniffiCallbackInterfaceSweKittyDelegateMethod6)(uint64_t, RustBuf
 typedef void (*UniffiCallbackInterfaceSweKittyDelegateMethod7)(uint64_t, RustBuffer, RustBuffer, void* _Nonnull, 
         RustCallStatus *_Nonnull uniffiCallStatus
     );
+
+#endif
+#ifndef UNIFFI_FFIDEF_V_TABLE_CALLBACK_INTERFACE_SSH_HOST_KEY_DELEGATE
+#define UNIFFI_FFIDEF_V_TABLE_CALLBACK_INTERFACE_SSH_HOST_KEY_DELEGATE
+typedef struct UniffiVTableCallbackInterfaceSshHostKeyDelegate {
+    UniffiCallbackInterfaceSshHostKeyDelegateMethod0 _Nonnull acceptHostKey;
+    UniffiCallbackInterfaceFree _Nonnull uniffiFree;
+} UniffiVTableCallbackInterfaceSshHostKeyDelegate;
 
 #endif
 #ifndef UNIFFI_FFIDEF_V_TABLE_CALLBACK_INTERFACE_SWE_KITTY_DELEGATE
@@ -402,9 +417,19 @@ uint64_t uniffi_swe_kitty_core_fn_method_swekittyclient_send_input(void*_Nonnull
 uint64_t uniffi_swe_kitty_core_fn_method_swekittyclient_switch_agent(void*_Nonnull ptr, RustBuffer session_id, RustBuffer assistant
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_SWE_KITTY_CORE_FN_INIT_CALLBACK_VTABLE_SSHHOSTKEYDELEGATE
+#define UNIFFI_FFIDEF_UNIFFI_SWE_KITTY_CORE_FN_INIT_CALLBACK_VTABLE_SSHHOSTKEYDELEGATE
+void uniffi_swe_kitty_core_fn_init_callback_vtable_sshhostkeydelegate(UniffiVTableCallbackInterfaceSshHostKeyDelegate* _Nonnull vtable
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_SWE_KITTY_CORE_FN_INIT_CALLBACK_VTABLE_SWEKITTYDELEGATE
 #define UNIFFI_FFIDEF_UNIFFI_SWE_KITTY_CORE_FN_INIT_CALLBACK_VTABLE_SWEKITTYDELEGATE
 void uniffi_swe_kitty_core_fn_init_callback_vtable_swekittydelegate(UniffiVTableCallbackInterfaceSweKittyDelegate* _Nonnull vtable
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_SWE_KITTY_CORE_FN_FUNC_SSH_BOOTSTRAP
+#define UNIFFI_FFIDEF_UNIFFI_SWE_KITTY_CORE_FN_FUNC_SSH_BOOTSTRAP
+uint64_t uniffi_swe_kitty_core_fn_func_ssh_bootstrap(RustBuffer credentials, RustBuffer pre_allocated_token, RustBuffer anthropic_api_key, RustBuffer openai_api_key, RustBuffer image_ref, uint64_t host_key_delegate
 );
 #endif
 #ifndef UNIFFI_FFIDEF_FFI_SWE_KITTY_CORE_RUSTBUFFER_ALLOC
@@ -687,6 +712,12 @@ void ffi_swe_kitty_core_rust_future_free_void(uint64_t handle
 void ffi_swe_kitty_core_rust_future_complete_void(uint64_t handle, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_SWE_KITTY_CORE_CHECKSUM_FUNC_SSH_BOOTSTRAP
+#define UNIFFI_FFIDEF_UNIFFI_SWE_KITTY_CORE_CHECKSUM_FUNC_SSH_BOOTSTRAP
+uint16_t uniffi_swe_kitty_core_checksum_func_ssh_bootstrap(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_SWE_KITTY_CORE_CHECKSUM_METHOD_SWEKITTYCLIENT_CONNECT
 #define UNIFFI_FFIDEF_UNIFFI_SWE_KITTY_CORE_CHECKSUM_METHOD_SWEKITTYCLIENT_CONNECT
 uint16_t uniffi_swe_kitty_core_checksum_method_swekittyclient_connect(void
@@ -768,6 +799,12 @@ uint16_t uniffi_swe_kitty_core_checksum_method_swekittyclient_switch_agent(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_SWE_KITTY_CORE_CHECKSUM_CONSTRUCTOR_SWEKITTYCLIENT_NEW
 #define UNIFFI_FFIDEF_UNIFFI_SWE_KITTY_CORE_CHECKSUM_CONSTRUCTOR_SWEKITTYCLIENT_NEW
 uint16_t uniffi_swe_kitty_core_checksum_constructor_swekittyclient_new(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_SWE_KITTY_CORE_CHECKSUM_METHOD_SSHHOSTKEYDELEGATE_ACCEPT_HOST_KEY
+#define UNIFFI_FFIDEF_UNIFFI_SWE_KITTY_CORE_CHECKSUM_METHOD_SSHHOSTKEYDELEGATE_ACCEPT_HOST_KEY
+uint16_t uniffi_swe_kitty_core_checksum_method_sshhostkeydelegate_accept_host_key(void
     
 );
 #endif

@@ -73,6 +73,43 @@ pub trait SweKittyDelegate: Send + Sync {
     fn on_connection_health(&self, session_id: String, health: ConnectionHealth);
 }
 
+pub use ssh::{SshAuth, SshBootstrapResult, SshCredentials, SshError};
+
+/// Platform callback for SSH host-key TOFU. The platform layer
+/// implements this and pops up an "accept/reject this server
+/// fingerprint" sheet; the boolean it returns gates the rest of the
+/// handshake.
+pub trait SshHostKeyDelegate: Send + Sync {
+    fn accept_host_key(&self, fingerprint: String) -> bool;
+}
+
+/// UniFFI-visible entry point for the SSH bootstrap. Drives
+/// [`ssh::ssh_bootstrap`] on the core tokio runtime via `run_on_core`
+/// so the caller doesn't need to be inside a tokio context.
+pub async fn ssh_bootstrap(
+    credentials: SshCredentials,
+    pre_allocated_token: String,
+    anthropic_api_key: String,
+    openai_api_key: String,
+    image_ref: Option<String>,
+    host_key_delegate: Box<dyn SshHostKeyDelegate>,
+) -> Result<SshBootstrapResult, SshError> {
+    let delegate: Arc<dyn SshHostKeyDelegate> = Arc::from(host_key_delegate);
+    let cb: ssh::HostKeyCallback = Arc::new(move |fp: String| {
+        let delegate = Arc::clone(&delegate);
+        Box::pin(async move { delegate.accept_host_key(fp) })
+    });
+    run_on_core(ssh::ssh_bootstrap(
+        credentials,
+        pre_allocated_token,
+        anthropic_api_key,
+        openai_api_key,
+        image_ref,
+        cb,
+    ))
+    .await
+}
+
 pub struct SweKittyClient {
     inner: Arc<Inner>,
 }

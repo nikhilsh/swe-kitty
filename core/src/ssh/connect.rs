@@ -86,8 +86,8 @@ impl SshClient {
                 .map_err(|e| SshError::Handshake(e.to_string()))?;
 
         let authed = match creds.auth.clone() {
-            SshAuth::Password(pw) => handle
-                .authenticate_password(creds.username.clone(), pw)
+            SshAuth::Password { password } => handle
+                .authenticate_password(creds.username.clone(), password)
                 .await
                 .map_err(|e| SshError::Handshake(e.to_string()))?,
             SshAuth::PrivateKey {

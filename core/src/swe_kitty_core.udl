@@ -1,4 +1,6 @@
-namespace swe_kitty_core {};
+// Namespace-level functions are declared in the SSH-bootstrap block
+// further down; this `namespace` declaration is intentionally absent
+// here to avoid two competing declarations.
 
 dictionary ViewEventFile {
     string path;
@@ -62,6 +64,59 @@ enum SweKittyError {
     "Json",
     "NotConnected",
     "UnknownSession",
+};
+
+dictionary SshCredentials {
+    string host;
+    u16 port;
+    string username;
+    SshAuth auth;
+};
+
+[Enum]
+interface SshAuth {
+    Password(string password);
+    PrivateKey(string key_pem, string? passphrase);
+};
+
+dictionary SshBootstrapResult {
+    u16 remote_port;
+    u16 local_port;
+    string token;
+    string host_key_fingerprint;
+    boolean reused;
+};
+
+[Error]
+enum SshError {
+    "Dial",
+    "Handshake",
+    "HostKeyRejected",
+    "AuthFailed",
+    "DockerMissing",
+    "DockerPermission",
+    "PortConflict",
+    "HarnessStartTimeout",
+    "BootstrapExitCode",
+    "BootstrapParse",
+    "PortForward",
+    "Io",
+};
+
+callback interface SshHostKeyDelegate {
+    boolean accept_host_key(string fingerprint);
+};
+
+namespace swe_kitty_core {
+    [Async, Throws=SshError]
+    SshBootstrapResult ssh_bootstrap(
+        SshCredentials credentials,
+        string pre_allocated_token,
+        string anthropic_api_key,
+        string openai_api_key,
+        string? image_ref,
+        SshHostKeyDelegate host_key_delegate
+    );
 };
 
 [Enum]
