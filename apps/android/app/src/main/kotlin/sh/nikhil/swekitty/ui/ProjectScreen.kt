@@ -23,6 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import sh.nikhil.swekitty.SessionLifecycle
 import sh.nikhil.swekitty.SessionStore
@@ -63,11 +65,19 @@ fun ProjectScreen(
     var menuExpanded by remember { mutableStateOf(false) }
     var browserMode by remember { mutableStateOf(BrowserMode.Preview) }
     var showInfo by remember { mutableStateOf(false) }
+    var showThreadSwitcher by remember { mutableStateOf(false) }
+    var showAgentPicker by remember { mutableStateOf(false) }
+    var showVoice by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     val headerModel = remember(session, status, lifecycle) {
         ProjectHeaderModel.from(session, status, ProjectHeaderModel.lifecycleLabel(lifecycle))
     }
+    val agentAccent = SweKittyTheme.accent(forAgent = session.assistant)
+    val ctx = LocalContext.current
+    // Map the active tab → InSessionContext so the dock knows whether
+    // the centre mic FAB should route to voice or surface a toast.
+    val activeContext = InSessionContext.fromTab(ProjectTab.entries[pagerState.currentPage])
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp).padding(top = 8.dp)) {
         Column(
@@ -111,7 +121,7 @@ fun ProjectScreen(
         Surface(
             shape = RoundedCornerShape(SweKittyTheme.cardCornerRadiusDp.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.weight(1f).fillMaxWidth(),
         ) {
             HorizontalPager(
                 state = pagerState,
@@ -124,10 +134,64 @@ fun ProjectScreen(
                 }
             }
         }
+
+        // Persistent in-session dock — mirrors iOS PR #42's
+        // `InSessionBottomBar`. `imePadding()` keeps it above the
+        // soft keyboard the same way the iOS `safeAreaInset(.bottom)`
+        // floats above the keyboard guide.
+        InSessionBottomBar(
+            context = activeContext,
+            onThreads = { showThreadSwitcher = true },
+            onVoice = {
+                // v1: chat-only voice; other tabs surface a toast via
+                // the dock's own inline note + a system toast as
+                // backup so the cue is visible even with reduced
+                // motion / animations off.
+                if (activeContext == InSessionContext.Chat) {
+                    showVoice = true
+                } else {
+                    Toast.makeText(
+                        ctx,
+                        InSessionBottomBarModel.voiceUnsupportedMessage(activeContext),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            },
+            onNewSession = { showAgentPicker = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .imePadding()
+                .navigationBarsPadding()
+                .padding(bottom = 4.dp),
+        )
     }
 
     if (showInfo) {
         SessionInfoScreen(store = store, session = session, onDismiss = { showInfo = false })
+    }
+
+    if (showThreadSwitcher) {
+        ThreadSwitcherSheet(
+            store = store,
+            activeSession = session,
+            onDismiss = { showThreadSwitcher = false },
+            onNewSession = { showAgentPicker = true },
+        )
+    }
+
+    if (showAgentPicker) {
+        AgentPickerSheet(
+            store = store,
+            headerNote = null,
+            onDismiss = { showAgentPicker = false },
+        )
+    }
+
+    if (showVoice) {
+        VoiceDictationScreen(
+            onTranscript = { transcript -> store.sendChat(session.id, transcript) },
+            onDismiss = { showVoice = false },
+        )
     }
 }
 
