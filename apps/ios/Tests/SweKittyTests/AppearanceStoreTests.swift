@@ -39,6 +39,20 @@ struct AppearanceStoreTests {
         #expect(second.collapseTurns == true)
     }
 
+    @Test func persistsExperimentalNativeTerminal() {
+        // Stage 0 feature flag for the Ghostty-libghostty rewrite.
+        // Persistence is the only behavior we can lock down at this
+        // stage — the actual `GhosttyTerminalView` is a placeholder
+        // until Stage 1 wires libghostty. See
+        // docs/PLAN-TERMINAL-REWRITE.md.
+        let defaults = freshDefaults()
+        let first = AppearanceStore(defaults: defaults)
+        first.experimentalNativeTerminal = true
+
+        let second = AppearanceStore(defaults: defaults)
+        #expect(second.experimentalNativeTerminal == true)
+    }
+
     // MARK: - Defaults
 
     @Test func freshInstallDefaultsToSerif() {
@@ -58,6 +72,14 @@ struct AppearanceStoreTests {
     @Test func freshInstallDoesNotCollapseTurns() {
         let store = AppearanceStore(defaults: freshDefaults())
         #expect(store.collapseTurns == false)
+    }
+
+    @Test func freshInstallHasExperimentalNativeTerminalOff() {
+        // The xterm.js path is still the production renderer; flipping
+        // this default to `true` would unconditionally swap it for the
+        // Stage 0 placeholder, which is not what we want.
+        let store = AppearanceStore(defaults: freshDefaults())
+        #expect(store.experimentalNativeTerminal == false)
     }
 
     // MARK: - Backwards-compat for existing installs

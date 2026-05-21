@@ -81,6 +81,7 @@ struct SettingsSheet: View {
             }
             .sheet(isPresented: $showExperimental) {
                 ExperimentalFeaturesSheet()
+                    .environment(appearance)
                     .presentationDetents([.medium, .large])
             }
         }
@@ -531,9 +532,13 @@ struct FontSampleRow: View {
     }
 }
 
-/// Placeholder for the Experimental Features sheet — flagged features
-/// will move here as they land.
+/// Experimental Features sheet — flagged features live here behind
+/// per-feature toggles. Stage 0 of the terminal rewrite lands the
+/// "Native Terminal (Ghostty)" toggle; the actual `GhosttyTerminalView`
+/// is a placeholder until Stage 1 wires libghostty. See
+/// `docs/PLAN-TERMINAL-REWRITE.md`.
 private struct ExperimentalFeaturesSheet: View {
+    @Environment(AppearanceStore.self) private var appearance
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
@@ -543,15 +548,14 @@ private struct ExperimentalFeaturesSheet: View {
                 SweKittyTheme.backgroundGradient(for: colorScheme)
                     .ignoresSafeArea()
 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Nothing here yet — flagged features land in this sheet.")
-                        .font(.subheadline)
-                        .foregroundStyle(SweKittyTheme.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Spacer()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 22) {
+                        terminalSection
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 18)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 24)
+                .scrollIndicators(.hidden)
             }
             .navigationTitle("Experimental Features")
             .navigationBarTitleDisplayMode(.inline)
@@ -561,6 +565,25 @@ private struct ExperimentalFeaturesSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
+        }
+    }
+
+    private var terminalSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SettingsSectionHeader("Terminal")
+            VStack(alignment: .leading, spacing: 10) {
+                @Bindable var bindable = appearance
+                SettingsToggleRow(
+                    icon: "terminal.fill",
+                    title: "Native Terminal (Ghostty)",
+                    subtitle: "Spike — placeholder view, not wired to PTY",
+                    isOn: $bindable.experimentalNativeTerminal
+                )
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassRoundedRect()
         }
     }
 }

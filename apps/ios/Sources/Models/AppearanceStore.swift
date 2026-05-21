@@ -54,6 +54,10 @@ final class AppearanceStore {
         static let font = "swekitty.appearance.font"
         static let theme = "swekitty.appearance.theme"
         static let collapseTurns = "swekitty.appearance.collapseTurns"
+        /// Stage 0 feature flag for the Ghostty-libghostty native
+        /// terminal path. See docs/PLAN-TERMINAL-REWRITE.md. Defaults
+        /// off; xterm.js stays the production renderer until Stage 2.
+        static let experimentalNativeTerminal = "swekitty.experimental.nativeTerminal"
     }
 
     var fontFamily: FontFamily {
@@ -71,6 +75,15 @@ final class AppearanceStore {
         didSet { defaults.set(collapseTurns, forKey: Keys.collapseTurns) }
     }
 
+    /// Stage 0 feature flag — when on, the Terminal tab renders via the
+    /// experimental Ghostty-libghostty path (`GhosttyTerminalView`)
+    /// instead of the production xterm.js path (`TerminalTabXterm`).
+    /// See `docs/PLAN-TERMINAL-REWRITE.md`. The xterm.js path stays
+    /// the default until Stage 2 of that plan ships.
+    var experimentalNativeTerminal: Bool {
+        didSet { defaults.set(experimentalNativeTerminal, forKey: Keys.experimentalNativeTerminal) }
+    }
+
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
@@ -83,6 +96,8 @@ final class AppearanceStore {
         self.themeMode = (defaults.string(forKey: Keys.theme)
             .flatMap(ThemeMode.init(rawValue:))) ?? .system
         self.collapseTurns = defaults.object(forKey: Keys.collapseTurns) as? Bool ?? false
+        self.experimentalNativeTerminal =
+            defaults.object(forKey: Keys.experimentalNativeTerminal) as? Bool ?? false
     }
 
     /// SwiftUI `.font` value to use for chat body text.
