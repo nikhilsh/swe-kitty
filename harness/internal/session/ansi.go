@@ -16,11 +16,11 @@ import "unicode/utf8"
 // repaint usually re-emit the same text on the new line.
 type ansiStripper struct {
 	state stripState
-	// utfHold buffers UTF-8 continuation bytes when a multi-byte rune
-	// is split across two Write calls.
-	utfHold [4]byte
-	utfLen  int
-	// stRunes holds the cleaned output of the current Write call.
+	// out holds the cleaned output of the current Write call. UTF-8
+	// multi-byte runes are passed through byte-by-byte because the
+	// state machine only branches on the C0/C1 control bytes, which
+	// are all single-byte; continuation bytes 0x80-0xBF fall through
+	// to feedNormal and append without reinterpretation.
 	out []byte
 }
 
