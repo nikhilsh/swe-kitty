@@ -15,6 +15,7 @@ enum ProjectTab: String, CaseIterable, Identifiable {
 
 struct ProjectView: View {
     @Environment(SessionStore.self) private var store
+    @Environment(AppearanceStore.self) private var appearance
     let session: ProjectSession
 
     @State private var tab: ProjectTab = .terminal
@@ -313,7 +314,17 @@ struct ProjectView: View {
     @ViewBuilder
     private var tabContent: some View {
         switch tab {
-        case .terminal: TerminalTabXterm(session: session)
+        case .terminal:
+            // Stage 0 of the terminal-renderer rewrite: the
+            // `experimentalNativeTerminal` flag swaps the xterm.js path
+            // for the Ghostty-libghostty scaffold. Off by default;
+            // xterm.js remains the production renderer. See
+            // docs/PLAN-TERMINAL-REWRITE.md.
+            if appearance.experimentalNativeTerminal {
+                GhosttyTerminalTab(session: session)
+            } else {
+                TerminalTabXterm(session: session)
+            }
         case .chat:     ChatTab(session: session)
         case .browser:  BrowserTab(session: session, mode: browserMode)
         }
