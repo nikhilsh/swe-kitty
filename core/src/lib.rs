@@ -4,6 +4,7 @@
 pub mod conversation;
 pub mod discovery;
 pub mod ssh;
+pub mod store;
 pub mod transport;
 pub mod views;
 
