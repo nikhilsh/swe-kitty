@@ -643,6 +643,26 @@ class SessionStore : ViewModel(), SweKittyDelegate {
 
     fun select(sessionId: String?) { _selectedId.value = sessionId }
 
+    /**
+     * Switch the active session — drives `AppRoot`'s selection-based
+     * navigation (the `selectedId` StateFlow swaps the rendered
+     * `ProjectScreen`). No reducer / Rust-core call; the existing
+     * `AppRoot` observer picks this up and re-binds the destination.
+     *
+     * Lives here (not in the multi-thread sheet) so the thread switcher
+     * and any future "jump to thread" deep link share one entry point.
+     * Mirrors iOS `SessionStore.switchTo(sessionID:)`. PR H owns the
+     * reducer path; this is the navigation-level setter only. No-op if
+     * the target session is unknown to the client, guarding against a
+     * stale row tap after a session exited and was reaped.
+     */
+    fun switchTo(sessionID: String) {
+        val known = _sessions.value.any { it.id == sessionID } ||
+            _sessionLifecycle.value.containsKey(sessionID)
+        if (!known) return
+        _selectedId.value = sessionID
+    }
+
     fun createSession(
         assistant: String,
         branch: String? = null,
