@@ -1,18 +1,15 @@
 package sh.nikhil.swekitty.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Chat
-import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Terminal
@@ -20,25 +17,36 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import sh.nikhil.swekitty.SessionLifecycle
 import sh.nikhil.swekitty.SessionStore
 import uniffi.swe_kitty_core.ProjectSession
+import uniffi.swe_kitty_core.SessionStatus
 
 enum class ProjectTab(val label: String) { Terminal("Terminal"), Chat("Chat"), Browser("Browser") }
 
 /**
- * Litter-style chat header card (Stage 2):
- *  Row 1: agent dropdown · refresh · info
- *  Row 2: project path (mono, muted) + status subtitle
- *  Row 3: Terminal / Chat / Browser segmented picker
+ * Litter Stage 2 header (Android mirror of `apps/ios/Sources/Views/ProjectView.swift`).
  *
- * Mirrors `apps/ios/Sources/Views/ProjectView.swift`.
+ * Three explicit rows wrapped in a single `glassRoundedRect` surface:
+ *  - Row 1 [ControlsRow]: drawer toggle (left) · centered compound agent
+ *    dropdown (health dot · agent · reasoning effort · chevron) · memory
+ *    toggle + refresh + info (right).
+ *  - Row 2 [PathRow]: single-line mono caption joining
+ *    `path · branch · running · lifecycle` — middle-truncated, muted.
+ *  - Row 3 [TabPickerRow]: Terminal / Chat / Browser tab picker wrapped
+ *    in its own glass surface so it reads as the dominant affordance.
+ *
+ * Pure data structure factored into [ProjectHeaderModel] for unit
+ * tests — the rendered view body references the same computed values
+ * (`captionLabel`, `agentPill`) so drift between the model and the
+ * surface is loud.
  */
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -49,126 +57,53 @@ fun ProjectScreen(
 ) {
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { ProjectTab.entries.size })
     val statuses by store.statusBySession.collectAsState()
+    val lifecycleMap by store.sessionLifecycle.collectAsState()
     val status = statuses[session.id]
+    val lifecycle = lifecycleMap[session.id]
     var menuExpanded by remember { mutableStateOf(false) }
     var browserMode by remember { mutableStateOf(BrowserMode.Preview) }
     var showInfo by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val agentAccent = SweKittyTheme.accent(forAgent = session.assistant)
+
+    val headerModel = remember(session, status, lifecycle) {
+        ProjectHeaderModel.from(session, status, ProjectHeaderModel.lifecycleLabel(lifecycle))
+    }
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp).padding(top = 8.dp)) {
-        Surface(
-            shape = RoundedCornerShape(SweKittyTheme.cardCornerRadiusDp.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-            modifier = Modifier.fillMaxWidth(),
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .glassRoundedRect()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    // Drawer toggle — left edge of the header so the
-                    // sessions list is still one tap away.
-                    HeaderCircleButton(icon = Icons.Default.Menu, contentDescription = "Sessions", onClick = onOpenDrawer)
-                    // Agent dropdown — primary affordance.
-                    Box {
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = agentAccent.copy(alpha = 0.32f),
-                            modifier = Modifier.clickable { menuExpanded = true },
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                HealthDot(status?.health ?: "unknown")
-                                Text(
-                                    session.assistant,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                Icon(Icons.Outlined.AccountTree, null, modifier = Modifier.size(14.dp))
-                            }
-                        }
-                        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Switch to Claude") },
-                                enabled = session.assistant != "claude",
-                                onClick = { menuExpanded = false; store.switchAgent(session.id, "claude") },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Switch to Codex") },
-                                enabled = session.assistant != "codex",
-                                onClick = { menuExpanded = false; store.switchAgent(session.id, "codex") },
-                            )
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = { Text("End session") },
-                                onClick = { menuExpanded = false; store.exit(session.id) },
-                            )
-                        }
-                    }
-                    Spacer(Modifier.weight(1f))
-                    MemoryButton(
-                        currentMode = browserMode,
-                        onToggle = { browserMode = it },
-                        onJumpToBrowser = { scope.launch { pagerState.animateScrollToPage(ProjectTab.Browser.ordinal) } },
-                    )
-                    HeaderCircleButton(icon = Icons.Default.Refresh, contentDescription = "Reconnect", onClick = { store.reconnect() })
-                    HeaderCircleButton(icon = Icons.Outlined.Info, contentDescription = "Session info", onClick = { showInfo = true })
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Outlined.Folder,
-                        null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        session.name,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    val subtitleParts = mutableListOf<String>()
-                    session.branch?.takeIf { it.isNotBlank() }?.let { subtitleParts.add(it) }
-                    status?.phase?.takeIf { it.isNotBlank() }?.let { subtitleParts.add(it) }
-                    if (subtitleParts.isNotEmpty()) {
-                        Text(
-                            subtitleParts.joinToString(" · "),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                TabRow(
-                    selectedTabIndex = pagerState.currentPage,
-                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
-                ) {
-                    ProjectTab.entries.forEachIndexed { i, t ->
-                        Tab(
-                            selected = pagerState.currentPage == i,
-                            onClick = { scope.launch { pagerState.animateScrollToPage(i) } },
-                            text = { Text(t.label, fontWeight = FontWeight.SemiBold) },
-                            icon = {
-                                Icon(
-                                    when (t) {
-                                        ProjectTab.Terminal -> Icons.Outlined.Terminal
-                                        ProjectTab.Chat     -> Icons.Outlined.Chat
-                                        ProjectTab.Browser  -> Icons.Outlined.Public
-                                    },
-                                    contentDescription = null,
-                                )
-                            },
-                        )
-                    }
-                }
-            }
+            ControlsRow(
+                model = headerModel,
+                agentAccent = SweKittyTheme.accent(forAgent = session.assistant),
+                menuExpanded = menuExpanded,
+                onAgentTap = { menuExpanded = true },
+                onMenuDismiss = { menuExpanded = false },
+                onSwitchToClaude = { menuExpanded = false; store.switchAgent(session.id, "claude") },
+                onSwitchToCodex  = { menuExpanded = false; store.switchAgent(session.id, "codex") },
+                onEndSession    = { menuExpanded = false; store.exit(session.id) },
+                browserMode = browserMode,
+                onBrowserModeChange = { browserMode = it },
+                onJumpToBrowser = {
+                    scope.launch { pagerState.animateScrollToPage(ProjectTab.Browser.ordinal) }
+                },
+                onOpenDrawer = onOpenDrawer,
+                onReconnect = { store.reconnect() },
+                onShowInfo = { showInfo = true },
+                disableSwitchClaude = session.assistant == "claude",
+                disableSwitchCodex = session.assistant == "codex",
+            )
+
+            PathRow(model = headerModel)
+
+            TabPickerRow(
+                selected = pagerState.currentPage,
+                onSelect = { i -> scope.launch { pagerState.animateScrollToPage(i) } },
+            )
         }
 
         Spacer(Modifier.height(10.dp))
@@ -196,15 +131,264 @@ fun ProjectScreen(
     }
 }
 
+/**
+ * Row 1 — drawer toggle + centered compound agent dropdown + trailing
+ * glass-capsule icon circles. Mirrors `controlsRow` in iOS ProjectView:
+ * the agent pill is one compound control (HealthDot · agent · effort ·
+ * chevron) rather than four sibling chips.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ControlsRow(
+    model: ProjectHeaderModel,
+    agentAccent: androidx.compose.ui.graphics.Color,
+    menuExpanded: Boolean,
+    onAgentTap: () -> Unit,
+    onMenuDismiss: () -> Unit,
+    onSwitchToClaude: () -> Unit,
+    onSwitchToCodex: () -> Unit,
+    onEndSession: () -> Unit,
+    browserMode: BrowserMode,
+    onBrowserModeChange: (BrowserMode) -> Unit,
+    onJumpToBrowser: () -> Unit,
+    onOpenDrawer: () -> Unit,
+    onReconnect: () -> Unit,
+    onShowInfo: () -> Unit,
+    disableSwitchClaude: Boolean,
+    disableSwitchCodex: Boolean,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        HeaderCircleButton(icon = Icons.Default.Menu, contentDescription = "Sessions", onClick = onOpenDrawer)
+
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            AgentPill(
+                pill = model.agentPill,
+                accent = agentAccent,
+                onTap = onAgentTap,
+            )
+            DropdownMenu(expanded = menuExpanded, onDismissRequest = onMenuDismiss) {
+                DropdownMenuItem(
+                    text = { Text("Switch to Claude") },
+                    enabled = !disableSwitchClaude,
+                    onClick = onSwitchToClaude,
+                )
+                DropdownMenuItem(
+                    text = { Text("Switch to Codex") },
+                    enabled = !disableSwitchCodex,
+                    onClick = onSwitchToCodex,
+                )
+                HorizontalDivider()
+                DropdownMenuItem(
+                    text = { Text("End session") },
+                    onClick = onEndSession,
+                )
+            }
+        }
+
+        MemoryButton(
+            currentMode = browserMode,
+            onToggle = onBrowserModeChange,
+            onJumpToBrowser = onJumpToBrowser,
+        )
+        HeaderCircleButton(icon = Icons.Default.Refresh, contentDescription = "Reconnect", onClick = onReconnect)
+        HeaderCircleButton(icon = Icons.Outlined.Info, contentDescription = "Session info", onClick = onShowInfo)
+    }
+}
+
+/**
+ * Centered compound agent dropdown. HealthDot · agent name · reasoning
+ * effort · chevron, all wrapped in a glassCapsule tinted with the
+ * per-agent accent — mirrors iOS `agentPill`.
+ */
+@Composable
+private fun AgentPill(
+    pill: ProjectHeaderModel.AgentPill,
+    accent: androidx.compose.ui.graphics.Color,
+    onTap: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .glassCapsule(interactive = true, tint = accent.copy(alpha = 0.32f))
+            .clickable(onClick = onTap)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        HealthDot(pill.healthKey, size = 8.dp)
+        Text(
+            pill.agentName,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = SweKittyTheme.textPrimary(),
+        )
+        Text(
+            pill.reasoningEffort,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Medium,
+            color = SweKittyTheme.textSecondary(),
+        )
+        if (pill.showsChevron) {
+            Icon(
+                Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = SweKittyTheme.textSecondary(),
+                modifier = Modifier.size(14.dp),
+            )
+        }
+    }
+}
+
+/**
+ * Row 2 — single-line mono caption combining `path · branch · running
+ * · lifecycle`. Middle-truncation isn't available pre-Compose 1.7, so
+ * we fall back to `TextOverflow.Ellipsis` (end) — same visual goal:
+ * one line, muted, mono.
+ */
+@Composable
+private fun PathRow(model: ProjectHeaderModel) {
+    Text(
+        model.captionLabel,
+        style = MaterialTheme.typography.labelSmall,
+        fontFamily = FontFamily.Monospace,
+        color = SweKittyTheme.textMuted(),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+/**
+ * Row 3 — Terminal / Chat / Browser tab picker, wrapped in its own
+ * glass surface so it reads as the dominant affordance in the header
+ * (plan: "this is the main idea per chat window").
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TabPickerRow(
+    selected: Int,
+    onSelect: (Int) -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassRoundedRect(cornerRadiusDp = SweKittyTheme.smallCornerRadiusDp)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+    ) {
+        TabRow(
+            selectedTabIndex = selected,
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        ) {
+            ProjectTab.entries.forEachIndexed { i, t ->
+                Tab(
+                    selected = selected == i,
+                    onClick = { onSelect(i) },
+                    text = { Text(t.label, fontWeight = FontWeight.SemiBold) },
+                    icon = {
+                        Icon(
+                            when (t) {
+                                ProjectTab.Terminal -> Icons.Outlined.Terminal
+                                ProjectTab.Chat     -> Icons.Outlined.Chat
+                                ProjectTab.Browser  -> Icons.Outlined.Public
+                            },
+                            contentDescription = null,
+                        )
+                    },
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun HeaderCircleButton(icon: ImageVector, contentDescription: String, onClick: () -> Unit) {
-    Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-        modifier = Modifier.size(32.dp).clip(CircleShape).clickable(onClick = onClick),
+    // `glassCircle` already clips to CircleShape; we add `clickable`
+    // after so the ripple respects the rounded edge.
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .glassCircle()
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            Icon(icon, contentDescription = contentDescription, modifier = Modifier.size(16.dp))
+        Icon(
+            icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(16.dp),
+            tint = SweKittyTheme.accentStrong(),
+        )
+    }
+}
+
+/**
+ * Pure-data description of the litter Stage 2 Android header. Lifted
+ * out of the `ProjectScreen` composable so unit tests can assert the
+ * three-row structure and the compound-dropdown contents without
+ * standing up a Compose host. Mirrors `ProjectHeaderModel` in
+ * `apps/ios/Sources/Views/ProjectView.swift` — same Row enum, same
+ * AgentPill payload, same captionLabel join order.
+ */
+data class ProjectHeaderModel(
+    val agentPill: AgentPill,
+    val pathLabel: String,
+    val captionLabel: String,
+) {
+    /** Three rows, in render order — matches iOS and the spec in
+     *  `docs/PLAN-LITTER-UI.md` Stage 2. */
+    enum class Row { Controls, Path, TabPicker }
+
+    /** Centered compound-dropdown payload — asserts the one-compound-
+     *  control shape (status dot · agent name · reasoning effort ·
+     *  chevron) in tests. */
+    data class AgentPill(
+        val healthKey: String,
+        val agentName: String,
+        val reasoningEffort: String,
+        val showsChevron: Boolean,
+    )
+
+    companion object {
+        val rows: List<Row> = listOf(Row.Controls, Row.Path, Row.TabPicker)
+
+        fun from(
+            session: ProjectSession,
+            status: SessionStatus?,
+            lifecycleLabel: String?,
+        ): ProjectHeaderModel {
+            val pathLabel = session.cwd?.trim()?.takeIf { it.isNotEmpty() } ?: session.name
+
+            val reasoning = session.reasoningEffort?.trim()?.takeIf { it.isNotEmpty() } ?: "medium"
+
+            val caption = listOfNotNull(
+                pathLabel,
+                session.branch?.takeIf { it.isNotBlank() } ?: "no branch",
+                status?.phase ?: "ready",
+                lifecycleLabel,
+            ).joinToString(" · ")
+
+            return ProjectHeaderModel(
+                agentPill = AgentPill(
+                    healthKey = status?.health ?: "unknown",
+                    agentName = session.assistant,
+                    reasoningEffort = reasoning,
+                    showsChevron = true,
+                ),
+                pathLabel = pathLabel,
+                captionLabel = caption,
+            )
+        }
+
+        /** Match iOS `lifecycleLabel` — only `exited(N)` / `failed(msg)`
+         *  surface; `creating` / `live` / `null` are dropped so the
+         *  caption stays terse. */
+        fun lifecycleLabel(lifecycle: SessionLifecycle?): String? = when (lifecycle) {
+            is SessionLifecycle.Exited        -> "exited(${lifecycle.code})"
+            is SessionLifecycle.FailedToStart  -> lifecycle.reason
+            else                                -> null
         }
     }
 }
