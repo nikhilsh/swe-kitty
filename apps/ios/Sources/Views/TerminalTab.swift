@@ -1,3 +1,4 @@
+// Legacy SwiftTerm-backed view. Replaced by WKTerminalView in Stage F'. Kept for one release cycle as fallback.
 import SwiftUI
 import SwiftTerm
 import UIKit

@@ -32,9 +32,19 @@ targets:
     platform: iOS
     sources:
       - path: Sources
+        excludes:
+          - "Resources/terminal/**"
       - path: SweKittyCore/Sources
         optional: true
       - path: Sources/Assets.xcassets
+      # Vendored xterm.js bundle. Added as a `folder` so the directory
+      # structure (terminal/xterm.js, terminal.html, …) is preserved
+      # inside the .app — WKTerminalView loads them with
+      # Bundle.main.url(forResource: "terminal", withExtension: "html",
+      # subdirectory: "terminal").
+      - path: Sources/Resources/terminal
+        type: folder
+        buildPhase: resources
     dependencies:
       - framework: SweKittyCore/SweKittyCore.xcframework
         embed: true

@@ -198,7 +198,7 @@ struct ProjectView: View {
     @ViewBuilder
     private var tabContent: some View {
         switch tab {
-        case .terminal: TerminalTab(session: session)
+        case .terminal: TerminalTabXterm(session: session)
         case .chat:     ChatTab(session: session)
         case .browser:  BrowserTab(session: session, mode: browserMode)
         }
