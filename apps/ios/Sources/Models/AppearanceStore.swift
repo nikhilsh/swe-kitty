@@ -101,7 +101,24 @@ final class AppearanceStore {
     /// sheet). Setting `overrideUserInterfaceStyle` on the window is the
     /// UIKit-native mechanism and propagates to every modally-presented
     /// VC, which is what Settings → Appearance needs.
+    ///
+    /// Hops to the main actor before touching UIKit. `themeMode.didSet`
+    /// can fire from any context (e.g. a Swift Testing task pool that
+    /// is not the main thread); without this hop, Main Thread Checker
+    /// trips even when the test logic itself is fine, and the test
+    /// process exits non-zero despite all assertions passing.
     func applyToWindows() {
+        if Thread.isMainThread {
+            MainActor.assumeIsolated { applyToWindowsOnMain() }
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                self?.applyToWindowsOnMain()
+            }
+        }
+    }
+
+    @MainActor
+    private func applyToWindowsOnMain() {
         let style: UIUserInterfaceStyle
         switch themeMode {
         case .system: style = .unspecified
