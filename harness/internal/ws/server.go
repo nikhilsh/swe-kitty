@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -88,6 +89,16 @@ func (s *Server) serveWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Initial client dimensions: prefer the rows/cols query params if
+	// present (mobile clients pass these on connect). Falls back to
+	// 0,0 — which makes SnapshotForSize use the session's current PTY
+	// size. When the client subsequently sends a 0x00 resize frame with
+	// different dimensions, handleBinary will emit a fresh snapshot
+	// reflowed to that size, so the URL params are an optimization, not
+	// a correctness requirement.
+	initRows := parseDim(r.URL.Query().Get("rows"))
+	initCols := parseDim(r.URL.Query().Get("cols"))
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
@@ -99,9 +110,20 @@ func (s *Server) serveWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !created {
-		if err := c.sendSnapshot(sess.Snapshot()); err != nil {
+		if initRows != 0 && initCols != 0 {
+			// Apply the hint so the agent's PTY sees the real viewport
+			// immediately, and so SnapshotForSize reflows the grid.
+			_ = sess.Resize(initRows, initCols)
+		}
+		snap := sess.SnapshotForSize(initRows, initCols)
+		if err := c.sendSnapshot(snap); err != nil {
 			return
 		}
+		// Mark that we've already shipped an initial snapshot; if the
+		// client's first resize frame disagrees with what we used, we
+		// re-emit a size-correct snapshot.
+		c.snapshotRows, c.snapshotCols = initRows, initCols
+		c.snapshotSent = true
 	}
 
 	sub := sess.Subscribe()
@@ -113,6 +135,19 @@ func (s *Server) serveWS(w http.ResponseWriter, r *http.Request) {
 	c.writeLoop(sub, textSub, sess.Done())
 }
 
+// parseDim parses a uint16 dimension query param. Returns 0 on parse
+// failure or out-of-range value (clients shouldn't pass either).
+func parseDim(v string) uint16 {
+	if v == "" {
+		return 0
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n <= 0 || n > 65535 {
+		return 0
+	}
+	return uint16(n)
+}
+
 // client wraps a websocket connection with a write mutex. gorilla
 // requires single-writer.
 type client struct {
@@ -120,6 +155,13 @@ type client struct {
 	sess *session.Session
 	wmu  sync.Mutex
 	once sync.Once
+
+	// snapshotSent records whether we've shipped an initial snapshot to
+	// this client and at what dimensions, so we can re-emit a
+	// size-correct snapshot if the first client resize disagrees.
+	snapshotSent bool
+	snapshotRows uint16
+	snapshotCols uint16
 }
 
 func newClient(c *websocket.Conn, s *session.Session) *client {
@@ -235,6 +277,15 @@ func (c *client) handleBinary(payload []byte) {
 		rows := binary.BigEndian.Uint16(payload[1:3])
 		cols := binary.BigEndian.Uint16(payload[3:5])
 		_ = c.sess.Resize(rows, cols)
+		// If we shipped an initial snapshot at different (or unknown)
+		// dimensions, re-emit a snapshot reflowed to the client's
+		// just-declared size. Headless xterm.js makes this cheap.
+		if c.snapshotSent && (c.snapshotRows != rows || c.snapshotCols != cols) {
+			c.snapshotRows, c.snapshotCols = rows, cols
+			c.snapshotSent = false // only re-emit once
+			snap := c.sess.SnapshotForSize(rows, cols)
+			_ = c.sendSnapshot(snap)
+		}
 	case tagUpload:
 		// File upload — out of v1 scope for task 001; just ignore.
 	case tagEscape:

@@ -1,0 +1,15 @@
+{
+  "name": "swe-kitty-sidecar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Headless xterm.js sidecar for the swe-kitty harness — keeps a server-side terminal grid per session so snapshots can be reflowed to the attaching client's viewport size.",
+  "type": "module",
+  "main": "sidecar.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@xterm/headless": "^5.5.0",
+    "@xterm/addon-serialize": "^0.13.0"
+  }
+}

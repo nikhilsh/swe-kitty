@@ -23,6 +23,7 @@ import (
 	"github.com/creack/pty"
 
 	"github.com/nikhilsh/swe-kitty/harness/internal/agents"
+	"github.com/nikhilsh/swe-kitty/harness/internal/termgrid"
 )
 
 const ringSize = 256 * 1024 // 256 KB scrollback per session
@@ -74,6 +75,10 @@ type Session struct {
 	checkpointMu      sync.Mutex
 	lastMemoryModTime time.Time
 	swapping          bool
+
+	// termgrid is the optional headless xterm.js sidecar handle. nil
+	// when node isn't installed; callers must treat it as best-effort.
+	termgrid *termgrid.Manager
 }
 
 func New(id string, adapter agents.Adapter) (*Session, error) {
@@ -93,6 +98,7 @@ func newSession(id string, adapter agents.Adapter, opts sessionOptions) (*Sessio
 	s := &Session{
 		ID:           id,
 		Assistant:    adapter.Name,
+		termgrid:     opts.termgrid,
 		adapter:      adapter,
 		rows:         40,
 		cols:         120,
@@ -150,6 +156,20 @@ func newSession(id string, adapter agents.Adapter, opts sessionOptions) (*Sessio
 	s.pty = f
 	s.cmd = cmd
 	_ = pty.Setsize(f, &pty.Winsize{Rows: s.rows, Cols: s.cols})
+	if s.termgrid != nil {
+		if err := s.termgrid.Create(s.ID, s.rows, s.cols); err != nil {
+			// Non-fatal — fall back to ring snapshots for this session.
+			fmt.Fprintf(os.Stderr, "session %s: termgrid.Create: %v (continuing with ring-only)\n", s.ID, err)
+			s.termgrid = nil
+		}
+		// If we restored a snapshot from disk, replay it into the
+		// headless grid so subsequent reflows have content.
+		if s.termgrid != nil && len(opts.snapshot) > 0 {
+			if err := s.termgrid.Write(s.ID, opts.snapshot); err != nil {
+				fmt.Fprintf(os.Stderr, "session %s: termgrid.Write(snapshot): %v\n", s.ID, err)
+			}
+		}
+	}
 	if err := s.persistMetadata(); err != nil {
 		_ = f.Close()
 		if s.cmd.Process != nil {
@@ -175,7 +195,13 @@ func (s *Session) Resize(rows, cols uint16) error {
 	}
 	s.mu.Lock()
 	s.rows, s.cols = rows, cols
+	tg := s.termgrid
 	s.mu.Unlock()
+	if tg != nil {
+		if err := tg.Resize(s.ID, rows, cols); err != nil {
+			fmt.Fprintf(os.Stderr, "session %s: termgrid.Resize: %v\n", s.ID, err)
+		}
+	}
 	return pty.Setsize(s.pty, &pty.Winsize{Rows: rows, Cols: cols})
 }
 
@@ -216,7 +242,10 @@ func (s *Session) UnsubscribeText(ch chan []byte) {
 	s.mu.Unlock()
 }
 
-// Snapshot returns a copy of the current scrollback (oldest-first).
+// Snapshot returns a copy of the current scrollback (oldest-first)
+// from the raw PTY ring. This is the legacy / fallback path used by
+// the memory-html writer, tests, and clients that don't supply a
+// target size.
 func (s *Session) Snapshot() []byte {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -229,6 +258,42 @@ func (s *Session) Snapshot() []byte {
 	copy(out, s.ring[s.ringPos:])
 	copy(out[ringSize-s.ringPos:], s.ring[:s.ringPos])
 	return out
+}
+
+// SnapshotForSize returns a size-correct snapshot for the attaching
+// client. If the headless xterm.js sidecar is available, the grid is
+// reflowed to (targetRows, targetCols) first and then serialized,
+// yielding bit-identical rendering on the client. If the sidecar is
+// unavailable, errors, or returns empty, the ring snapshot is
+// returned instead.
+//
+// If targetRows or targetCols is zero, the ring snapshot is used.
+func (s *Session) SnapshotForSize(targetRows, targetCols uint16) []byte {
+	if targetRows == 0 || targetCols == 0 {
+		return s.Snapshot()
+	}
+	s.mu.Lock()
+	tg := s.termgrid
+	s.mu.Unlock()
+	if tg == nil {
+		return s.Snapshot()
+	}
+	if err := tg.Resize(s.ID, targetRows, targetCols); err != nil {
+		fmt.Fprintf(os.Stderr, "session %s: SnapshotForSize: resize: %v\n", s.ID, err)
+		return s.Snapshot()
+	}
+	data, err := tg.Serialize(s.ID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "session %s: SnapshotForSize: serialize: %v\n", s.ID, err)
+		return s.Snapshot()
+	}
+	if data == "" {
+		return s.Snapshot()
+	}
+	// Also push the client's size into the PTY so the agent knows the
+	// real viewport. Best-effort.
+	_ = s.Resize(targetRows, targetCols)
+	return []byte(data)
 }
 
 func (s *Session) WorkspaceDir() string {
@@ -271,7 +336,14 @@ func (s *Session) Close() {
 		}
 		s.subs = nil
 		s.textSubs = nil
+		tg := s.termgrid
+		s.termgrid = nil
 		s.mu.Unlock()
+		if tg != nil {
+			if err := tg.Delete(s.ID); err != nil {
+				fmt.Fprintf(os.Stderr, "session %s: termgrid.Delete: %v\n", s.ID, err)
+			}
+		}
 		close(s.closed)
 	})
 }
@@ -299,6 +371,16 @@ func (s *Session) drain(f *os.File) {
 			copy(chunk, buf[:n])
 			s.append(chunk)
 			s.fanout(chunk)
+			s.mu.Lock()
+			tg := s.termgrid
+			s.mu.Unlock()
+			if tg != nil {
+				if werr := tg.Write(s.ID, chunk); werr != nil {
+					// Best-effort — log and continue. Ring is still
+					// authoritative for live streaming.
+					fmt.Fprintf(os.Stderr, "session %s: termgrid.Write: %v\n", s.ID, werr)
+				}
+			}
 		}
 		if err != nil {
 			s.mu.Lock()
@@ -355,6 +437,10 @@ type Manager struct {
 	registry       *agents.Registry
 	repoRoot       string
 	kittyRoot      string
+
+	// termgrid is the optional headless xterm.js sidecar. nil when node
+	// isn't installed at startup. Shared by all sessions.
+	termgrid *termgrid.Manager
 }
 
 type CreateOptions struct {
@@ -368,6 +454,18 @@ func NewManager(registry *agents.Registry) *Manager {
 		registry:  registry,
 		repoRoot:  repoRoot,
 		kittyRoot: kittyRoot,
+	}
+	if strings.TrimSpace(os.Getenv("SWE_KITTY_DISABLE_SIDECAR")) == "" {
+		tg, err := termgrid.NewManager()
+		if err != nil {
+			if errors.Is(err, termgrid.ErrNoNode) {
+				fmt.Fprintln(os.Stderr, "session: node not on PATH — running with ring-only snapshots (no client-size reflow)")
+			} else {
+				fmt.Fprintf(os.Stderr, "session: termgrid.NewManager: %v — running with ring-only snapshots\n", err)
+			}
+		} else {
+			m.termgrid = tg
+		}
 	}
 	m.loadRecentProjects()
 	return m
@@ -421,6 +519,7 @@ func (m *Manager) GetOrCreateWithOptions(id, assistant string, opts CreateOption
 		repoRoot:     m.repoRoot,
 		kittyRoot:    m.kittyRoot,
 		requestedCWD: requestedCWD,
+		termgrid:     m.termgrid,
 	})
 	if err != nil {
 		return nil, false, err
@@ -474,9 +573,18 @@ func (m *Manager) Recover() ([]string, error) {
 
 func (m *Manager) Close() {
 	m.mu.Lock()
-	defer m.mu.Unlock()
+	sessions := make([]*Session, 0, len(m.sessions))
 	for _, s := range m.sessions {
+		sessions = append(sessions, s)
+	}
+	tg := m.termgrid
+	m.termgrid = nil
+	m.mu.Unlock()
+	for _, s := range sessions {
 		s.Close()
+	}
+	if tg != nil {
+		_ = tg.Close()
 	}
 }
 
@@ -492,6 +600,7 @@ type sessionOptions struct {
 	lastCheckpoint time.Time
 	handoffHTML    string
 	requestedCWD   string
+	termgrid       *termgrid.Manager
 }
 
 type sessionMetadata struct {

@@ -1,4 +1,4 @@
-.PHONY: core bindings ios ios-project android android-debug
+.PHONY: core bindings ios ios-project android android-debug sidecar-install
 
 core:
 	cargo test --manifest-path core/Cargo.toml
@@ -23,3 +23,8 @@ ios-project:
 android: android-debug
 android-debug:
 	cd apps/android && ./build-rust.sh && ./gradlew assembleDebug --no-daemon
+
+# Install runtime deps for the Node xterm.js sidecar the harness spawns
+# for size-correct snapshots (Stage G). Requires Node 20+ on PATH.
+sidecar-install:
+	cd harness/sidecar && npm install --omit=dev
