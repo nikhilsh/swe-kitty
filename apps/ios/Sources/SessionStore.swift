@@ -865,6 +865,7 @@ final class SessionStore {
             assertRustStatusParity(status.session)
             #endif
         }
+        recordSavedSession(forSessionID: status.session)
     }
 
     func ingestPreview(_ sessionID: String, _ p: PreviewInfo) {
@@ -892,6 +893,7 @@ final class SessionStore {
 
     func ingestExit(_ sessionID: String, _ code: Int32) {
         sessionLifecycle[sessionID] = .exited(code)
+        recordSavedSession(forSessionID: sessionID, isExited: true)
         if var status = statusBySession[sessionID] {
             status = SessionStatus(
                 session: status.session,
@@ -988,6 +990,67 @@ final class SessionStore {
                 ingestDisconnected(reason)
             }
         }
+    }
+
+    // MARK: - Saved-session history
+
+    /// Server-stable identity for the saved-session index. Prefer the
+    /// id of the matching `SavedServer` row (carries through across
+    /// renames / endpoint mutations); fall back to the endpoint host
+    /// for pairings the user hasn't named yet. Stable enough for
+    /// `(serverID, sessionID)` to identify a row across launches.
+    private var savedHistoryServerID: String {
+        if let server = savedServers.first(where: { $0.endpoint == endpoint }) {
+            return server.id
+        }
+        let host = endpoint.displayHost
+        return host.isEmpty ? "(unsaved)" : host
+    }
+
+    /// Best-effort first user message for the session, scanning whichever
+    /// of the typed `conversationLog` / raw `chatLog` actually carries it.
+    private func firstUserMessage(in sessionID: String) -> String? {
+        if let log = conversationLog[sessionID] {
+            if let first = log.first(where: { $0.role.lowercased() == "user" }) {
+                return first.content
+            }
+        }
+        if let chat = chatLog[sessionID] {
+            if let first = chat.first(where: { $0.role.lowercased() == "user" }) {
+                return first.content
+            }
+        }
+        return nil
+    }
+
+    /// Fold the latest snapshot of `sessionID` into the persistent
+    /// "Resume" index. Invoked from `ingestStatus` (on every status
+    /// frame) and `ingestExit` (with `isExited: true` so the row locks
+    /// into the terminal status). Idempotent — `SavedSessionsStore.upsert`
+    /// suppresses writes when the row would be unchanged.
+    private func recordSavedSession(forSessionID sessionID: String, isExited: Bool = false) {
+        // We only have a meaningful `ProjectSession` for sessions the
+        // live store has confirmed exist; placeholder lifecycle rows
+        // (`pending-*`) don't carry an agent or cwd worth persisting.
+        guard let session = sessions.first(where: { $0.id == sessionID }) else { return }
+        let status = statusBySession[sessionID]
+        let exitedFromLifecycle: Bool
+        if case .exited = sessionLifecycle[sessionID] {
+            exitedFromLifecycle = true
+        } else {
+            exitedFromLifecycle = false
+        }
+        let messageCount = (conversationLog[sessionID]?.count)
+            ?? (chatLog[sessionID]?.count)
+            ?? 0
+        SavedSessionsStore.shared.upsert(
+            session: session,
+            serverID: savedHistoryServerID,
+            status: status,
+            firstUserMessage: firstUserMessage(in: sessionID),
+            messageCount: messageCount,
+            isExited: isExited || exitedFromLifecycle
+        )
     }
 
     // MARK: - Persistence
