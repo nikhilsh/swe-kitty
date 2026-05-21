@@ -40,36 +40,64 @@
     // WebGL unavailable — xterm falls back to the DOM renderer silently.
   }
 
-  term.open(document.getElementById("term"));
-  try { fit.fit(); } catch (e) { /* ignore */ }
-
-  term.onData(function (d) {
-    post({ type: "input", data: d });
-  });
-
-  term.onResize(function (sz) {
-    post({ type: "resize", cols: sz.cols, rows: sz.rows });
-  });
-
-  window.addEventListener("resize", function () {
+  // We defer term.open() until window.load so fit.fit() has accurate
+  // layout dimensions. Posting the fitted size BEFORE we accept any
+  // bytes from Swift means the harness can ship its first snapshot
+  // reflowed to our real viewport — fixing the size-mismatched wrap
+  // that plain xterm-on-the-client can't undo.
+  function boot() {
+    term.open(document.getElementById("term"));
     try { fit.fit(); } catch (e) { /* ignore */ }
-  });
 
-  window.feedBytes = function (b64) {
-    var bin = atob(b64);
-    var arr = new Uint8Array(bin.length);
-    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-    term.write(arr);
-  };
+    // Belt-and-braces: emit a resize event with the fitted dimensions
+    // explicitly. xterm's own onResize fires when dimensions change
+    // from the constructor defaults, but we want to be sure Swift sees
+    // them even if fit happened to produce the same shape.
+    try {
+      var d = fit.proposeDimensions();
+      if (d && d.cols && d.rows) {
+        post({ type: "resize", cols: d.cols, rows: d.rows });
+      } else {
+        post({ type: "resize", cols: term.cols, rows: term.rows });
+      }
+    } catch (e) {
+      post({ type: "resize", cols: term.cols, rows: term.rows });
+    }
 
-  window.serializeState = function () {
-    return serializer.serialize();
-  };
+    term.onData(function (d) {
+      post({ type: "input", data: d });
+    });
 
-  window.reset = function () {
-    term.reset();
-  };
+    term.onResize(function (sz) {
+      post({ type: "resize", cols: sz.cols, rows: sz.rows });
+    });
 
-  // Tell Swift we are ready to receive bytes.
-  post({ type: "ready" });
+    window.addEventListener("resize", function () {
+      try { fit.fit(); } catch (e) { /* ignore */ }
+    });
+
+    window.feedBytes = function (b64) {
+      var bin = atob(b64);
+      var arr = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      term.write(arr);
+    };
+
+    window.serializeState = function () {
+      return serializer.serialize();
+    };
+
+    window.reset = function () {
+      term.reset();
+    };
+
+    // Tell Swift we are ready to receive bytes.
+    post({ type: "ready" });
+  }
+
+  if (document.readyState === "complete") {
+    boot();
+  } else {
+    window.addEventListener("load", boot);
+  }
 })();

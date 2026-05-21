@@ -48,6 +48,7 @@ func (m *Manager) recoverSessionLocked(id string) (*Session, error) {
 		kittyRoot:      m.kittyRoot,
 		snapshot:       snapshot,
 		lastCheckpoint: lastCheckpoint,
+		termgrid:       m.termgrid,
 	})
 	if err != nil {
 		return nil, err

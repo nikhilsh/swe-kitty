@@ -61,3 +61,9 @@ node_modules/
 *.log
 website/.next/
 website/out/
+
+# ---- Stage G: Node sidecar (xterm.js headless) ----
+# `node_modules/` is already globally ignored above; keep this explicit
+# so the harness release pipeline doesn't accidentally tarball deps.
+harness/sidecar/node_modules/
+harness/sidecar/package-lock.json

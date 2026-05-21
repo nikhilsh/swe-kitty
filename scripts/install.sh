@@ -73,6 +73,23 @@ need chmod
 need mkdir
 need mv
 
+# Stage G: the harness spawns a Node-based xterm.js sidecar so terminal
+# snapshots can be reflowed to the attaching client's viewport size.
+# Without Node the harness still runs, but falls back to raw PTY-byte
+# snapshots which look wrong on any client whose viewport differs from
+# the original PTY size. Warn loudly so users know to install it.
+if command -v node >/dev/null 2>&1; then
+    node_version="$(node --version 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/' || echo 0)"
+    if [ "${node_version:-0}" -lt 20 ]; then
+        echo "install.sh: WARNING — node $(node --version 2>/dev/null) detected; the harness sidecar needs Node 20+." >&2
+        echo "  Install Node 20+ (https://nodejs.org or https://github.com/nvm-sh/nvm) for size-correct snapshots." >&2
+    fi
+else
+    echo "install.sh: WARNING — node is not on PATH." >&2
+    echo "  The harness will still run, but terminal snapshots on (re)attach will not be reflowed to the client viewport." >&2
+    echo "  Install Node 20+ from https://nodejs.org or via NVM (https://github.com/nvm-sh/nvm) and re-run if you want size-correct snapshots." >&2
+fi
+
 if command -v curl >/dev/null 2>&1; then
     FETCH="curl -fsSL"
 elif command -v wget >/dev/null 2>&1; then
