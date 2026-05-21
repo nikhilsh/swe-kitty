@@ -19,6 +19,7 @@ struct HomeView: View {
     @State private var showSearch = false
     @State private var showVoice = false
     @State private var showAgentPicker = false
+    @State private var showSessionsHistory = false
     @State private var selectedSessionID: String?
     /// Long-lived LAN browser so discovered servers stream into the
     /// home pill row as a litter-style "what's around me" affordance.
@@ -67,6 +68,9 @@ struct HomeView: View {
                     } else {
                         Color.clear
                     }
+                }
+                .navigationDestination(isPresented: $showSessionsHistory) {
+                    SessionsScreen().environment(store)
                 }
             }
             .sheet(isPresented: $showSettings) {
@@ -127,7 +131,14 @@ struct HomeView: View {
                 .cornerRadius(7)
                 .accessibilityLabel("SweKitty")
             Spacer()
-            iconButton(systemImage: "list.bullet", action: { showSearch = true })
+            HStack(spacing: 8) {
+                iconButton(
+                    systemImage: "clock.arrow.circlepath",
+                    action: { showSessionsHistory = true }
+                )
+                .accessibilityLabel("Sessions")
+                iconButton(systemImage: "list.bullet", action: { showSearch = true })
+            }
         }
         .padding(.horizontal, 16)
     }
