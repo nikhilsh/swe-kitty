@@ -17,6 +17,12 @@ struct SweKittyApp: App {
                     .environment(store)
                     .environment(appearance)
                     .preferredColorScheme(appearance.themeMode.colorScheme)
+                    .onAppear {
+                        // Windows usually aren't connected when
+                        // AppearanceStore.init runs, so reapply the
+                        // persisted choice once SwiftUI has mounted.
+                        appearance.applyToWindows()
+                    }
                     .onOpenURL { url in
                         applyPairingURL(url)
                     }
