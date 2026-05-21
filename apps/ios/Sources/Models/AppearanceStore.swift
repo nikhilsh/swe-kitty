@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import SwiftUI
+import UIKit
 
 /// User-tunable appearance settings: chat body font, theme override,
 /// and turn-collapse preference. Persisted to `UserDefaults.standard`
@@ -58,7 +59,10 @@ final class AppearanceStore {
     }
 
     var themeMode: ThemeMode {
-        didSet { defaults.set(themeMode.rawValue, forKey: Keys.theme) }
+        didSet {
+            defaults.set(themeMode.rawValue, forKey: Keys.theme)
+            applyToWindows()
+        }
     }
 
     var collapseTurns: Bool {
@@ -81,6 +85,28 @@ final class AppearanceStore {
         switch fontFamily {
         case .monospaced: return .system(.body, design: .monospaced)
         case .system:     return .system(.body)
+        }
+    }
+
+    /// Force every active UIWindow to honour the current `themeMode`.
+    /// Belt-and-suspenders alongside `.preferredColorScheme` — that
+    /// modifier alone was flaky on runtime swaps (light↔dark and back-
+    /// to-system would silently no-op when triggered from inside a
+    /// sheet). Setting `overrideUserInterfaceStyle` on the window is the
+    /// UIKit-native mechanism and propagates to every modally-presented
+    /// VC, which is what Settings → Appearance needs.
+    func applyToWindows() {
+        let style: UIUserInterfaceStyle
+        switch themeMode {
+        case .system: style = .unspecified
+        case .light:  style = .light
+        case .dark:   style = .dark
+        }
+        for scene in UIApplication.shared.connectedScenes {
+            guard let windowScene = scene as? UIWindowScene else { continue }
+            for window in windowScene.windows {
+                window.overrideUserInterfaceStyle = style
+            }
         }
     }
 }
