@@ -495,3 +495,60 @@ The xterm.js path (`WebTerminal.kt`, `TerminalBridge`) is **untouched**
 and remains the default. Toggling the shared flag off restores the
 WebView path within one Compose recomposition — identical rollback
 shape to iOS.
+
+## Android Stage 0 status — 2026-05-22
+
+**What worked**
+
+- `experimentalNativeTerminal: StateFlow<Boolean>` added to
+  `apps/android/app/src/main/kotlin/sh/nikhil/swekitty/AppearanceStore.kt`,
+  persisted to the existing `swekitty.appearance` SharedPreferences
+  file under key `experimentalNativeTerminal` (mirrors the
+  `swekitty.experimental.nativeTerminal` UserDefaults key on iOS).
+  Defaults to `false` so the xterm.js path stays in production.
+- Toggle row landed in the existing `Experimental` section of
+  `SettingsScreen.kt`, replacing the placeholder text — flask icon,
+  subtitle "Stage 0 — see PLAN-TERMINAL-REWRITE".
+- `TermuxTerminalView.kt` ships as a Compose `AndroidView` host
+  around a plain `TermuxPlaceholderView` (black-background
+  `FrameLayout` + centered monospace `TextView` reading "Termux
+  Stage 0 mounted — see PLAN-TERMINAL-REWRITE Android section").
+  **No Termux dependency is added yet** — `com.termux:terminal-view`
+  arrives in Stage 1.
+- `ProjectScreen.kt` reads the flag in the `ProjectTab.Terminal`
+  branch and dispatches to `TermuxTerminalView` when on, the
+  existing `TerminalPage` (xterm.js) when off. Default-off ⇒ zero
+  behavior change for current users.
+- `AppearanceStoreTermuxFlagTest.kt` (Robolectric / JUnit) asserts
+  fresh-install default is off + the value round-trips through a
+  fresh `AppearanceStore.hydrate(ctx)`.
+
+**What's stubbed (deferred to Stage 1)**
+
+- Gradle dep on `com.termux:terminal-view:0.118.x` —
+  `apps/android/app/build.gradle.kts` untouched at Stage 0; the
+  placeholder view is plain androidx, no Maven Central reach.
+- `apps/android/app/src/main/assets/NOTICE` Apache-2.0 attribution
+  for the Termux modules — added with the dep in Stage 1.
+- No `TerminalSession` wiring. The placeholder ignores
+  `SessionStore.terminalBuffer[session.id]` and drops keystrokes /
+  resize on the floor — same shape iOS Stage 0 used for
+  `GhosttyPlaceholderView`.
+- No IME / accessory bar wiring. `onTouchEvent` requests focus to
+  set up the Stage 2 keyboard summon, but no `InputConnection` is
+  produced.
+
+**What's queued for Stage 1**
+
+- Add `com.termux:terminal-view:0.118.x` (+ transitive
+  `terminal-emulator`) to `app/build.gradle.kts`; add the NOTICE
+  file and link it from the About screen.
+- Replace `TermuxPlaceholderView` with a real
+  `com.termux.view.TerminalView` instance fed by a
+  `TerminalSession` whose stdin is `SessionStore.terminalBuffer`
+  bytes from the broker.
+- Hook `onSizeChanged` → `store.resize(...)`; wire
+  `TerminalSession.write(...)` through to `store.sendInput(...)`.
+- Surface the Stage 0 rollback discipline (flag-off path stays
+  compiled + reachable) in the Android side of the per-stage
+  acceptance matrix in §"Android staging".

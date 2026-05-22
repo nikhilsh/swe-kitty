@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
+import sh.nikhil.swekitty.LocalAppearanceStore
 import sh.nikhil.swekitty.SessionLifecycle
 import sh.nikhil.swekitty.SessionStore
 import uniffi.swe_kitty_core.ProjectSession
@@ -75,6 +76,8 @@ fun ProjectScreen(
     }
     val agentAccent = SweKittyTheme.accent(forAgent = session.assistant)
     val ctx = LocalContext.current
+    val appearance = LocalAppearanceStore.current
+    val experimentalNativeTerminal by appearance.experimentalNativeTerminal.collectAsState()
     // Map the active tab → InSessionContext so the dock knows whether
     // the centre mic FAB should route to voice or surface a toast.
     val activeContext = InSessionContext.fromTab(ProjectTab.entries[pagerState.currentPage])
@@ -128,7 +131,18 @@ fun ProjectScreen(
                 modifier = Modifier.fillMaxSize(),
             ) { page ->
                 when (ProjectTab.entries[page]) {
-                    ProjectTab.Terminal -> TerminalPage(store, session)
+                    ProjectTab.Terminal -> {
+                        // Stage 0 of the Android terminal-renderer
+                        // rewrite: flag-on = Termux native View
+                        // scaffold; flag-off = production xterm.js.
+                        // Off by default. See
+                        // docs/PLAN-TERMINAL-REWRITE.md (Android).
+                        if (experimentalNativeTerminal) {
+                            TermuxTerminalView(store, session)
+                        } else {
+                            TerminalPage(store, session)
+                        }
+                    }
                     ProjectTab.Chat     -> ChatPage(store, session)
                     ProjectTab.Browser  -> BrowserPage(store, session, browserMode)
                 }

@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.UnfoldLess
 import androidx.compose.material.icons.outlined.Circle
@@ -76,6 +77,7 @@ fun SettingsScreen(store: SessionStore, onDismiss: () -> Unit) {
     val fontFamily by appearance.fontFamily.collectAsState()
     val themeMode by appearance.themeMode.collectAsState()
     val collapseTurns by appearance.collapseTurns.collectAsState()
+    val experimentalNativeTerminal by appearance.experimentalNativeTerminal.collectAsState()
 
     var showAddServer by remember { mutableStateOf(false) }
     var showAppearance by remember { mutableStateOf(false) }
@@ -257,10 +259,12 @@ fun SettingsScreen(store: SessionStore, onDismiss: () -> Unit) {
 
             // Experimental
             SettingsSection("Experimental") {
-                Text(
-                    "Voice dictation and debug flags arrive in a later stage of the litter rebuild.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                ToggleRow(
+                    icon = Icons.Filled.Science,
+                    title = "Native Terminal (Termux)",
+                    subtitle = "Stage 0 — see PLAN-TERMINAL-REWRITE",
+                    isOn = experimentalNativeTerminal,
+                    onChange = { appearance.setExperimentalNativeTerminal(it) },
                 )
             }
 
