@@ -24,6 +24,8 @@ import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Fullscreen
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material3.AssistChip
@@ -52,6 +54,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import sh.nikhil.swekitty.PinnedContext
 import sh.nikhil.swekitty.SessionStore
 import uniffi.swe_kitty_core.ConversationItem
 import uniffi.swe_kitty_core.ProjectSession
@@ -283,6 +286,11 @@ fun ChatPage(store: SessionStore, session: ProjectSession) {
     var draft by remember { mutableStateOf("") }
     var autoFollow by remember { mutableStateOf(true) }
     val listState = rememberLazyListState()
+    val pinnedContextsMap by store.pinnedContexts.collectAsState()
+    val pinnedContexts = pinnedContextsMap[session.id] ?: emptyList()
+    var pendingAttachments by remember { mutableStateOf(listOf<ComposerAttachment>()) }
+    var showAttachSheet by remember { mutableStateOf(false) }
+    var showExpandedComposer by remember { mutableStateOf(false) }
 
     LaunchedEffect(events.size, autoFollow) {
         if (autoFollow && events.isNotEmpty()) {
@@ -329,26 +337,84 @@ fun ChatPage(store: SessionStore, session: ProjectSession) {
         }
 
         HorizontalDivider()
+        val dispatchSend: () -> Unit = {
+            val msg = composeOutgoingMessage(
+                draft = draft,
+                pinnedContexts = pinnedContexts,
+                pendingAttachments = pendingAttachments,
+            )
+            if (msg.isNotEmpty()) {
+                store.sendChat(session.id, msg)
+                draft = ""
+                pendingAttachments = emptyList()
+                autoFollow = true
+            }
+        }
         ConversationComposer(
             draft = draft,
             quickReplies = remember(events) { QuickReplyDetector.suggestions(events) },
             agentAccent = agentAccent,
             currentAssistant = session.assistant,
+            pinnedContexts = pinnedContexts,
+            pendingAttachments = pendingAttachments,
+            onRemovePinned = { id -> store.unpinContext(id, session.id) },
+            onRemoveAttachment = { id ->
+                pendingAttachments = pendingAttachments.filterNot { it.id == id }
+            },
+            onAttachClick = { showAttachSheet = true },
+            onExpandClick = { showExpandedComposer = true },
             onSwitchAgent = { next -> store.switchAgent(session.id, next) },
             onDraftChange = { draft = it },
             onQuickReply = { reply ->
                 draft = if (draft.trim().isEmpty()) reply else "$draft\n$reply"
             },
-            onSend = {
-                val msg = draft.trim()
-                if (msg.isNotEmpty()) {
-                    store.sendChat(session.id, msg)
-                    draft = ""
-                    autoFollow = true
-                }
-            },
+            onSend = dispatchSend,
         )
     }
+
+    if (showAttachSheet) {
+        ComposerAttachSheet(
+            onAttach = { attachment ->
+                pendingAttachments = pendingAttachments + attachment
+            },
+            onDismiss = { showAttachSheet = false },
+        )
+    }
+
+    if (showExpandedComposer) {
+        ExpandedComposerView(
+            draft = draft,
+            placeholder = "Message ${session.assistant}…",
+            accentTint = agentAccent,
+            onDraftChange = { draft = it },
+            onSend = dispatchSend,
+            onDismiss = { showExpandedComposer = false },
+        )
+    }
+}
+
+/**
+ * Folds the draft text + any pinned contexts + any pending
+ * attachments into a single outgoing chat message. Mirror of iOS
+ * `ChatTab.composeOutgoingMessage` — inlined here rather than on
+ * SessionStore because it's purely a presentation concern.
+ */
+internal fun composeOutgoingMessage(
+    draft: String,
+    pinnedContexts: List<PinnedContext>,
+    pendingAttachments: List<ComposerAttachment>,
+): String {
+    val pieces = mutableListOf<String>()
+    if (pinnedContexts.isNotEmpty()) {
+        val formatted = pinnedContexts.joinToString("\n\n") { ctx ->
+            "[pinned ${ctx.kind.name.lowercase()}: ${ctx.label}]\n${ctx.payload}"
+        }
+        pieces += formatted
+    }
+    val trimmed = draft.trim()
+    if (trimmed.isNotEmpty()) pieces += trimmed
+    pendingAttachments.forEach { pieces += it.inlineBlock }
+    return pieces.joinToString("\n\n")
 }
 
 @Composable
@@ -1011,6 +1077,12 @@ private fun ConversationComposer(
     quickReplies: List<String>,
     agentAccent: Color,
     currentAssistant: String,
+    pinnedContexts: List<PinnedContext>,
+    pendingAttachments: List<ComposerAttachment>,
+    onRemovePinned: (String) -> Unit,
+    onRemoveAttachment: (String) -> Unit,
+    onAttachClick: () -> Unit,
+    onExpandClick: () -> Unit,
     @Suppress("UNUSED_PARAMETER") onSwitchAgent: (String) -> Unit,
     onDraftChange: (String) -> Unit,
     onQuickReply: (String) -> Unit,
@@ -1037,6 +1109,26 @@ private fun ConversationComposer(
                 }
             }
         }
+
+        // Pinned contexts strip — shows above the input row when one or
+        // more contexts are pinned. Hides itself when empty.
+        ContextBar(contexts = pinnedContexts, onRemove = onRemovePinned)
+
+        // Pending attachments preview — same chip shape as context, but
+        // lives inline so it dismisses on send.
+        if (pendingAttachments.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                pendingAttachments.forEach { att ->
+                    PendingAttachmentChip(attachment = att) { onRemoveAttachment(att.id) }
+                }
+            }
+        }
+
         Surface(
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f),
@@ -1048,9 +1140,7 @@ private fun ConversationComposer(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 FilledIconButton(
-                    // Reserved `+` affordance for file attach / snippets;
-                    // wired in Stage 5.
-                    onClick = {},
+                    onClick = onAttachClick,
                     colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
                         contentColor = MaterialTheme.colorScheme.onSurface,
@@ -1081,6 +1171,18 @@ private fun ConversationComposer(
                     maxLines = 6,
                     modifier = Modifier.weight(1f),
                 )
+                // Expand into the fullscreen editor — mirror of iOS
+                // ChatTab's expandButton.
+                FilledIconButton(
+                    onClick = onExpandClick,
+                    colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(Icons.Outlined.Fullscreen, contentDescription = "Expand composer")
+                }
                 if (!hasDraft) {
                     InlineVoiceButton { transcript ->
                         val trimmed = transcript.trim()
@@ -1100,6 +1202,39 @@ private fun ConversationComposer(
                         Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Send")
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PendingAttachmentChip(
+    attachment: ComposerAttachment,
+    onRemove: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 10.dp, end = 2.dp, top = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                attachment.filename,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            androidx.compose.material3.IconButton(
+                onClick = onRemove,
+                modifier = Modifier.size(24.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.Close,
+                    contentDescription = "Remove attachment ${attachment.filename}",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp),
+                )
             }
         }
     }
