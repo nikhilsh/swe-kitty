@@ -8,7 +8,7 @@ import Foundation
 /// implicitly at app launch by `SweKittyApp`; this suite locks the
 /// state machine so a future "tighten transitions" refactor can't
 /// silently break LTE↔Wi-Fi roaming.
-@Suite("NetworkReachability")
+@Suite("NetworkReachability", .serialized)
 struct NetworkReachabilityModelTests {
 
     // MARK: - Status helpers
