@@ -148,7 +148,7 @@ struct SessionInfoView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassRoundedRect()
+        .glassRoundedRect(agentTint: SweKittyTheme.accent(forAgent: session.assistant))
     }
 
     private func heroMetaRow(
@@ -300,7 +300,7 @@ struct SessionInfoView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glassRoundedRect()
+            .glassRoundedRect(agentTint: SweKittyTheme.accent(forAgent: session.assistant))
         }
     }
 

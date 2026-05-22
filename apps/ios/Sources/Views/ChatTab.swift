@@ -186,7 +186,7 @@ struct ChatTab: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .glassRoundedRect()
+            .glassRoundedRect(agentTint: agentTint)
         }
         .onChange(of: events.count) { _, _ in
             let assistantNow = events.filter { $0.role.lowercased() == "assistant" }.count
