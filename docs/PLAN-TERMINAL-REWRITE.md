@@ -552,3 +552,71 @@ shape to iOS.
 - Surface the Stage 0 rollback discipline (flag-off path stays
   compiled + reachable) in the Android side of the per-stage
   acceptance matrix in §"Android staging".
+
+## Android Stage 1 status — 2026-05-22
+
+**What worked**
+
+- Gradle deps landed:
+  `com.github.termux.termux-app:terminal-view:v0.118.3` +
+  `com.github.termux.termux-app:terminal-emulator:v0.118.3`. Resolved
+  via a scoped JitPack repo in `apps/android/settings.gradle.kts`
+  (`includeGroup("com.github.termux.termux-app")` keeps the JitPack
+  exposure tight). Maven Central does **not** publish these
+  artifacts — verified by `curl https://repo1.maven.org/maven2/com/termux/terminal-view/`
+  → 404 and `https://search.maven.org/solrsearch/select?q=g:com.termux`
+  → 0 results. The plan's "Maven Central; JitPack as fallback" wording
+  is updated in spirit: JitPack is primary today.
+- `TermuxTerminalView.kt` replaces the Stage 0 placeholder body with a
+  real `com.termux.view.TerminalView`, configured via a Stage 1
+  `TermuxSessionConfig` (shell path = `/system/bin/sh`,
+  `TERM=xterm-256color`) and attached to a `TerminalSession` whose
+  callbacks are stubbed to `NoopTerminalViewClient` +
+  `NoopTerminalSessionClient`. A `view.post { emulator.append(...) }`
+  pumps a hardcoded `"Stage 1 mounted via Termux\r\n"` banner once the
+  emulator is initialized on the first layout pass — same idiom iOS
+  Stage 1 used to prove `GhosttyVT` was linked.
+- Risk mitigation: the factory body is wrapped in a `try { ... }
+  catch (t: Throwable) { ... }` that falls back to the Stage 0
+  `TermuxPlaceholderView` (now copy edited to read "Termux
+  unavailable — falling back to placeholder"). Catches `Throwable`
+  rather than `Exception` so `NoClassDefFoundError` (the most likely
+  symptom of a Maven/JitPack resolution failure at runtime on a
+  hardened device) lands on the same fallback path. Logs to
+  `Log.w("TermuxTerminalView", ...)` so the catcher can grep
+  `adb logcat` to see which path is live.
+- `TermuxSessionConfig.from(session)` lifted as a pure-data plumbing
+  helper. One JUnit test
+  (`apps/android/app/src/test/java/sh/nikhil/swekitty/ui/TermuxSessionConfigTest.kt`)
+  locks the Stage 1 defaults (shell path, env, argv shape, purity
+  w.r.t. `session.id`). No Robolectric — Termux's emulator hits JNI
+  on first `updateSize`, so any test that actually mounts the view
+  must run on-device.
+
+**What's stubbed (deferred to Stage 2)**
+
+- PTY byte stream: `SessionStore.terminalBuffer[session.id]` is not
+  read; the `AndroidView` `update {}` block is empty. Stage 2 will
+  diff the buffer here and forward new bytes via
+  `session.emulator.append(...)` (or `session.write(...)` once the
+  broker-attached path replaces the local `sh` subprocess), mirroring
+  `WebTerminal.kt`'s `lastFedByteCount` pattern.
+- `onSizeChanged` → broker resize: Termux's `TerminalView` already
+  forwards resize into the emulator on its own; what's missing is the
+  fan-out to `SessionStore.resize(...)`. Stage 2.
+- Input: `NoopTerminalViewClient` returns `false` from every
+  key/codepoint method, so keystrokes drop on the floor — Stage 1
+  acceptance is render-only.
+- NOTICE attribution: Apache-2.0 requires a NOTICE file for the
+  Termux modules and an About-screen link. Punted to Stage 2 so this
+  PR can land tight; tracked in the per-stage matrix above.
+
+**Rollback shape**
+
+- Toggling the shared `experimentalNativeTerminal` flag off restores
+  the production xterm.js path (`WebTerminal`) within one Compose
+  recomposition — unchanged from Stage 0.
+- If the Termux dep fails to resolve at runtime, the try/catch falls
+  back to `TermuxPlaceholderView` and the app keeps working —
+  identical user-visible behavior to Stage 0, just with a different
+  status string.

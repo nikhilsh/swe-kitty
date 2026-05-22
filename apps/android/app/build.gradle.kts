@@ -126,6 +126,17 @@ dependencies {
     // ZXing-embedded QR scanner. Ships its own activity + permission flow.
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
+    // Termux terminal stack — Apache-2.0, pinned to v0.118.3 (May 22
+    // 2025 release; see docs/PLAN-TERMINAL-REWRITE.md Android section).
+    // Published as a multi-module JitPack build under the parent
+    // `com.github.termux.termux-app` group; `terminal-view` transitively
+    // pulls in `terminal-emulator` via its POM but we declare both
+    // explicitly so a future Termux split can't break the build
+    // silently. NOT on Maven Central as of this writing — the JitPack
+    // repo is scoped in settings.gradle.kts.
+    implementation("com.github.termux.termux-app:terminal-view:v0.118.3")
+    implementation("com.github.termux.termux-app:terminal-emulator:v0.118.3")
+
     // Test dependencies — pinned per docs/TESTING-STRATEGY.md.
     // JUnit 4 stays the default because Compose tooling assumes it.
     testImplementation("junit:junit:4.13.2")
