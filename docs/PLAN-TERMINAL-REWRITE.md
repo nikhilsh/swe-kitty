@@ -1259,3 +1259,120 @@ Concretely, Stage 0.5 (a new substage before Stage 1):
    (e.g. a header we need but they patched out), drop to
    Option A and write the workflow YAML — recipe is documented
    above.
+
+## Stage 2 status — Lakr233 pin (live) — 2026-05-22
+
+**What shipped (`ghostty-pin-lakr233`)**
+
+- `apps/ios/GhosttyVT/Package.swift` now declares
+  `.binaryTarget(name: "libghostty", url:
+  "https://github.com/Lakr233/libghostty-spm/releases/download/storage.1.1.5/GhosttyKit.xcframework.zip",
+  checksum: "a7045bef1f3149989d79e413b07f2f17847d68348da9f55eb56578093a5af405")`.
+  The `GhosttyVT` Swift target depends on `libghostty`, so SPM
+  resolution exercises the link path on every build; a stale checksum
+  surfaces immediately at SPM-resolve time instead of as a runtime
+  no-op. Slices verified by extracting the asset's `Info.plist`:
+  `ios-arm64`, `ios-arm64_x86_64-simulator`,
+  `ios-arm64_x86_64-maccatalyst`, `macos-arm64_x86_64`. This was the
+  exact set PR #94 lost when upstream's `tip` arm64-only asset
+  refused to link against the iOS simulator target.
+- `scripts/fetch-ghostty-vt-xcframework.sh` renamed to
+  `scripts/fetch-ghostty-kit-xcframework.sh` with the same URL +
+  sha256 pin. Asset filename in the script is now
+  `GhosttyKit.xcframework.zip` (matches Lakr233's release naming);
+  output xcframework dir is `apps/ios/GhosttyVT/GhosttyKit.xcframework`.
+- `apps/ios/project.yml` `packages: GhosttyVT` comment updated to
+  point at the new pin + new fetch-script filename + new module
+  name. `dependencies: GhosttyVT` line is unchanged — the iOS app
+  target still imports the same SPM product, and the project regen
+  story is identical.
+- `docs/PLAN-TERMINAL-REWRITE.md` adds this Stage 2 status section.
+
+**Sha256 source.** Two paths cross-verified to the same digest before
+landing:
+
+1. Lakr233's published `Package.swift`
+   (`https://raw.githubusercontent.com/Lakr233/libghostty-spm/main/Package.swift`)
+   `.binaryTarget` `checksum:` field for the `libghostty` target.
+2. Live re-compute against the release asset:
+   `curl -fsSL "$ASSET_URL" | shasum -a 256` (2026-05-22).
+
+Both produced
+`a7045bef1f3149989d79e413b07f2f17847d68348da9f55eb56578093a5af405`.
+
+**API-surface gap — intentional, this PR's tight scope.**
+
+Lakr233's xcframework exposes the full Ghostty C surface (the macOS
+app's `App` / `Surface` / `Inspector` API; umbrella header
+`ghostty.h` at ~1200 lines). The slim VT-only surface our existing
+`apps/ios/GhosttyVT/Sources/GhosttyVT/Terminal.swift` wrapper drives
+— `ghostty_terminal_new`, `ghostty_terminal_vt_write`,
+`ghostty_terminal_grid_ref`, `GhosttyTerminalOptions`,
+`GhosttyPoint`, `GhosttyGridRef`, `GhosttyCell`, the
+`GHOSTTY_TERMINAL_DATA_*` enums, the `ghostty_grid_ref_graphemes`
+readback — does not exist in this xcframework. Calling any of those
+from Swift would fail to compile.
+
+This is the documented PR #96 risk-mitigation case: the wrapper
+rewrite to the App/Surface API is a Stage 3-shaped follow-up (event
+loop + runtime config + host window), not a "swap the pin" PR. To
+keep the iOS build healthy today, the canImport guards stay as-is:
+
+- `Terminal.swift` keeps `#if canImport(GhosttyVt)`. The new pin's
+  module is `libghostty` (per its modulemap:
+  `framework module libghostty { umbrella header "ghostty.h" }`),
+  so the guard evaluates `false` and the file compiles down to its
+  trap-on-init placeholder branch. `Terminal.isAvailable` reports
+  `false`.
+- `GhosttyTerminalView.swift` keeps `#if canImport(GhosttyVT)` and
+  every libghostty-touching site stays `#if canImport(GhosttyVt)`-
+  gated below that. Same outcome — placeholder draws + status-line
+  fallback in `draw(_:)`.
+- `GhosttyVTTests` (both `TerminalTests` and `TerminalRenderTests`)
+  fall into their `#else` branches and assert
+  `XCTAssertFalse(Terminal.isAvailable)` — bundle stays green.
+
+The flag-off path (`WKTerminalView` / xterm.js) is untouched. The
+flag-on path falls back to the Stage 0-shape "framework unavailable"
+status line, same fallback Stage 1+ already used for stale-checksum
+recoveries. Net: zero behaviour change in production; the binaryTarget
+is wired + resolves + the iOS-simulator linker is happy; ground
+prepared for the wrapper rewrite.
+
+**Bump cadence.** Lakr233's pipeline runs a weekly Monday cron
+(`23 6 * * 1`) plus `workflow_dispatch`, against the latest upstream
+Ghostty semver tag. We pin per upstream semver tag, not per Lakr233
+cut — the `storage.<version>` tags are immutable so a tag-pinned URL
+stays valid forever; bumping is mechanical (new URL + new sha256,
+both source-able from Lakr233's `Package.swift` on GitHub).
+
+**Contingency unchanged.** If Lakr233 ever stops publishing, drop in
+Option A from §"Stage 2 unblock — how others build the xcframework"
+— our own GitHub Actions job running essentially Lakr233's
+`Script/build-ghostty.sh` matrix. The full recipe (build flags, `lipo`
++ `xcodebuild -create-xcframework` stitching) is captured in PR #96's
+research section.
+
+**Deferred (queued for the wrapper rewrite PR)**
+
+- Bridge `Terminal.swift` from the slim VT API to the App/Surface
+  API. Steps: build a `ghostty_runtime_config_s` (host
+  runtime callbacks) and `ghostty_surface_config_s` from
+  `AppearanceStore` defaults; wire `ghostty_surface_write_buffer`
+  for byte-feed, `ghostty_surface_text` / `ghostty_surface_key`
+  for input, `ghostty_surface_read_text` + `ghostty_surface_size`
+  for snapshot readback. Drop the `ghostty_terminal_grid_ref`
+  per-cell path (the App/Surface model doesn't expose a public
+  grid-ref equivalent — the renderer is supposed to consume Ghostty's
+  Metal output instead).
+- Decide whether to keep CoreText rendering (paint from
+  `ghostty_surface_read_text` snapshots) or pivot to Ghostty's own
+  Metal renderer (`ghostty_surface_draw` against a host
+  `CAMetalLayer`). The latter unlocks SGR colors / styles / wide
+  cells "for free" (Stage 3 deferred list) but adds a Metal host
+  view setup. Decision lives in the wrapper-rewrite PR's plan
+  section.
+- Bump the xcframework when upstream Ghostty cuts a new semver tag
+  AND Lakr233's cron picks it up — purely mechanical, no code
+  changes expected (the API surface is stable across Ghostty
+  patch releases per upstream's MAJOR.MINOR ABI policy).
