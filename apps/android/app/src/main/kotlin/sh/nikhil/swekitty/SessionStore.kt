@@ -169,6 +169,69 @@ data class RemoteDirectoryListing(
 )
 
 /**
+ * Kind of pinned context attached above the composer. Mirror of iOS
+ * `PinnedContext.Kind` in `apps/ios/Sources/SessionStore.swift`.
+ */
+enum class PinnedContextKind {
+    File,
+    Url,
+    Snippet,
+}
+
+/**
+ * One pinned context (file, URL, or snippet) that the composer
+ * surfaces as a chip above the text field. `payload` is what the next
+ * `sendChat` should fold into the outgoing message; `label` is the
+ * short string the chip renders. Identifiable so chip rows can animate
+ * inserts/removes cleanly. Mirror of iOS `PinnedContext`.
+ */
+data class PinnedContext(
+    val id: String = UUID.randomUUID().toString(),
+    val kind: PinnedContextKind,
+    val label: String,
+    val payload: String,
+)
+
+/**
+ * Pure-data reducers for pin/unpin on the per-session pinned-context
+ * map. Pulled out of [SessionStore] so JUnit tests can exercise the
+ * dedupe + per-session isolation rules without instantiating the
+ * ViewModel (and therefore without Robolectric). Mirror of the
+ * `pinContext(_:for:)` / `unpinContext(_:from:)` semantics on iOS.
+ */
+internal object PinnedContextReducer {
+    /**
+     * Append `ctx` to the list for `sessionId`. No-op when an existing
+     * entry already matches on (kind, payload) — the iOS reference
+     * treats those as duplicates.
+     */
+    fun pin(
+        map: Map<String, List<PinnedContext>>,
+        sessionId: String,
+        ctx: PinnedContext,
+    ): Map<String, List<PinnedContext>> {
+        val current = map[sessionId] ?: emptyList()
+        if (current.any { it.kind == ctx.kind && it.payload == ctx.payload }) return map
+        return map + (sessionId to (current + ctx))
+    }
+
+    /**
+     * Remove the entry with `id` from the list for `sessionId`. Drops
+     * the session key entirely when the list ends up empty so observers
+     * see an honest absence rather than `[]`.
+     */
+    fun unpin(
+        map: Map<String, List<PinnedContext>>,
+        sessionId: String,
+        id: String,
+    ): Map<String, List<PinnedContext>> {
+        val list = map[sessionId] ?: return map
+        val next = list.filterNot { it.id == id }
+        return if (next.isEmpty()) map - sessionId else map + (sessionId to next)
+    }
+}
+
+/**
  * v1 store: wraps SweKittyClient and bridges Rust delegate callbacks back onto
  * the main dispatcher as StateFlow updates. Replaced by Hilt-style DI in v2.
  */
@@ -242,6 +305,32 @@ class SessionStore : ViewModel(), SweKittyDelegate {
      */
     private val _displayNames = MutableStateFlow<Map<String, String>>(emptyMap())
     val displayNames: StateFlow<Map<String, String>> = _displayNames.asStateFlow()
+
+    /**
+     * Manually pinned context per session — rendered above the
+     * composer as removable chips. Mirror of iOS
+     * `SessionStore.pinnedContexts`. In-memory only; the iOS ref also
+     * keeps these per-process, so we match the lifetime.
+     */
+    private val _pinnedContexts = MutableStateFlow<Map<String, List<PinnedContext>>>(emptyMap())
+    val pinnedContexts: StateFlow<Map<String, List<PinnedContext>>> = _pinnedContexts.asStateFlow()
+
+    /**
+     * Pin a context chip onto `sessionId`. No-op if an identical chip
+     * (same kind + payload) is already pinned — keeps the UI from
+     * accumulating duplicates when the same file is dragged in twice.
+     */
+    fun pinContext(ctx: PinnedContext, sessionId: String) {
+        _pinnedContexts.value = PinnedContextReducer.pin(_pinnedContexts.value, sessionId, ctx)
+    }
+
+    /**
+     * Remove a pinned context by id. Used by ContextBar's tap-to-dismiss
+     * affordance.
+     */
+    fun unpinContext(id: String, sessionId: String) {
+        _pinnedContexts.value = PinnedContextReducer.unpin(_pinnedContexts.value, sessionId, id)
+    }
 
     fun displayName(session: ProjectSession): String =
         _displayNames.value[session.id] ?: session.name
