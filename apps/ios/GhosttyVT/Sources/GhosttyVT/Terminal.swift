@@ -117,7 +117,7 @@ public final class Terminal {
         var options = GhosttyTerminalOptions(
             cols: UInt16(cols),
             rows: UInt16(rows),
-            max_scrollback: maxScrollback
+            max_scrollback: Int(maxScrollback)
         )
         var handle: GhosttyTerminal? = nil
         let result = ghostty_terminal_new(nil, &handle, options)
