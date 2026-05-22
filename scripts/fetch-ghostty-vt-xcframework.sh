@@ -31,14 +31,15 @@ XCFW_PATH="$OUT_DIR/ghostty-vt.xcframework"
 # in lockstep. No stable tagged release exists upstream yet — only
 # the rotating `tip` tag — so this pin needs periodic refresh.
 #
-# NOTE: even with a fresh checksum, the binaryTarget in
-# `apps/ios/GhosttyVT/Package.swift` is currently commented out —
-# `ghostty-vt.xcframework` and `SweKittyCore.xcframework` both ship
-# as "-library + -headers" style xcframeworks whose module.modulemap
-# files collide at `$BUILT_PRODUCTS_DIR/include/module.modulemap`
-# during ProcessXCFramework. PR #88 mis-diagnosed this as a widget
-# extension link issue. See the long comment in Package.swift for
-# the actual root cause + re-enable options.
+# History: PRs #88+#89 left the binaryTarget commented out because
+# ghostty-vt.xcframework and SweKittyCore.xcframework both shipped as
+# "-library + -headers"-style xcframeworks whose module.modulemap files
+# collided at `$BUILT_PRODUCTS_DIR/include/module.modulemap` during
+# ProcessXCFramework. swekittycore-framework-rewrap fixed it:
+# `apps/ios/build-rust.sh` now packages SweKittyCore as a
+# `.framework`-flavored xcframework with its module map under the
+# per-arch framework's `Modules/` dir (no shared-path collision), and
+# the binaryTarget is re-enabled. See Package.swift.
 ASSET_URL="https://github.com/ghostty-org/ghostty/releases/download/tip/ghostty-vt.xcframework.zip"
 EXPECTED_SHA256="0c29329a2e1012d8a6ebf05f164c589aeeaba5d417dd93e075c073ad3fa44ba7"
 

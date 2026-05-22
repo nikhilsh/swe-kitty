@@ -255,10 +255,30 @@ so flipping the flag at runtime stays a one-toggle revert.
 
 ## Stage 2 status — 2026-05-22
 
+**Update (swekittycore-framework-rewrap):** PR #88 had to comment out
+the GhosttyVT `.binaryTarget` because the SweKittyCore xcframework was
+built as `-library + -headers` (legacy shape), and Xcode's
+`ProcessXCFramework` writes every such xcframework's module map to the
+shared `$BUILT_PRODUCTS_DIR/include/module.modulemap` path. With both
+SweKittyCore and ghostty-vt fighting for that file, xcodebuild emitted
+"Multiple commands produce include/module.modulemap" and refused to
+link. `apps/ios/build-rust.sh` now produces a `.framework`-flavored
+xcframework instead: each arch slice contains a per-arch
+`swe_kitty_coreFFI.framework/` with its module map under
+`Modules/module.modulemap` (scoped to the framework, no shared path).
+The Ghostty `binaryTarget` is therefore re-enabled and libghostty
+actually loads at runtime — Stage 2 now meets its core acceptance
+criterion ("framework loaded, libghostty parses VT, CoreText paints
+real cells"). Status: framework loaded, libghostty parses VT,
+CoreText paints real cells. A `--legacy` flag on `build-rust.sh`
+emits the old `-library + -headers` shape for A/B if the new shape
+regresses something subtle.
+
 **What shipped**
 
 - `apps/ios/GhosttyVT/Package.swift` re-adds the `.binaryTarget`
-  entry (PR #73 had removed it because the sha256 didn't resolve).
+  entry (PR #73 had removed it because the sha256 didn't resolve;
+  PR #88 commented it out again over the modulemap collision above).
   Pinned URL is `https://github.com/ghostty-org/ghostty/releases/download/tip/ghostty-vt.xcframework.zip`;
   sha256 captured against the live `tip` asset on 2026-05-22:
   `0c29329a2e1012d8a6ebf05f164c589aeeaba5d417dd93e075c073ad3fa44ba7`.
