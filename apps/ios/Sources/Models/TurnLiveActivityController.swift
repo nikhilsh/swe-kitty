@@ -130,6 +130,28 @@ public final class TurnLiveActivityController {
         models[sessionID] = model
     }
 
+    /// Single-item entry point used by `TurnLiveActivityBridge`. The
+    /// bridge has already classified the item as a tool/command/exit;
+    /// here we hand it straight to the per-session state machine and
+    /// let it decide whether to start, update, or end. The richer
+    /// `ingest(sessionID:agentName:latestItem:sessionPhase:)` path is
+    /// kept for the older "view-layer fire-and-forget" call sites that
+    /// already feed a phase signal alongside the latest item.
+    public func observe(item: TurnActivityItem, in sessionID: String, agentName: String) {
+        var model = models[sessionID, default: TurnActivityModel()]
+        if lastSeenItemID[sessionID] == item.id {
+            // Idempotent re-emit. Tick so an idle close still fires.
+            let effect = model.tick(now: Date())
+            apply(effect: effect, sessionID: sessionID)
+            models[sessionID] = model
+            return
+        }
+        lastSeenItemID[sessionID] = item.id
+        let effect = model.apply(item: item, sessionID: sessionID, agentName: agentName)
+        apply(effect: effect, sessionID: sessionID)
+        models[sessionID] = model
+    }
+
     /// External "session was reaped" signal (user tapped Exit, or the
     /// harness reported `onExit`). Ends the activity without waiting for
     /// the idle timeout.
