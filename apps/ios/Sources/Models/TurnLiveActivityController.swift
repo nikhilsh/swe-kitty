@@ -3,41 +3,11 @@ import Foundation
 import ActivityKit
 #endif
 
-#if canImport(ActivityKit)
-/// ActivityKit-facing attributes for the turn Live Activity.
-///
-/// Mirrors `TurnActivityAttributesData` / `TurnActivityContentState` from
-/// the pure model so the same shape ships through the system. Split into
-/// its own type because `ActivityAttributes` is only available with
-/// ActivityKit imported — the model file stays portable and unit-testable.
-public struct TurnActivityAttributes: ActivityAttributes {
-    public struct ContentState: Codable, Hashable {
-        public var currentTool: String?
-        public var currentCommand: String?
-        public var startedAt: Date
-        public var tokensIn: Int
-        public var tokensOut: Int
-        public var status: String
-
-        public init(from state: TurnActivityContentState) {
-            self.currentTool = state.currentTool
-            self.currentCommand = state.currentCommand
-            self.startedAt = state.startedAt
-            self.tokensIn = state.tokensIn
-            self.tokensOut = state.tokensOut
-            self.status = state.status
-        }
-    }
-
-    public var agentName: String
-    public var sessionID: String
-
-    public init(from data: TurnActivityAttributesData) {
-        self.agentName = data.agentName
-        self.sessionID = data.sessionID
-    }
-}
-#endif
+// `TurnActivityAttributes` (the `ActivityAttributes`-conforming type
+// passed to `Activity<…>.request`) lives in `TurnActivityAttributes.swift`
+// so the widget extension target can compile the same declaration
+// without dragging in this controller class. See that file's header
+// for the cross-target rationale.
 
 /// Bridges the `TurnActivityModel` state machine to ActivityKit.
 ///
@@ -50,13 +20,12 @@ public struct TurnActivityAttributes: ActivityAttributes {
 ///   - persist the active `Activity.id` keyed by sessionID so we keep at
 ///     most one Live Activity per session even across re-binds.
 ///
-/// **Scope note**: this PR ships the controller + state machine + tests.
-/// The widget target (`SweKittyWidgets`) that renders the lock-screen card
-/// + Dynamic Island is queued for the next PR — see the audit A.2 row.
-/// Without the widget target the controller is functionally a no-op at
-/// runtime on a real device, but it keeps the bridge code, lifecycle
-/// hooks, and the `NSSupportsLiveActivities` plist key in tree so the
-/// follow-up PR is a pure UI add.
+/// **Architecture note**: the lock-screen + Dynamic Island UI lives in
+/// the `SweKittyWidgets` app-extension target (`apps/ios/Widgets/`). The
+/// extension and this controller share the `TurnActivityAttributes` type
+/// declaration (compiled into both targets — see `apps/ios/project.yml`)
+/// so the system can route `Activity.request(...)` payloads to the right
+/// widget.
 @MainActor
 public final class TurnLiveActivityController {
     /// Singleton shared with `SweKittyApp` — there's exactly one active-turn
@@ -192,11 +161,11 @@ public final class TurnLiveActivityController {
             )
             activeActivityIDs[sessionID] = activity.id
         } catch {
-            // Live Activities can fail to start when the widget target
-            // isn't registered (which is the current state of this PR).
-            // Swallow and continue — the controller stays functional;
-            // the lock-screen card just won't render until the widget
-            // target lands in the follow-up PR.
+            // `Activity.request` throws on: simulators without a Mac host
+            // recent enough, Live Activities disabled in Settings, or a
+            // mismatch between the host + widget `ActivityAttributes`
+            // shape. Swallow — the controller stays functional and the
+            // next turn's effect will retry.
         }
         #endif
     }
