@@ -39,6 +39,16 @@ class AppearanceStore : ViewModel() {
     private val _collapseTurns = MutableStateFlow(false)
     val collapseTurns: StateFlow<Boolean> = _collapseTurns.asStateFlow()
 
+    /**
+     * Stage 0 feature flag for the Termux `terminal-view` native
+     * terminal path. Mirrors iOS `experimentalNativeTerminal`. Off by
+     * default — the xterm.js path ([WebTerminal]) remains the
+     * production renderer until Stage 2 of the rewrite ships. See
+     * `docs/PLAN-TERMINAL-REWRITE.md` (Android section).
+     */
+    private val _experimentalNativeTerminal = MutableStateFlow(false)
+    val experimentalNativeTerminal: StateFlow<Boolean> = _experimentalNativeTerminal.asStateFlow()
+
     private var prefs: SharedPreferences? = null
 
     fun hydrate(ctx: Context) {
@@ -51,6 +61,7 @@ class AppearanceStore : ViewModel() {
             ?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() }
             ?: ThemeMode.System
         _collapseTurns.value = p.getBoolean(KEY_COLLAPSE, false)
+        _experimentalNativeTerminal.value = p.getBoolean(KEY_EXPERIMENTAL_NATIVE_TERMINAL, false)
     }
 
     fun setFontFamily(value: FontFamily) {
@@ -68,10 +79,16 @@ class AppearanceStore : ViewModel() {
         prefs?.edit()?.putBoolean(KEY_COLLAPSE, value)?.apply()
     }
 
+    fun setExperimentalNativeTerminal(value: Boolean) {
+        _experimentalNativeTerminal.value = value
+        prefs?.edit()?.putBoolean(KEY_EXPERIMENTAL_NATIVE_TERMINAL, value)?.apply()
+    }
+
     private companion object {
         const val KEY_FONT = "font"
         const val KEY_THEME = "theme"
         const val KEY_COLLAPSE = "collapseTurns"
+        const val KEY_EXPERIMENTAL_NATIVE_TERMINAL = "experimentalNativeTerminal"
     }
 }
 
