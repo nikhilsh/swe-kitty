@@ -49,25 +49,30 @@ let package = Package(
         // `#if canImport(GhosttyVt)`-gated so a stale-checksum
         // resolve failure degrades to the Stage 0 placeholder
         // instead of breaking the iOS build outright.
-        // Stage 2 binaryTarget commented out — link-time conflict
-        // with the SweKittyWidgets extension added in #77 (xcodebuild
-        // emits "Multiple commands produce include/module.modulemap"
-        // when the GhosttyKit xcframework's module map is processed
-        // twice, once per target). Re-enable when upstream cuts a
-        // stable tagged release we can pin AND we figure out how to
-        // exclude the package from the widget target's link step.
-        // .binaryTarget(
-        //     name: "GhosttyVtKit",
-        //     url: "https://github.com/ghostty-org/ghostty/releases/download/tip/ghostty-vt.xcframework.zip",
-        //     checksum: "0c29329a2e1012d8a6ebf05f164c589aeeaba5d417dd93e075c073ad3fa44ba7"
-        // ),
+        // Stage 2 re-enable: PR #88 hit "Multiple commands produce
+        // include/module.modulemap" because SweKittyCore.xcframework
+        // was a `-library + -headers`-style xcframework writing its
+        // module map to the shared `$BUILT_PRODUCTS_DIR/include/`
+        // path — same path ghostty-vt.xcframework wanted. The fix
+        // landed in this PR: apps/ios/build-rust.sh now produces a
+        // `.framework`-flavored xcframework with its module map
+        // inside the per-arch framework's `Modules/` dir, so the
+        // two xcframeworks no longer collide. See
+        // docs/PLAN-TERMINAL-REWRITE.md Stage 2 status.
+        .binaryTarget(
+            name: "GhosttyVtKit",
+            url: "https://github.com/ghostty-org/ghostty/releases/download/tip/ghostty-vt.xcframework.zip",
+            checksum: "0c29329a2e1012d8a6ebf05f164c589aeeaba5d417dd93e075c073ad3fa44ba7"
+        ),
         // Thin Swift wrapper. Re-exports the C symbols through a
         // typed Swift API (Terminal class + TerminalSnapshot struct).
-        // Builds clean without GhosttyVtKit because every libghostty
-        // touch is gated by `#if canImport(GhosttyVt)`.
+        // The `#if canImport(GhosttyVt)` guard in Terminal.swift +
+        // GhosttyTerminalView.swift keeps the iOS app building even
+        // if the upstream `tip` asset rotates and SPM resolve fails
+        // with a stale-checksum error.
         .target(
             name: "GhosttyVT",
-            dependencies: [],
+            dependencies: ["GhosttyVtKit"],
             path: "Sources/GhosttyVT"
         ),
         .testTarget(
