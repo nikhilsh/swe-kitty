@@ -90,10 +90,23 @@ public struct TerminalSnapshot: Equatable, Sendable {
 /// any borrowed string returns; Swift's value-type story makes the
 /// lifetime contract harder to read.
 public final class Terminal {
-    /// `true` when the prebuilt `ghostty-vt.xcframework` is linked
+    /// `true` when the slim VT-only `GhosttyVt` C module is linked
     /// and importable. Call sites should fall back to the placeholder
     /// path when this is `false`. This is a compile-time check — at
     /// runtime it always returns the same value for a given build.
+    ///
+    /// **Currently always `false`.** The PR ghostty-pin-lakr233
+    /// swapped the SPM binaryTarget from upstream's `ghostty-vt`
+    /// asset (slim VT API) to Lakr233's prebuilt `libghostty` asset
+    /// (full App/Surface API). The xcframework now resolves and
+    /// links across all required iOS slices, but the C symbols this
+    /// wrapper was written against (`ghostty_terminal_new`,
+    /// `ghostty_terminal_vt_write`, `ghostty_terminal_grid_ref`, …)
+    /// don't exist in the new pin's `ghostty.h`. A follow-up PR
+    /// rewrites the wrapper to bridge `ghostty_surface_*`; until
+    /// then the `#if canImport(GhosttyVt)` branch below is unreachable
+    /// and `Terminal.isAvailable` reports `false`, so all call sites
+    /// (and the test bundle) cleanly take the placeholder path.
     public static var isAvailable: Bool {
         #if canImport(GhosttyVt)
         return true
@@ -266,7 +279,7 @@ public final class Terminal {
     #else
     /// Unavailable build — calls trap to surface mis-wired call sites.
     public init(cols: UInt, rows: UInt, maxScrollback: UInt = 10_000) {
-        fatalError("GhosttyVT.Terminal requires the ghostty-vt.xcframework to be linked. Check that the SPM binary target resolved (see scripts/fetch-ghostty-vt-xcframework.sh).")
+        fatalError("GhosttyVT.Terminal: the `GhosttyVt` C module is not importable. As of the ghostty-pin-lakr233 PR this is the EXPECTED state — the current SPM binaryTarget (Lakr233/libghostty-spm storage.1.1.5, see apps/ios/GhosttyVT/Package.swift) ships the full `libghostty` module with the App/Surface API, not the slim VT-only API this wrapper was written against. The follow-up PR will rewrite this wrapper to bridge the App/Surface surface; until then call sites must flag-gate on `Terminal.isAvailable`. See scripts/fetch-ghostty-kit-xcframework.sh + docs/PLAN-TERMINAL-REWRITE.md → Stage 2 status — Lakr233 pin.")
     }
 
     public func write(_ bytes: Data) {}
