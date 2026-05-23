@@ -4,17 +4,18 @@
 
 - **Status Snapshot** below is the current reality and should drive execution.
 - **Part A onward** preserves the detailed target architecture and the original (2026-04) bootstrap plan, including framing that referenced upstream `swe-swe` as the harness for dev work. That dependency is gone — swe-kitty ships its own `swe-kitty-broker` binary now — but the historical text is preserved verbatim below so the design rationale isn't lost. The newer execution layer is [`PLAN-2026-05-19.md`](PLAN-2026-05-19.md).
-- If there is any mismatch, treat the Status Snapshot + newer focused docs (`RELEASE.md`, `MOBILE-FEATURE-BACKLOG.md`, `NEXT-RELEASE.md`, `PLAN-2026-05-19.md`) as the source of truth for immediate work.
+- If there is any mismatch, treat the Status Snapshot + newer focused docs (`RELEASE.md`, `PLAN-2026-05-19.md`, `PLAN-LITTER-VISUAL-PARITY.md`, `PLAN-AGENT-OAUTH.md`, `PLAN-TERMINAL-REWRITE.md`) as the source of truth for immediate work. (`NEXT-RELEASE.md` + `MOBILE-FEATURE-BACKLOG.md` archived 2026-05-23 — see `docs/archive/`.)
 
-## Status Snapshot (May 21, 2026)
+## Status Snapshot (May 23, 2026)
 
 ### Done
-- Repository, CI, and tagged release automation are active.
+- Repository, CI, and tagged release automation are active. Latest tag `v0.0.25` (2026-05-23) builds IPA + APK + cross-compiled broker binaries via `release.yml`.
 - Broker one-line bootstrap is active:
   - `install.sh` download/install
   - `swe-kitty-broker up --local` prints bearer token + pairing QR + `swekitty://` deep link
   - `harness/` → `broker/` rename complete (PR #19, #34)
   - `/healthz` endpoint + sidecar liveness probe (PR #26)
+- Broker per-session HOME isolation (PR #126): each spawn copies the broker host's `.claude/` / `.codex/` into an ephemeral `$HOME` so concurrent OAuth refreshes can't race. The empty-AUTH-env trap in `commandEnv` is stripped (PR #135) so a placeholder `ANTHROPIC_API_KEY=` line in `EnvironmentFile=` no longer clobbers OAuth fallback.
 - iOS and Android shipping flow is tag-driven (release workflows + orchestrator + website deploy).
 - Rust core has:
   - reconnect/liveness handling
@@ -27,12 +28,18 @@
   - subagent + handoff cards (the `switch_agent` differentiator)
   - structured tool payload (args/exit/duration) consumed in both timelines
   - saved-server persistence scaffolding in settings
-- Test discipline (2026-05-21): iOS `SweKittyTests` target + 20 tests (PR #20); Android JUnit harness + TerminalBridge tests (PR #21); core E2E WS tests (PR #25); snapshot testing wired on both platforms (PR #30) with CI artifacts on failure (PR #31).
+  - delete affordances: iOS swipe + context-menu (PR #128), Android dialog mirror (PR #136), both backed by `SessionStore.forgetServer` which also sweeps the per-id displayName override
+- **LitterUI cutover (PR #118 → #127)**: parallel iOS view tree built clean-room from the litter reference, flipped from `experimentalLitterUI` flag-gated to default, legacy view tree deleted. iPad NavigationSplitView for regular size class (PR #122). Visual-parity gap audit landed (`docs/PLAN-LITTER-VISUAL-PARITY.md`, 2026-05-22) sequencing the next 5 per-screen rebuild PRs.
+- **iOS Ghostty terminal Stage 4 (PR #129, #131, #133, #134, #137)**: real libghostty App/Surface integration via Lakr233's `libghostty-spm` xcframework, CoreText/Metal renderer with full link path (CoreGraphics + CoreText + Metal + IOSurface + QuartzCore + c++). `Terminal.isAvailable` now returns true at runtime; experimental terminal flag exercises libghostty's parser.
+- Test discipline (2026-05-23): iOS `SweKittyTests` target with 20+ tests (PR #20); Android JUnit harness + TerminalBridge tests (PR #21); core E2E WS tests (PR #25); snapshot testing wired on both platforms (PR #30) with CI artifacts on failure (PR #31); `SessionStoreForgetServerTest` pins Android persistence contract (PR #136).
 
 ### In Progress
 - Package 1 (Rust-first refactor) slice 3: lift reducer-shaped logic from `apps/ios/Sources/SessionStore.swift` and `apps/android/.../SessionStore.kt` into `core/src/store/`. Slices 1 & 2 (typed classifier + tool-card consumption) shipped; slice 3 (AppStore in Rust) open. See `docs/PLAN-2026-05-19.md` §8.
+- Litter visual parity: 5-PR per-screen rebuild plan in `docs/PLAN-LITTER-VISUAL-PARITY.md`. PR 1 (foundation: typography, tokens, glass) is ready to land; PR 2–5 are design-specified.
 - Discovery UI parity (mDNS browser / server switching UX polish).
+- Agent OAuth v2: broker Stage 0 design (`docs/PLAN-AGENT-OAUTH.md`) merged via #126; iOS + Anthropic + Android end-to-end stages still open.
 - Voice rail B (realtime WebRTC); rail A (Whisper-style push-to-talk) shipped.
+- Terminal Stage 3 (selection / copy / paste): iOS done, Android pending (`docs/PLAN-TERMINAL-REWRITE.md`).
 
 ### Planned / Future
 - Push notifications + background fetch/wakeup (Package 5; broker has no `push/` package yet).

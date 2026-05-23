@@ -1,5 +1,11 @@
 # Stage F' — xterm.js terminal renderer
 
+> **Archived 2026-05-23.** xterm.js path shipped and was the production
+> renderer through the LitterUI cutover; the active terminal track is
+> now the Ghostty-backed CoreText renderer in
+> [`PLAN-TERMINAL-REWRITE.md`](../PLAN-TERMINAL-REWRITE.md). xterm.js
+> remains as the fallback; this doc kept for the original rationale.
+
 ## Why
 
 The SwiftTerm-backed `TerminalTab` produced "vertical stripe" garbage

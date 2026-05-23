@@ -5,7 +5,7 @@ Long-running Node process the swe-kitty harness spawns to maintain
 per session. Communicates with the Go harness over stdin/stdout
 line-delimited JSON-RPC.
 
-See `../../docs/PLAN-TERMINAL-SIDECAR.md` for the architecture and
+See `../../docs/archive/PLAN-TERMINAL-SIDECAR.md` for the architecture and
 protocol.
 
 ## Install

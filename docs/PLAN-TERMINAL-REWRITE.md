@@ -6,7 +6,7 @@ Stage 0 spike (feature-flag scaffold) in progress. Stage 1+ deferred.
 
 ## Why rewrite (again)
 
-The xterm.js path (Stage F', `PLAN-TERMINAL-XTERMJS.md`) ships, but it
+The xterm.js path (Stage F', `archive/PLAN-TERMINAL-XTERMJS.md`) ships, but it
 carries WKWebView baggage we'd rather not carry forever on iOS:
 
 - WKWebView spin-up cost dominates first-frame time when a session is
@@ -529,7 +529,7 @@ one-toggle for both platforms.
 
 - Delete `apps/android/.../ui/WebTerminal.kt`, `TerminalBridge`,
   and the Android xterm.js bundle under `app/src/main/assets/terminal/`.
-- Update `docs/PLAN-TERMINAL-XTERMJS.md` to mark Android-superseded.
+- Update `docs/archive/PLAN-TERMINAL-XTERMJS.md` to mark Android-superseded.
 - Decide on the Node `@xterm/headless` sidecar in
   `broker/internal/termgrid/`: once **both** iOS and Android are
   native, the sidecar has no remaining client. Schedule its removal
@@ -1163,7 +1163,7 @@ pin swe-kitty against the fork.
 - **Cons:** we now own a Ghostty fork. Rebasing against upstream is
   weekly toil for the lifetime of the project; we've already
   resolved not to vendor a fork unless forced (xterm.js path
-  precedent in `PLAN-TERMINAL-XTERMJS.md`).
+  precedent in `archive/PLAN-TERMINAL-XTERMJS.md`).
 
 #### Option C — contribute upstream
 

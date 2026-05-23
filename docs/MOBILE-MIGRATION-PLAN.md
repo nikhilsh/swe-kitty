@@ -159,7 +159,7 @@ Important rule:
 
 - do not continue polishing the current shell as if it is the final app
 - instead, replace its structure with the target app structure
-- use [docs/MOBILE-FEATURE-BACKLOG.md](/root/developer/projects/kitty-swe/docs/MOBILE-FEATURE-BACKLOG.md:1) as the concrete feature-by-feature execution list for conversation, tool-call, user-input, image, and server/session parity
+- use [docs/archive/MOBILE-FEATURE-BACKLOG.md](archive/MOBILE-FEATURE-BACKLOG.md) as the historical feature-by-feature reference (archived 2026-05-23; current sequencing lives in [docs/PLAN-2026-05-19.md](PLAN-2026-05-19.md) and the per-feature plan docs)
 
 ### Phase 3: Android Convergence
 
