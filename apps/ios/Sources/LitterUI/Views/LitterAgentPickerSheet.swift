@@ -82,18 +82,26 @@ extension LitterUI {
         @ViewBuilder
         private var header: some View {
             if let note = headerNote, !note.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    sectionLabel("Paired with")
+                // PLAN-LITTER-VISUAL-PARITY audit §A.5 / PR 5
+                // deferred — collapse the chunky tinted glass card
+                // around the "Paired with <host>" note to an inline
+                // caption. The agent buttons below are the action;
+                // the header is metadata and shouldn't compete with
+                // them for visual weight.
+                HStack(spacing: 6) {
+                    Text("PAIRED WITH")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .tracking(0.6)
+                        .foregroundStyle(LitterUI.Palette.textMuted.color)
                     Text(note)
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(LitterUI.Palette.textPrimary.color)
+                        .foregroundStyle(LitterUI.Palette.textSecondary.color)
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .litterGlassRoundedRect(cornerRadius: 14)
+                .padding(.horizontal, 4)
+                .padding(.bottom, 2)
             }
         }
 
