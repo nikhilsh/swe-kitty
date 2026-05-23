@@ -1,5 +1,10 @@
 # Mobile Feature Backlog
 
+> **Archived 2026-05-23.** Sequencing superseded by
+> [`PLAN-2026-05-19.md`](../PLAN-2026-05-19.md) and the per-feature plan
+> docs (`PLAN-LITTER-*`, `PLAN-AGENT-OAUTH`, `PLAN-TERMINAL-REWRITE`).
+> Kept for historical context.
+
 Date: 2026-05-18
 
 > **2026-05-19 update:** sequencing in this doc is now superseded by
