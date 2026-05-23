@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -82,19 +83,18 @@ fun HomeScreen(
     var pendingDelete by remember { mutableStateOf<SessionDeleteTarget?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().padding(top = 8.dp)) {
-        // Top row — litter has no settings gear (audit §A.1.6 / PR 3);
-        // settings is accessed via a long-press on the centered brand
-        // mark. Leading slot is intentionally a transparent 40dp
-        // spacer so the centred title still sits where the eye expects
-        // it; trailing keeps the sessions-drawer affordance (litter
-        // doesn't have a remote-multiplexer drawer so this is
-        // swe-kitty-specific).
+        // Top row. Litter parity put settings behind a hidden long-press
+        // on the title — undiscoverable in practice (user feedback
+        // 2026-05-23). Restore a visible gear in the leading slot; the
+        // long-press stays as a secondary path. Trailing keeps the
+        // sessions-drawer affordance (litter has no remote multiplexer
+        // so this is swe-kitty-specific).
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Spacer(Modifier.size(40.dp))
+            CircleIconButton(Icons.Default.Settings, "Settings", onClick = onOpenSettings)
             Spacer(Modifier.weight(1f))
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
