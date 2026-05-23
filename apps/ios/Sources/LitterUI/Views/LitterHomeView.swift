@@ -114,15 +114,20 @@ extension LitterUI {
         // MARK: Subviews
 
         private var topRow: some View {
-            // PLAN-LITTER-VISUAL-PARITY PR 3, audit §A.1.6: litter has
-            // no top-row settings gear — settings is accessed via a
-            // long-press on the brand mark. The leading slot is empty
-            // now; trailing keeps the sessions-history + search icons
-            // because those are swe-kitty-specific affordances litter
-            // doesn't ship (litter has only one server / no remote
-            // multiplexer).
+            // Litter parity (audit §A.1.6) put settings behind a hidden
+            // long-press on the brand mark — undiscoverable in practice
+            // (user feedback 2026-05-23). Restore a visible gear in the
+            // leading slot; the long-press stays as a secondary path so
+            // accessibility hints continue to work. Trailing drops the
+            // search icon because the bottom action bar already carries
+            // a 44pt search button — having both was a duplicate.
             LitterUI.Header(
-                leading: { Color.clear.frame(width: 36, height: 36) },
+                leading: {
+                    LitterUI.HeaderIconButton(systemImage: "gearshape",
+                                              accessibilityLabel: "Settings") {
+                        showSettings = true
+                    }
+                },
                 center: {
                     Image("KittyMark")
                         .resizable()
@@ -130,27 +135,15 @@ extension LitterUI {
                         .frame(width: 32, height: 32)
                         .cornerRadius(7)
                         .accessibilityLabel("SweKitty")
-                        // Long-press the logo to surface Settings. The
-                        // affordance is hidden — discoverability is
-                        // sacrificed to keep the litter-faithful flat
-                        // top-row. A "press and hold for settings"
-                        // accessibility hint compensates for screen-
-                        // reader users.
                         .accessibilityHint("Press and hold for settings")
                         .onLongPressGesture(minimumDuration: 0.4) {
                             showSettings = true
                         }
                 },
                 trailing: {
-                    HStack(spacing: 8) {
-                        LitterUI.HeaderIconButton(systemImage: "clock.arrow.circlepath",
-                                                  accessibilityLabel: "Sessions history") {
-                            showSessionsHistory = true
-                        }
-                        LitterUI.HeaderIconButton(systemImage: "magnifyingglass",
-                                                  accessibilityLabel: "Search") {
-                            showSearch = true
-                        }
+                    LitterUI.HeaderIconButton(systemImage: "clock.arrow.circlepath",
+                                              accessibilityLabel: "Sessions history") {
+                        showSessionsHistory = true
                     }
                 }
             )
