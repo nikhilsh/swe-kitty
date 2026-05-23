@@ -788,38 +788,53 @@ private struct LitterPendingInputCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "questionmark.bubble.fill")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(LitterUI.Palette.brand.color)
-                Text("INPUT NEEDED")
-                    .font(.caption2.weight(.bold))
-                    .tracking(0.7)
-                    .foregroundStyle(LitterUI.Palette.textSecondary.color)
-                Spacer()
-                LitterStatusChip(status: event.status)
-            }
-            LitterMarkdownBlock(text: event.content, role: .assistant)
-            if !options.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(options, id: \.self) { option in
-                            Button(option) { onQuickReply(option) }
-                                .buttonStyle(.plain)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .litterGlassCapsule(tint: LitterUI.Palette.brand.color.opacity(0.24), config: .pill)
-                                .foregroundStyle(LitterUI.Palette.textPrimary.color)
+        // PLAN-LITTER-VISUAL-PARITY audit §A.2.7 — drop the outer
+        // tinted glass card; render as a flat inline row with a
+        // leading brand-tint dot. The prior "INPUT NEEDED" card read
+        // as an alert (heavy shadow + 18pt tinted glass); litter's
+        // `InlineHandoffView` is a much flatter row that the user
+        // scans past until the options matter. Quick-reply chips
+        // collapse from glass capsules to flat tag-radius (4pt)
+        // pills tinted in brand at 0.10 — matches `tagCornerRadius`
+        // landed in PR 1.
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
+                Circle()
+                    .fill(LitterUI.Palette.brand.color)
+                    .frame(width: 6, height: 6)
+                    .padding(.top, 6)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Text("INPUT NEEDED")
+                            .font(.caption2.weight(.bold))
+                            .tracking(0.7)
+                            .foregroundStyle(LitterUI.Palette.textSecondary.color)
+                        Spacer()
+                        LitterStatusChip(status: event.status)
+                    }
+                    LitterMarkdownBlock(text: event.content, role: .assistant)
+                    if !options.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 6) {
+                                ForEach(options, id: \.self) { option in
+                                    Button(option) { onQuickReply(option) }
+                                        .buttonStyle(.plain)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                                .fill(LitterUI.Palette.brand.color.opacity(0.10))
+                                        )
+                                        .foregroundStyle(LitterUI.Palette.textPrimary.color)
+                                        .font(.footnote.weight(.semibold))
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .litterGlassRoundedRect(cornerRadius: 14, tint: LitterUI.Palette.brand.color.opacity(0.20))
     }
 }
 
@@ -827,28 +842,33 @@ private struct LitterHandoffCard: View {
     let event: ConversationItem
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "arrow.triangle.swap")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(LitterUI.Palette.brand.color)
-                Text("AGENT HANDOFF")
-                    .font(.caption2.weight(.bold))
-                    .tracking(0.7)
-                    .foregroundStyle(LitterUI.Palette.textSecondary.color)
-                Spacer()
-                if !event.ts.isEmpty {
-                    Text(ConversationTimestamp.relative(event.ts))
-                        .font(.caption2)
-                        .foregroundStyle(LitterUI.Palette.textMuted.color)
+        // Same flat-pill treatment as LitterPendingInputCard above —
+        // PLAN-LITTER-VISUAL-PARITY audit §A.2.7. The prior tinted
+        // glass card read like an alert; agent handoffs are
+        // informative, not actionable, so they should render as a
+        // quiet inline row that lives in the transcript flow.
+        HStack(alignment: .top, spacing: 8) {
+            Circle()
+                .fill(LitterUI.Palette.brand.color)
+                .frame(width: 6, height: 6)
+                .padding(.top, 6)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Text("AGENT HANDOFF")
+                        .font(.caption2.weight(.bold))
+                        .tracking(0.7)
+                        .foregroundStyle(LitterUI.Palette.textSecondary.color)
+                    Spacer()
+                    if !event.ts.isEmpty {
+                        Text(ConversationTimestamp.relative(event.ts))
+                            .font(.caption2)
+                            .foregroundStyle(LitterUI.Palette.textMuted.color)
+                    }
                 }
+                LitterMarkdownBlock(text: event.content, role: .system)
             }
-            LitterMarkdownBlock(text: event.content, role: .system)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .litterGlassRoundedRect(cornerRadius: 14, tint: LitterUI.Palette.brand.color.opacity(0.22))
     }
 }
 
