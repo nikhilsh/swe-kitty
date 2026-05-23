@@ -1,6 +1,6 @@
 # Per-user in-app OAuth for Claude + Codex agents
 
-## Status
+## Status (2026-05-23)
 
 **Approach v2 (litter-faithful) — current.** v1 (PKCE on the phone,
 custom-scheme redirect, see "v1 archive" sections below) shipped
@@ -8,8 +8,23 @@ through PRs #100/#104/#110/#112 and **does not work end-to-end** —
 both Anthropic and OpenAI reject the `swekitty://` custom-scheme
 redirect URI at the authorize endpoint. The v1 code paths
 (`apps/ios/Sources/Models/OAuthClient.swift`,
-`apps/android/.../auth/OAuthClient.kt`) are retained but deprecated;
-they will be removed once v2 lands end-to-end (Stage 2 below).
+`apps/android/.../auth/OAuthClient.kt`) are retained as the current
+production fallback until v2 closes end-to-end. They will be removed
+in Stage 4 below.
+
+**Where v2 is right now**:
+
+- Broker (#114): authorize-URL parser + WS handlers + per-session
+  HOME materialization (#126) — done.
+- iOS inbound: sheet renders the broker-issued URL, calls
+  `ASWebAuthenticationSession`, captures the loopback callback — done.
+- iOS outbound: `start_agent_login` / `agent_login_callback` /
+  `cancel_agent_login` are not yet wired through `core/`'s UDL, so
+  the sheet's "Start login" button surfaces a TODO toast. **This is
+  the single open blocker for end-to-end Codex login on iOS.**
+- Android (#144): pure-data coordinator + parser + tests landed; UI
+  is still on the v1 PKCE flow.
+- Anthropic: `claude auth login` flow not investigated end-to-end yet.
 
 ## Approach v2 — litter-faithful server-side login
 
@@ -116,28 +131,46 @@ Broker → client (typed `view_event`):
 
 **Stages (v2).**
 
-- **Stage 0 (this PR)**: design doc + broker
+- **Stage 0 (PR #114, shipped 2026-05-22)**: design doc + broker
   `internal/oauth/login_session.go` package with table tests for
   stdout-URL parsing + port detection, WS control-message handlers
   for `start_agent_login` / `agent_login_callback` /
   `cancel_agent_login`, iOS `AgentLoginLoopbackServer.swift` +
-  `AgentLoginCoordinator.swift` skeletons (no UI hookup yet).
-  Deprecates v1's `OAuthClient.swift` but keeps it compilable so
-  Settings doesn't break.
-- **Stage 1 (next PR)**: wire `AgentLoginSheet.swift` to the new
-  coordinator on iOS; end-to-end Codex login demoable.
-- **Stage 2**: Anthropic via `claude auth login` (Anthropic's flow
-  may be web-display-only — see §K — in which case the broker
-  ferries the displayed user-code, not a loopback callback).
-- **Stage 3**: Android port (Chrome Custom Tabs +
-  `okhttp3.MockWebServer`-style local listener, or directly on
-  `java.net.ServerSocket`).
-- **Stage 4**: delete v1 `OAuthClient.swift` /
-  `OAuthClient.kt` / `OAuthCredentialStore` / the
-  `set_agent_credentials` WS message and Keychain blobs. (The broker
-  retains the encrypted credential store for refresh propagation —
-  the wire stops carrying tokens; the broker still encrypts what the
-  CLI wrote, see #106.)
+  `AgentLoginCoordinator.swift` skeletons. Followed by PR #126
+  (broker per-session HOME isolation) so refresh races no longer
+  corrupt the host operator's credentials.
+- **Stage 1 — iOS end-to-end (PARTIALLY SHIPPED)**:
+  - **Inbound side wired**: `LitterAgentLoginSheet` consumes
+    `agent_login_url` / `agent_login_complete` / `agent_login_failed`
+    view_events via `SessionStore.dispatchAgentLogin*`.
+  - **Outbound side NOT wired**: `SessionStore.startAgentLogin(...)` /
+    `sendAgentLoginCallback(...)` / `cancelAgentLogin(...)` currently
+    surface a "not yet bridged through UDL" toast at
+    `apps/ios/Sources/SessionStore.swift:1766` — the
+    `start_agent_login` / `agent_login_callback` /
+    `cancel_agent_login` control messages have **no UniFFI surface**
+    in `core/src/swe_kitty_core.udl` yet. **Next concrete action**:
+    add the three methods to the UDL, route them through
+    `core/src/transport.rs` as JSON control messages, regenerate
+    bindings.
+- **Stage 2 — Anthropic via `claude auth login`**: not started. §K
+  flags that Claude's flow may be web-display-only (paste-code, not
+  loopback) — investigation gated on Stage 1 closing end-to-end on
+  Codex first.
+- **Stage 3 — Android port (PARTIALLY SHIPPED via #144)**: pure-data
+  `AgentLoginCoordinator` state machine + `AgentLoginLoopbackServer`
+  + `AgentLoginLoopbackParser` landed with 13+ unit tests; no UI
+  wiring yet. `apps/android/.../ui/AgentLoginSheet.kt` exists but
+  still drives the deprecated v1 PKCE-on-phone flow. **Next concrete
+  action**: swap `AgentLoginSheet.kt` to call the new coordinator,
+  add `CustomTabsIntent` launch + `java.net.ServerSocket` loopback
+  binding, mirror the iOS UDL bridge once Stage 1 lands.
+- **Stage 4 — delete v1 (BLOCKED on Stages 1–3)**: remove
+  `OAuthClient.swift` / `OAuthClient.kt` / `OAuthCredentialStore`,
+  the `set_agent_credentials` WS message, and the Keychain blobs.
+  (The broker retains the encrypted credential store for refresh
+  propagation — the wire stops carrying tokens; the broker still
+  encrypts what the CLI wrote, see #106.)
 
 **Risk register (v2).**
 

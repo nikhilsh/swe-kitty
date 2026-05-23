@@ -1,10 +1,45 @@
 # PLAN — Litter Visual Parity (exhaustive gap audit)
 
-Date: 2026-05-22
+Date: 2026-05-22 (status block updated 2026-05-23)
 Author: research agent (audit only, no code changes)
 Reference: `github.com/dnakov/litter` @ main (Swift sources fetched 2026-05-22)
 Prior plan: `docs/PLAN-LITTER-UI.md` (staged structural rebuild — Stage 6 landed; visual drift remains)
 Mobile port spec: `docs/MOBILE-PORT-MATRIX.md`
+
+## Status (2026-05-23): rebuild plan shipped
+
+The 5-PR rebuild proposed in Section E **shipped end-to-end**, including
+an Android mirror that wasn't originally scoped:
+
+| PR | Title | Status |
+|---|---|---|
+| PR 1 — Foundation | typography ramp, tokens, iOS 26 glass, lighter shadows | **shipped (#139)** |
+| PR 2 — Settings | iOS 26 glass on LitterUI, font-size slider, 14pt corners (iOS+Android) | **shipped (#140)** |
+| PR 3 — Home | footnote row density, 7pt indicator, 44pt bottom bar, drop top-row gear (iOS+Android) | **shipped (#141)** — top-row settings gear partially restored in #147 for discoverability after the search button was found to duplicate (decision §3 below revised) |
+| PR 4 — ProjectView header + ChatTab | heading-scale ramp, flat tool cards, drop diff stroke (iOS+Android) | **shipped (#142)** |
+| PR 5 — Sheets | ServerPill stroke treatment, AddServerSheet 28pt icons, plain SessionInfo Done | **shipped (#143)** |
+| Polish (deferred items from PR4) | flat inline rows for PendingInput/Handoff, 20/12 discovery padding, inline agent-picker header | **shipped (#145)** |
+
+What's still open (Section F deferrals, all explicitly carried):
+
+- Pinch-to-zoom on home (F.8) — `HomeSessionsScrollView`-style UIKit gesture machine, ~800+ LOC, no PR yet.
+- Per-chat wallpaper (F.6) — deferred indefinitely.
+- Live Activities / Lock Screen widget (F.7) — needs entitlement + widget target.
+- `AnimatedLogo` (Section "Open decisions" #4) — user kept the static `KittyMark`; not chasing.
+- `BadgeStack` on `ServerPill` (A.9.2) — multi-agent runtime badges per pill, no PR yet.
+
+Open decisions (Section "Open decisions for the user") — outcomes:
+
+1. User message style (A.2.1, PR 4) — kept `.flat`; the `userMessageStyleIsFlat` regression test is intentionally still pinned.
+2. Default body font (B.2) — kept monospaced default.
+3. Top-row settings gear (A.1.6, PR 3) — initially dropped per litter, restored as a small affordance in #147 after the user reported a discoverability regression.
+4. AnimatedLogo (PR 3) — kept static `KittyMark`.
+5. `UserMessageBackground` test (A.2.1) — kept; assertion unchanged.
+
+The rest of this doc is preserved verbatim for design reference. Any
+future visual-parity work should branch from PR5's end-state (commit
+`d10c007` and the polish in `d218ec1`), not from the original drift
+described below.
 
 ## Why this doc exists
 
