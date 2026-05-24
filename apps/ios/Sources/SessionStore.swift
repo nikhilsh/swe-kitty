@@ -813,7 +813,24 @@ final class SessionStore {
             _ = rustStore.applyChat(sessionId: sessionID, event: localEvent)
         }
         guard let client else { return }
-        Task { try? await client.sendChat(sessionId: sessionID, msg: message) }
+        // Don't swallow the send failure with `try?`: if the WS write
+        // throws (no session handle yet, reconnect window, NotConnected),
+        // the optimistic local echo above makes the message *look* sent
+        // while the agent never receives it — exactly the device-reported
+        // "appears in chat but the agent never sees it". Surface it so the
+        // failure is diagnosable instead of silent.
+        Task {
+            do {
+                try await client.sendChat(sessionId: sessionID, msg: message)
+            } catch {
+                Telemetry.capture(
+                    error: error,
+                    message: "chat send to agent failed",
+                    tags: ["surface": "ios", "phase": "chat_send"],
+                    extras: ["session": sessionID]
+                )
+            }
+        }
     }
 
     func resize(sessionID: String, rows: UInt16, cols: UInt16) {
