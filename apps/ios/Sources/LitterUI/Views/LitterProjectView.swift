@@ -58,7 +58,13 @@ extension LitterUI {
                 Divider().background(LitterUI.Palette.separator.color)
                 content
             }
-            .background(LitterUI.Palette.surface.color.ignoresSafeArea())
+            // Full-bleed background for the notch / home-indicator, but
+            // scope to `.container` so it does NOT ignore the `.keyboard`
+            // region — a default `.ignoresSafeArea()` (regions: .all)
+            // here suppressed keyboard avoidance for the chat composer's
+            // `.safeAreaInset(.bottom)`, leaving it hidden behind the soft
+            // keyboard (device bug #19).
+            .background(LitterUI.Palette.surface.color.ignoresSafeArea(.container, edges: .all))
             .navigationBarBackButtonHidden(true)
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showInfo) {
