@@ -190,15 +190,19 @@ extension LitterUI {
             case .chat:
                 LitterUI.ChatView(session: session)
             case .terminal:
-                // Reuse the existing terminal renderer — LitterUI's
-                // rebuild scope was the chat / nav surfaces, not the
-                // terminal engine. The chrome around it (our header
-                // + tab strip) still lives in the new style.
-                if appearance.experimentalNativeTerminal {
-                    GhosttyTerminalTab(session: session)
-                } else {
-                    TerminalTabXterm(session: session)
-                }
+                // Always render the xterm.js terminal. LitterUI's rebuild
+                // scope was the chat / nav surfaces, not the terminal
+                // engine. The native `GhosttyTerminalTab` (libghostty) is
+                // a Stage-4 skeleton that renders BLANK on device — no
+                // Metal renderer / cell readback yet (Stage 5; see
+                // docs/PLAN-TERMINAL-REWRITE.md and
+                // docs/PLAN-DEVICE-BUGS-2026-05-24.md). Gating it on the
+                // `experimentalNativeTerminal` toggle shipped a blank
+                // screen to anyone who flipped it — including users who
+                // can't flip it back. So it's gated on Stage-5 completion
+                // (a code change), not a user flag; restore the
+                // GhosttyTerminalTab branch here when it actually paints.
+                TerminalTabXterm(session: session)
             case .browser:
                 BrowserTab(session: session, mode: .preview)
             }

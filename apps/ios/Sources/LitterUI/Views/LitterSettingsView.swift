@@ -40,7 +40,6 @@ extension LitterUI {
                             fontSizeSection
                             conversationSection
                             serversSection
-                            experimentalSection
                             aboutSection
                         }
                         .padding(.horizontal, 16)
@@ -328,17 +327,12 @@ extension LitterUI {
             }
         }
 
-        private var experimentalSection: some View {
-            @Bindable var appearance = appearance
-            return sectionCard(title: "Experimental") {
-                LitterUI.toggleRow(
-                    icon: "rectangle.dashed",
-                    title: "Native terminal (Ghostty)",
-                    subtitle: "Render the terminal tab with libghostty instead of xterm.js",
-                    isOn: $appearance.experimentalNativeTerminal
-                )
-            }
-        }
+        // NOTE: the "Native terminal (Ghostty)" toggle was removed — it
+        // flipped `experimentalNativeTerminal`, which rendered a blank
+        // terminal (libghostty Stage-4 skeleton, no renderer yet). The
+        // flag stays in AppearanceStore for Stage-5 dev; re-expose the
+        // toggle once GhosttyTerminalTab actually paints. See
+        // docs/PLAN-DEVICE-BUGS-2026-05-24.md.
 
         private var aboutSection: some View {
             sectionCard(title: "About") {
