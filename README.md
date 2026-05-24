@@ -45,14 +45,14 @@ swe-kitty is its own product — three layers (Rust core, Go broker, native shel
 
 ## Delivery Status (May 24, 2026)
 
-Latest release: **`v0.0.29`** (2026-05-24) — IPA + APK + cross-compiled broker binaries via `release.yml`.
+Latest release: **`v0.0.30`** (2026-05-24) — IPA + APK + cross-compiled broker binaries via `release.yml`. First build that bundles the device-bug fixes (#18/#20a/#21) and the no-Docker broker; v0.0.29 predated all of them.
 
 ### Done (May 24 session)
 - **Docker dropped entirely — bare-box model.** The broker runs directly on the host and spawns each agent as a child process (`pty.Start`); per-session isolation is a git worktree + ephemeral `$HOME` + the PTY tree, not a container. Deleted `broker/docker/*`, removed the release GHCR image job, rewrote `remote-bootstrap.sh` to install + run the static binary, made the adapter `image` field legacy/ignored, and rewrote `SELF-HOST.md` / `AGENT-ADAPTERS.md` / `ARCHITECTURE.md` (PRs #161, #163, #164, #165).
 - **Agent OAuth v2 wired on both platforms** (broker-driven `start_agent_login` / `agent_login_callback` / `cancel_agent_login`; inbound `agent_login_*` view_events delivered through the Rust core and routed iOS + Android): #152 (iOS UDL bridge), #154 (inbound core delivery + routing — fixed a core bug that dropped `view:"status"` frames), #155 (Android `AgentLoginSheet` via Custom Tabs). Device end-to-end verification still pending.
 - **On-device bug fixes** from the first real device test: claude no longer crash-loops under root (`IS_SANDBOX=1`, #158); chat-send failures surface instead of being silently swallowed (#159); the blank Ghostty terminal no longer ships (gated behind Stage-5, always xterm, #160).
 - **Push scaffolding (Package 5, broker side):** per-identity device-token `Registry` → `Notifier` → `Sender` fan-out `Dispatcher` with dead-token pruning, plus `register_push_token` / `unregister_push_token` WS handlers (`broker/internal/push/`, #156, #157, #162). APNs/FCM senders + the device-side token registration are the remaining gap.
-- Releases `v0.0.26`–`v0.0.29` cut and verified green.
+- Releases `v0.0.26`–`v0.0.30` cut and verified green. **`v0.0.30` is the first release containing the device-bug fixes + no-Docker broker** (everything above merged after `v0.0.29` was cut at #155).
 
 ### Done
 - Broker runtime and pairing flow are live:
