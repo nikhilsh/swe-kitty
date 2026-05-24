@@ -113,3 +113,54 @@ it green optimistically while retrying.
 ping/pong heartbeat (or surface the WS close/error), and only show green
 once a frame round-trips. Must land on **iOS + Android** together. Tracked
 as task #23.
+
+### Confirmed FIXED in v0.0.30 (on device)
+- **#1 claude crash-loop under root** — claude *and* codex both launch and
+  run (`IS_SANDBOX=1` works; bypass-permissions accepted). 
+- **#4 blank terminal** — terminal renders via xterm.js. Ghostty stays
+  gated (Stage-5); the user-facing toggle is gone by design.
+
+### #6 — Chat ↔ agent: chat scrapes the TUI, no structured channel (HIGH — biggest gap)
+
+The Chat tab is unreliable for **both** directions because there is no
+structured chat channel — `ws/server.go`'s `"chat"` handler writes
+`msg + "\r"` to the agent's PTY stdin and a scraper (`MarkUserChatSent`)
+tries to lift the reply out of raw terminal bytes. `AGENT_CHAT_PORT` is
+declared in `claude.toml`/`codex.toml` but **no agent connects to it**.
+
+Observed:
+1. **claude send didn't submit** — typed "Hi" in Chat (optimistic echo
+   shown), but it sat in claude's prompt until the user switched to Terminal
+   and pressed Return. The injected `\r` doesn't reliably submit claude's
+   Ink TUI (likely needs bracketed-paste / a real key event).
+2. **claude reply not in Chat** — the response rendered only in Terminal.
+3. **codex interactive prompt not in Chat** — the "trust this directory?"
+   prompt appeared only in Terminal.
+4. **codex reply garbled** — Chat bubble showed
+   `Higpt-5.5 default · /root/.swe-kitty/sessions/5d0…`: the scraper merged
+   the echoed input with codex's status/header line (TUI chrome leaking in).
+
+**Fix direction:** wire a real structured channel (MCP `chat_event` bridge
+over `AGENT_CHAT_PORT`) so agents emit clean messages + reliable submit,
+*or* make the scraper robust to TUI chrome and fix submit. Supersedes the
+chat half of #20. Tracked as task #24.
+
+### #7 — Settings version ≠ released tag (MEDIUM, easy)
+The version in Settings/About doesn't match the released git tag (v0.0.30).
+`release.yml` likely isn't stamping `CFBundleShortVersionString` / build
+number (iOS) and `versionName` (Android) from the tag. Tracked as task #25.
+
+### #8 — mic button is a no-op (MEDIUM)
+The mic icon (bottom-left of the session list) does nothing on tap. Voice
+rail A is nominally shipped but the entry point isn't wired here. Task #26.
+
+### #9 — per-session status dot semantics (MEDIUM)
+Both claude + codex sessions are `running`, but only the active/attached one
+(codex) shows green; claude shows grey. The dot reads as "active session"
+not "running". Unify with #23's server-chip dot into clear semantics
+(running / attached / stopped). Task #27.
+
+### #10 — main-menu buttons missing iOS 26 glass material (LOW/polish)
+Buttons don't look flat and don't pick up the Liquid Glass material — look
+"weird". Apply glass tokens to the session-list controls; folds into
+`PLAN-LITTER-VISUAL-PARITY.md`. Task #28.
