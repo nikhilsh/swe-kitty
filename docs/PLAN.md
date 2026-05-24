@@ -6,7 +6,7 @@
 - **Part A onward** preserves the detailed target architecture and the original (2026-04) bootstrap plan, including framing that referenced upstream `swe-swe` as the harness for dev work. That dependency is gone — swe-kitty ships its own `swe-kitty-broker` binary now — but the historical text is preserved verbatim below so the design rationale isn't lost. The newer execution layer is [`PLAN-2026-05-19.md`](PLAN-2026-05-19.md).
 - If there is any mismatch, treat the Status Snapshot + newer focused docs (`RELEASE.md`, `PLAN-2026-05-19.md`, `PLAN-LITTER-VISUAL-PARITY.md`, `PLAN-AGENT-OAUTH.md`, `PLAN-TERMINAL-REWRITE.md`) as the source of truth for immediate work. (`NEXT-RELEASE.md` + `MOBILE-FEATURE-BACKLOG.md` archived 2026-05-23 — see `docs/archive/`.)
 
-## Status Snapshot (May 23, 2026)
+## Status Snapshot (May 23, 2026 — late)
 
 ### Done
 - Repository, CI, and tagged release automation are active. Latest tag `v0.0.25` (2026-05-23) builds IPA + APK + cross-compiled broker binaries via `release.yml`.
@@ -29,21 +29,31 @@
   - structured tool payload (args/exit/duration) consumed in both timelines
   - saved-server persistence scaffolding in settings
   - delete affordances: iOS swipe + context-menu (PR #128), Android dialog mirror (PR #136), both backed by `SessionStore.forgetServer` which also sweeps the per-id displayName override
-- **LitterUI cutover (PR #118 → #127)**: parallel iOS view tree built clean-room from the litter reference, flipped from `experimentalLitterUI` flag-gated to default, legacy view tree deleted. iPad NavigationSplitView for regular size class (PR #122). Visual-parity gap audit landed (`docs/PLAN-LITTER-VISUAL-PARITY.md`, 2026-05-22) sequencing the next 5 per-screen rebuild PRs.
+- **LitterUI cutover (PR #118 → #127)**: parallel iOS view tree built clean-room from the litter reference, flipped from `experimentalLitterUI` flag-gated to default, legacy view tree deleted. iPad NavigationSplitView for regular size class (PR #122).
+- **Litter visual-parity rebuild (PRs #139–#143 + polish #145 + Android mirror #146 + settings-gear restore #147)** — the 5-PR plan in `docs/PLAN-LITTER-VISUAL-PARITY.md` shipped end-to-end:
+  - PR1 (#139) foundation: typography ramp, tokens, iOS 26 `glassEffect`, lighter shadows
+  - PR2 (#140) settings: iOS 26 glass on LitterUI, font-size slider, 14pt corners (iOS+Android)
+  - PR3 (#141) home: footnote row density, 7pt indicator, 44pt bottom bar, dropped top-row gear (iOS+Android) — partially reverted by #147 which restores a discoverable settings entry
+  - PR4 (#142) chat: heading-scale ramp on markdown, flat tool-card surface, dropped diff stroke (iOS+Android)
+  - PR5 (#143) sheets: ServerPill stroke treatment, AddServerSheet 28pt icons, plain SessionInfo Done
+  - polish (#145) flat inline rows for PendingInput/Handoff, 20/12 discovery padding, inline agent-picker header
 - **iOS Ghostty terminal Stage 4 (PR #129, #131, #133, #134, #137)**: real libghostty App/Surface integration via Lakr233's `libghostty-spm` xcframework, CoreText/Metal renderer with full link path (CoreGraphics + CoreText + Metal + IOSurface + QuartzCore + c++). `Terminal.isAvailable` now returns true at runtime; experimental terminal flag exercises libghostty's parser.
-- Test discipline (2026-05-23): iOS `SweKittyTests` target with 20+ tests (PR #20); Android JUnit harness + TerminalBridge tests (PR #21); core E2E WS tests (PR #25); snapshot testing wired on both platforms (PR #30) with CI artifacts on failure (PR #31); `SessionStoreForgetServerTest` pins Android persistence contract (PR #136).
+- **Agent OAuth v2 broker + skeletons (PRs #114, #126, #144)**: broker `internal/oauth/login_session.go` spawns the agent CLI's own `login` subcommand, parses the stdout authorize URL + loopback port, and ferries the redirect over WS. WS handlers for `start_agent_login` / `agent_login_callback` / `cancel_agent_login` are live. iOS `AgentLoginCoordinator` + `AgentLoginLoopbackServer` + `LitterAgentLoginSheet` consume the inbound view-events. Android pure-data state machine + loopback parser landed in #144 (no UI wire-up yet).
+- Test discipline (2026-05-23): iOS `SweKittyTests` target with 20+ tests (PR #20); Android JUnit harness + TerminalBridge tests (PR #21); core E2E WS tests (PR #25); snapshot testing wired on both platforms (PR #30) with CI artifacts on failure (PR #31); `SessionStoreForgetServerTest` pins Android persistence contract (PR #136); `TurnActivityModel` mirrors iOS pure-data state machine on Android (PR #146).
 
 ### In Progress
-- Package 1 (Rust-first refactor) slice 3: lift reducer-shaped logic from `apps/ios/Sources/SessionStore.swift` and `apps/android/.../SessionStore.kt` into `core/src/store/`. Slices 1 & 2 (typed classifier + tool-card consumption) shipped; slice 3 (AppStore in Rust) open. See `docs/PLAN-2026-05-19.md` §8.
-- Litter visual parity: 5-PR per-screen rebuild plan in `docs/PLAN-LITTER-VISUAL-PARITY.md`. PR 1 (foundation: typography, tokens, glass) is ready to land; PR 2–5 are design-specified.
-- Discovery UI parity (mDNS browser / server switching UX polish).
-- Agent OAuth v2: broker Stage 0 design (`docs/PLAN-AGENT-OAUTH.md`) merged via #126; iOS + Anthropic + Android end-to-end stages still open.
-- Voice rail B (realtime WebRTC); rail A (Whisper-style push-to-talk) shipped.
-- Terminal Stage 3 (selection / copy / paste): iOS done, Android pending (`docs/PLAN-TERMINAL-REWRITE.md`).
+- **Agent OAuth v2 end-to-end** (`docs/PLAN-AGENT-OAUTH.md`):
+  - iOS outbound bridge: `SessionStore.startAgentLogin/...callback/...cancel` currently surface "not yet bridged through UDL" toasts — the Rust core / UniFFI surface for `start_agent_login` etc. is not wired (`apps/ios/Sources/SessionStore.swift:1766`). Without this, the iOS sheet can render broker-emitted login URLs but cannot initiate or complete a flow.
+  - Android Stage 3 finish: pure-data parser + state machine landed, but `AgentLoginSheet.kt` is not wired to a real Chrome Custom Tabs flow + `java.net.ServerSocket` loopback yet.
+  - Stage 4 cleanup: v1 `OAuthClient` (iOS+Android) + `set_agent_credentials` WS message + Keychain blobs still ship; deletion is gated on v2 working end-to-end on both platforms.
+- **Rust-first refactor slice 3** (`docs/PLAN-2026-05-19.md` §8): the shared reducer `core/src/store/mod.rs` (`SessionStoreCore`) **already exists** — skeleton in PR #41, and iOS shadow-writes into it as of PR #52 (see `apps/ios/Sources/SessionStore.swift:280` + the `Rust shadow-store helpers` MARK ~line 1507). What's still open: (1) port the same shadow-write into Android `SessionStore.kt`, then (2) make both platforms *read* from the Rust store and drop their private reducer maps so the dual-write goes away. Slices 1 & 2 (typed classifier + tool-card consumption) shipped.
+- **Terminal Stage 3** (selection / copy / paste) on Android — iOS done (`docs/PLAN-TERMINAL-REWRITE.md`).
+- **Voice rail B** (realtime WebRTC) — rail A (Whisper-style push-to-talk) shipped.
+- **Discovery UI parity** (mDNS browser / server switching UX polish).
 
 ### Planned / Future
 - Push notifications + background fetch/wakeup (Package 5; broker has no `push/` package yet).
-- Further UI convergence toward KittyLitter design language (composer attach sheet, context bar, expanded editor).
+- Composer attach sheet + context bar + expanded editor (final KittyLitter polish round, no plan doc yet).
 
 ## Original Planning Context (Preserved)
 

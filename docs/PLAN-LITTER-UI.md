@@ -1,8 +1,28 @@
 # Plan — Litter-style UI rebuild
 
-Date: 2026-05-20
+Date: 2026-05-20 (status block updated 2026-05-23)
 Reference: 4 litter iOS screenshots shared by the user
 (`Home`, `Info`, `Chat`, `Settings`) + `https://kittylitter.app/`.
+
+## Status (2026-05-23): superseded — kept for design rationale
+
+Stages 1–6 of this plan all landed by 2026-05-22 (last tag was
+`manual-2026-05-22-litter-stage6`, glass polish, PR #75). Soon after,
+the user observed the iOS view tree had drifted enough from litter's
+reference that point-fixes weren't closing the gap, which triggered:
+
+1. PR #117 — gap audit landing `docs/PLAN-LITTER-VISUAL-PARITY.md`.
+2. PR #118 — parallel `apps/ios/Sources/LitterUI/` tree behind
+   `experimentalLitterUI` flag.
+3. PR #119 — flag flipped on, legacy iOS view tree deleted.
+4. PR #122 — `NavigationSplitView` restored for iPad regular size class.
+5. PRs #139–#143 + polish #145 + Android mirror #146 + #147 — the
+   5-PR rebuild from `PLAN-LITTER-VISUAL-PARITY.md` executed.
+
+**For current work, read `docs/PLAN-LITTER-VISUAL-PARITY.md`**. This
+doc is preserved for the original stage-by-stage rationale (font
+setting, settings IA, info-screen Fork/Rename) that underpins the
+LitterUI tree. The remainder is verbatim from the original plan.
 
 ## Goal
 
