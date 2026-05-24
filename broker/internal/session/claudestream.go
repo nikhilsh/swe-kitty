@@ -30,18 +30,20 @@ type claudeStreamMessage struct {
 }
 
 type claudeContentBlock struct {
-	Type string `json:"type"` // "text" | "tool_use"
-	Text string `json:"text"`
-	Name string `json:"name"` // tool_use: the tool name
+	Type  string          `json:"type"` // "text" | "tool_use"
+	Text  string          `json:"text"`
+	Name  string          `json:"name"`  // tool_use: the tool name
+	Input json.RawMessage `json:"input"` // tool_use: the tool args
 }
 
 // ClaudeChatEvent is a chat item lifted from one stream-json line, ready to
-// be marshaled into a view_event{view:"chat"}. Exactly one of Text /
-// ToolName is set per event.
+// be marshaled into a view_event{view:"chat"}. Either Text (assistant
+// prose) or ToolName (+ optional ToolInput) is set per event.
 type ClaudeChatEvent struct {
-	Role     string // always "assistant" for now
-	Text     string // assistant prose (set for a text block)
-	ToolName string // set for a tool_use block (Text empty)
+	Role      string          // "assistant" prose; the processor maps tool blocks to role:"tool"
+	Text      string          // assistant prose (set for a text block)
+	ToolName  string          // set for a tool_use block (Text empty)
+	ToolInput json.RawMessage // tool_use args, for the card summary
 }
 
 // parseClaudeStreamLine lifts renderable chat items out of a single
@@ -72,7 +74,7 @@ func parseClaudeStreamLine(line []byte) ([]ClaudeChatEvent, bool) {
 			}
 		case "tool_use":
 			if strings.TrimSpace(c.Name) != "" {
-				out = append(out, ClaudeChatEvent{Role: "assistant", ToolName: c.Name})
+				out = append(out, ClaudeChatEvent{Role: "assistant", ToolName: c.Name, ToolInput: c.Input})
 			}
 		}
 	}

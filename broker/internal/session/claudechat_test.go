@@ -60,40 +60,64 @@ func TestProcessClaudeStreamOutput(t *testing.T) {
 	claudeChatNow = func() time.Time { return time.Unix(0, 0).UTC() }
 	defer func() { claudeChatNow = time.Now }()
 
-	// A realistic mixed stream: init, a partial, a tool-only assistant
-	// turn (no chat event), an assistant text turn (one chat event), and
-	// a result (ignored).
+	// A realistic mixed stream: init, a partial, a tool_use turn (→ tool
+	// card), an assistant text turn (→ assistant bubble), and a result
+	// (ignored). system/stream_event/result carry no chat events.
 	stream := strings.Join([]string{
 		`{"type":"system","subtype":"init","session_id":"s"}`,
 		`{"type":"stream_event","event":{"type":"content_block_delta"}}`,
-		`{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","name":"Bash"}]}}`,
+		`{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","name":"Bash","input":{"command":"ls -la"}}]}}`,
 		`{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"all done"}]}}`,
 		`{"type":"result","subtype":"success","result":"all done","is_error":false}`,
 	}, "\n")
 
-	var published [][]byte
-	err := processClaudeStreamOutput(strings.NewReader(stream), func(p []byte) {
-		published = append(published, p)
-	})
-	if err != nil {
-		t.Fatalf("process: %v", err)
-	}
-	if len(published) != 1 {
-		t.Fatalf("expected exactly 1 chat event (the assistant text), got %d", len(published))
-	}
-	var ev struct {
-		Type  string `json:"type"`
+	type chatEv struct {
 		View  string `json:"view"`
 		Event struct {
 			Role    string `json:"role"`
 			Content string `json:"content"`
 		} `json:"event"`
 	}
-	if err := json.Unmarshal(published[0], &ev); err != nil {
-		t.Fatalf("published payload not json: %v", err)
+	var got []chatEv
+	err := processClaudeStreamOutput(strings.NewReader(stream), func(p []byte) {
+		var ev chatEv
+		if json.Unmarshal(p, &ev) == nil {
+			got = append(got, ev)
+		}
+	})
+	if err != nil {
+		t.Fatalf("process: %v", err)
 	}
-	if ev.Type != "view_event" || ev.View != "chat" ||
-		ev.Event.Role != "assistant" || ev.Event.Content != "all done" {
-		t.Fatalf("unexpected chat event: %s", published[0])
+	if len(got) != 2 {
+		t.Fatalf("expected 2 chat events (tool card + assistant text), got %d: %+v", len(got), got)
+	}
+	// [0] tool card from the tool_use block.
+	if got[0].View != "chat" || got[0].Event.Role != "tool" || got[0].Event.Content != "Bash: ls -la" {
+		t.Fatalf("unexpected tool event: %+v", got[0])
+	}
+	// [1] assistant prose.
+	if got[1].View != "chat" || got[1].Event.Role != "assistant" || got[1].Event.Content != "all done" {
+		t.Fatalf("unexpected assistant event: %+v", got[1])
+	}
+}
+
+func TestToolCardContent(t *testing.T) {
+	cases := []struct {
+		name, input, want string
+	}{
+		{"Bash", `{"command":"ls -la"}`, "Bash: ls -la"},
+		{"Edit", `{"file_path":"src/foo.go","old_string":"a"}`, "Edit: src/foo.go"},
+		{"Read", `{"path":"/etc/hosts"}`, "Read: /etc/hosts"},
+		{"Glob", `{}`, "Glob:"},
+		{"Bare", ``, "Bare:"},
+	}
+	for _, tc := range cases {
+		var raw json.RawMessage
+		if tc.input != "" {
+			raw = json.RawMessage(tc.input)
+		}
+		if got := toolCardContent(tc.name, raw); got != tc.want {
+			t.Fatalf("toolCardContent(%q, %q) = %q, want %q", tc.name, tc.input, got, tc.want)
+		}
 	}
 }

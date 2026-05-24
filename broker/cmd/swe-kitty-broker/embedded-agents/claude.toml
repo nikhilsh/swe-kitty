@@ -5,6 +5,9 @@ env_passthrough     = ["ANTHROPIC_API_KEY"]
 workdir             = "/workspace"
 chat_event_port_env = "AGENT_CHAT_PORT"
 reasoning_effort    = "medium"
+# Structured chat channel (device bug #6 / task #24): run claude headless
+# in stream-json for clean Chat events; the Terminal tab hosts a shell.
+chat_mode           = "stream-json"
 
 [hooks]
 on_start = "swe-kitty memory render --session $SESSION_UUID > /workspace/.swe-kitty/HANDOFF.html"

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"io"
+	"strings"
 	"time"
 )
 
@@ -61,10 +62,11 @@ func encodeClaudeUserMessage(text string) ([]byte, error) {
 // marshaled JSON to publish. It returns when the reader hits EOF (the
 // subprocess exited) or errors.
 //
-// Only assistant *text* is published here; tool_use blocks are parsed
-// (slice 1) but their card rendering is a later slice. system/result/
-// stream_event envelopes are skipped — no TUI chrome can leak in, which is
-// the whole point of the structured channel (device bug #6).
+// Assistant text becomes a role:"assistant" chat event; tool_use blocks
+// become a role:"tool" event whose content ("Name: <summary>") the client's
+// conversation classifier renders as a tool card. system/result/stream_event
+// envelopes are skipped — no TUI chrome can leak in, which is the whole
+// point of the structured channel (device bug #6).
 func processClaudeStreamOutput(r io.Reader, publish func([]byte)) error {
 	sc := bufio.NewScanner(r)
 	// Assistant turns can be large; raise the line cap well past bufio's
@@ -76,15 +78,21 @@ func processClaudeStreamOutput(r io.Reader, publish func([]byte)) error {
 			continue
 		}
 		for _, e := range evs {
-			if e.Text == "" {
-				continue // tool_use-only block; card rendering is a later slice
+			var role, content string
+			switch {
+			case e.Text != "":
+				role, content = "assistant", e.Text
+			case e.ToolName != "":
+				role, content = "tool", toolCardContent(e.ToolName, e.ToolInput)
+			default:
+				continue
 			}
 			payload, err := json.Marshal(map[string]any{
 				"type": "view_event",
 				"view": "chat",
 				"event": map[string]any{
-					"role":    e.Role,
-					"content": e.Text,
+					"role":    role,
+					"content": content,
 					"ts":      claudeChatNow().UTC().Format(time.RFC3339Nano),
 					"files":   []any{},
 				},
@@ -96,4 +104,27 @@ func processClaudeStreamOutput(r io.Reader, publish func([]byte)) error {
 		}
 	}
 	return sc.Err()
+}
+
+// toolCardContent formats a tool_use block as "Name: <summary>" — the shape
+// the client's conversation classifier (core/src/conversation.rs
+// extract_tool_name) turns into a tool card. The summary surfaces the most
+// salient arg; it falls back to a bare "Name:" so the card still classifies.
+func toolCardContent(name string, input json.RawMessage) string {
+	summary := ""
+	if len(input) > 0 {
+		var m map[string]any
+		if json.Unmarshal(input, &m) == nil {
+			for _, k := range []string{"command", "file_path", "path", "pattern", "query", "url", "description"} {
+				if v, ok := m[k].(string); ok && strings.TrimSpace(v) != "" {
+					summary = v
+					break
+				}
+			}
+		}
+	}
+	if summary == "" {
+		return name + ":"
+	}
+	return name + ": " + summary
 }
