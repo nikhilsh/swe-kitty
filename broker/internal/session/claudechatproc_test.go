@@ -1,0 +1,71 @@
+package session
+
+import (
+	"context"
+	"encoding/json"
+	"testing"
+	"time"
+)
+
+// TestChatProcessRoundTrip uses a fake "agent" (a bash one-liner emitting
+// canned stream-json) to prove the subprocess → processClaudeStreamOutput
+// → publish path delivers a clean chat event. No real claude.
+func TestChatProcessRoundTrip(t *testing.T) {
+	script := `printf '%s\n' ` +
+		`'{"type":"system","subtype":"init"}' ` +
+		`'{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"pong"}]}}' ` +
+		`'{"type":"result","subtype":"success","result":"pong"}'`
+	command := []string{"bash", "-c", script}
+
+	events := make(chan []byte, 8)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cp, err := startChatProcess(ctx, command, nil, "", func(p []byte) { events <- p })
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	defer cp.Close()
+
+	select {
+	case p := <-events:
+		var ev struct {
+			View  string `json:"view"`
+			Event struct {
+				Role    string `json:"role"`
+				Content string `json:"content"`
+			} `json:"event"`
+		}
+		if err := json.Unmarshal(p, &ev); err != nil {
+			t.Fatalf("publish payload not json: %v", err)
+		}
+		if ev.View != "chat" || ev.Event.Role != "assistant" || ev.Event.Content != "pong" {
+			t.Fatalf("unexpected chat event: %s", p)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("timeout waiting for chat event from fake agent")
+	}
+}
+
+// TestChatProcessSendAndClose covers the stdin write + idempotent shutdown:
+// Send works while running, and errors with errChatProcessClosed afterward.
+func TestChatProcessSendAndClose(t *testing.T) {
+	// `cat` reads stdin forever so Send has a live pipe to write to.
+	command := []string{"bash", "-c", "cat >/dev/null"}
+	cp, err := startChatProcess(context.Background(), command, nil, "", func([]byte) {})
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	if err := cp.Send("hello"); err != nil {
+		t.Fatalf("Send while running: %v", err)
+	}
+	if err := cp.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	if err := cp.Close(); err != nil {
+		t.Fatalf("Close is not idempotent: %v", err)
+	}
+	if err := cp.Send("again"); err != errChatProcessClosed {
+		t.Fatalf("Send after Close: got %v, want errChatProcessClosed", err)
+	}
+}
