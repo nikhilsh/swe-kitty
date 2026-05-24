@@ -276,8 +276,14 @@ async fn view_event_status_agent_login_round_trips_to_delegate() {
         Some("https://auth.openai.com/authorize?x=1")
     );
     // Numbers are stringified (no quotes) so the platform can parse them.
-    assert_eq!(payload.get("loopback_port").map(String::as_str), Some("8123"));
-    assert_eq!(payload.get("session_token").map(String::as_str), Some("tok-abc"));
+    assert_eq!(
+        payload.get("loopback_port").map(String::as_str),
+        Some("8123")
+    );
+    assert_eq!(
+        payload.get("session_token").map(String::as_str),
+        Some("tok-abc")
+    );
 
     server.abort();
 }
