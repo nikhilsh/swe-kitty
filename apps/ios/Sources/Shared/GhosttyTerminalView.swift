@@ -197,12 +197,16 @@ final class GhosttyRenderView: UIView, UIKeyInput {
     #if canImport(GhosttyVT)
     private var terminal: Terminal?
 
-    /// Drives libghostty's render loop. libghostty owns the Metal
-    /// renderer + the `CAMetalLayer` it created on this view; we just
-    /// have to ask it to paint each display refresh. Started/stopped
-    /// with window membership so we don't burn cycles off-screen.
-    private var displayLink: CADisplayLink?
     #endif
+
+    /// libghostty's render layer. Its Metal renderer attaches its own
+    /// IOSurfaceLayer as a *sublayer* of this view by sending
+    /// `addSublayer:` to the `uiview` pointer in the surface config (see
+    /// `addSublayer(_:)`); we hold the ref so we can keep its frame synced
+    /// to our bounds. nil until libghostty attaches it. libghostty drives
+    /// its own render loop once the layer is parented + sized — we never
+    /// call `ghostty_surface_draw` ourselves (pattern: eriklangille/clauntty).
+    private var ghosttySublayer: CALayer?
 
     /// Custom accessory bar shared shape with `WKTerminalView`. Held
     /// strong so `inputAccessoryView` doesn't return a dangling ref.
@@ -654,18 +658,43 @@ final class GhosttyRenderView: UIView, UIKeyInput {
     override func layoutSubviews() {
         super.layoutSubviews()
         recomputeGridFromBounds()
-        pushPixelSize()
+        sizeGhosttyLayer()
     }
 
-    /// Hand libghostty the *real* backing-store size every layout pass.
-    /// `recomputeGridFromBounds` only fires when the cols/rows change,
-    /// but libghostty's `CAMetalLayer` must track the exact view size
-    /// (and Retina scale) or the surface stays 0×0 and paints nothing —
-    /// the Stage-4 blank-screen bug.
-    private func pushPixelSize() {
+    /// libghostty's Metal renderer attaches its own `IOSurfaceLayer` to
+    /// this view by sending `addSublayer:` to the `uiview` pointer in the
+    /// surface config. `UIView` doesn't implement that selector, so
+    /// without this hook libghostty's render layer was never parented —
+    /// the v0.0.36 blank screen (all you saw was our CoreText cursor).
+    /// Capture it, parent it to our layer, and size it. We do NOT override
+    /// `layerClass` (libghostty manages its own layer) and we never call
+    /// `ghostty_surface_draw` (libghostty self-drives once the layer is in
+    /// place). Pattern proven by eriklangille/clauntty.
+    @objc(addSublayer:)
+    func addSublayer(_ sublayer: CALayer) {
+        ghosttySublayer = sublayer
+        layer.addSublayer(sublayer)
+        sizeGhosttyLayer()
+        // Drop the CoreText status/cursor overlay now that libghostty
+        // owns the pixels (see `draw(_:)`).
+        setNeedsDisplay()
+    }
+
+    /// Keep libghostty's render layer + surface sized to our bounds at the
+    /// real backing scale. libghostty adds its layer at a zero frame, so
+    /// it paints nothing until we size it.
+    private func sizeGhosttyLayer() {
         guard bounds.width > 0, bounds.height > 0 else { return }
-        #if canImport(GhosttyVT)
         let scale = contentScaleFactor > 0 ? contentScaleFactor : UIScreen.main.scale
+        if let sub = ghosttySublayer {
+            // No implicit animation on the resize — terminals must snap.
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            sub.frame = bounds
+            sub.contentsScale = scale
+            CATransaction.commit()
+        }
+        #if canImport(GhosttyVT)
         terminal?.setPixelSize(
             width: UInt32(bounds.width * scale),
             height: UInt32(bounds.height * scale),
@@ -674,47 +703,16 @@ final class GhosttyRenderView: UIView, UIKeyInput {
         #endif
     }
 
-    // MARK: - libghostty render loop
-
     override func didMoveToWindow() {
         super.didMoveToWindow()
-        if window != nil {
-            #if canImport(GhosttyVT)
-            terminal?.setVisible(true)
-            terminal?.setFocus(true)
-            #endif
-            startDisplayLink()
-        } else {
-            #if canImport(GhosttyVT)
-            terminal?.setVisible(false)
-            terminal?.setFocus(false)
-            #endif
-            stopDisplayLink()
-        }
-    }
-
-    private func startDisplayLink() {
+        // libghostty drives its own render loop once its layer is attached;
+        // we only toggle visibility/focus so it starts/stops painting and
+        // shows a live cursor.
         #if canImport(GhosttyVT)
-        guard displayLink == nil, Terminal.isAvailable else { return }
-        let link = CADisplayLink(target: self, selector: #selector(renderFrame))
-        link.add(to: .main, forMode: .common)
-        displayLink = link
+        let visible = window != nil
+        terminal?.setVisible(visible)
+        terminal?.setFocus(visible)
         #endif
-    }
-
-    private func stopDisplayLink() {
-        displayLink?.invalidate()
-        displayLink = nil
-    }
-
-    @objc private func renderFrame() {
-        #if canImport(GhosttyVT)
-        terminal?.draw()
-        #endif
-    }
-
-    deinit {
-        displayLink?.invalidate()
     }
 
     private func recomputeGridFromBounds() {
@@ -805,6 +803,13 @@ final class GhosttyRenderView: UIView, UIKeyInput {
         let palette = resolvedPalette
         ctx.setFillColor(palette.defaultBackground.cgColor)
         ctx.fill(bounds)
+
+        // Once libghostty has attached its render sublayer it owns the
+        // pixels (its layer sits above this one) — skip the CoreText
+        // status/cursor overlay so it doesn't bleed through. Background
+        // fill above stays so there's no white flash before the first
+        // libghostty frame.
+        if ghosttySublayer != nil { return }
 
         guard let snap = cachedSnapshot, snap.cols > 0, snap.rows > 0 else {
             // No snapshot yet (framework unavailable, or first frame
