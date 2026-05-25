@@ -280,6 +280,13 @@ final class GhosttyRenderView: UIView, UIKeyInput {
             }
             #if canImport(GhosttyVT)
             view.terminal?.draw()
+            // libghostty recomputes its grid on its own tick, so the grid
+            // read immediately after `set_size` in `sizeGhosttyLayer` can
+            // lag one frame. Re-poll here (cheap; only fires `onResize` when
+            // the grid actually changes) so the broker PTY converges to
+            // libghostty's settled grid even when layout fired before the
+            // recompute landed.
+            view.syncPtyToGhosttyGrid()
             #endif
             view.refreshDiagnosticOverlay()
         }
@@ -854,8 +861,43 @@ final class GhosttyRenderView: UIView, UIKeyInput {
             height: UInt32(bounds.height * scale),
             scale: Double(scale)
         )
+        // Drive the remote PTY from libghostty's OWN grid, not a
+        // client-side CoreText estimate. libghostty re-derives cols/rows
+        // from the pixel size we just pushed using its own font metrics;
+        // if we resize the broker PTY (tmux) to a different grid the two
+        // disagree on the coordinate space and tmux misdraws (oversized /
+        // duplicated status bars, gaps, a stray DA-response echo). clauntty
+        // reads `ghostty_surface_size` after every `set_size` and sends
+        // exactly that to its SSH winsize — mirror that here.
+        syncPtyToGhosttyGrid()
         #endif
     }
+
+    #if canImport(GhosttyVT)
+    /// Read libghostty's authoritative grid (`ghostty_surface_size`) and,
+    /// if it changed, push it to the local gesture grid + the remote PTY.
+    /// Called after every surface `set_size` (layout / rotation / attach)
+    /// so the broker PTY rows/cols always match what libghostty renders.
+    private func syncPtyToGhosttyGrid() {
+        guard let grid = terminal?.gridSize() else { return }
+        let newCols = Int(grid.cols)
+        let newRows = Int(grid.rows)
+        // Keep the local gesture grid + cell metrics in sync so tap→cell
+        // mapping (selection) lands on the same cells libghostty paints.
+        if grid.cellWidthPx > 0, grid.cellHeightPx > 0 {
+            let scale = contentScaleFactor > 0 ? contentScaleFactor : UIScreen.main.scale
+            cellWidth = CGFloat(grid.cellWidthPx) / scale
+            cellHeight = CGFloat(grid.cellHeightPx) / scale
+        }
+        guard newCols != cols || newRows != rows else { return }
+        cols = newCols
+        rows = newRows
+        // Tell the harness so the remote PTY matches libghostty's grid —
+        // same call WKTerminalView makes when xterm.js's fit addon resizes.
+        onResize(rows, cols)
+        refreshSnapshot()
+    }
+    #endif
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
@@ -912,16 +954,27 @@ final class GhosttyRenderView: UIView, UIKeyInput {
         frameDisplayLink?.invalidate()
     }
 
+    /// Fallback grid estimate from CoreText cell metrics. ONLY authoritative
+    /// when libghostty isn't live (the flag-on placeholder build with no
+    /// linked lib). When libghostty IS live it derives the real grid from the
+    /// pixel size in `sizeGhosttyLayer` → `syncPtyToGhosttyGrid`, and THAT
+    /// drives both the surface and the remote PTY; pushing a divergent
+    /// CoreText estimate here would fight it (the old bug: this resized the
+    /// broker PTY to `bounds/cellWidth` while libghostty rendered at its own
+    /// grid, so tmux misdrew). So on the live path we do nothing — the grid
+    /// is owned by libghostty.
     private func recomputeGridFromBounds() {
         guard bounds.width > 0, bounds.height > 0 else { return }
+        #if canImport(GhosttyVT)
+        // libghostty live → its grid wins; `syncPtyToGhosttyGrid` drives the
+        // PTY off `ghostty_surface_size`. Skip the CoreText estimate entirely.
+        if terminal != nil { return }
+        #endif
         let newCols = max(1, Int(floor(bounds.width / cellWidth)))
         let newRows = max(1, Int(floor(bounds.height / cellHeight)))
         guard newCols != cols || newRows != rows else { return }
         cols = newCols
         rows = newRows
-        #if canImport(GhosttyVT)
-        terminal?.resize(cols: UInt(cols), rows: UInt(rows))
-        #endif
         // Inform the harness so the remote PTY matches. Same call
         // WKTerminalView makes when xterm.js's fit addon resizes.
         onResize(rows, cols)
