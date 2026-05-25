@@ -1,79 +1,79 @@
-// Stage 4 of `docs/PLAN-TERMINAL-REWRITE.md`. Bridges
-// `Lakr233/libghostty-spm storage.1.1.5`'s `libghostty` C module
-// (the full Ghostty embedding API: `ghostty_app_new`,
-// `ghostty_surface_new`, `ghostty_surface_write_buffer`, …) into Swift
-// so the iOS app can finally prove libghostty actually loads at
-// runtime. The PRs leading up to this one (#94 → #96 → #98 → #119
-// chain) wired the SPM pin and got the iOS-simulator linker happy
-// with the multi-arch xcframework, but the Swift wrapper still
-// targeted the old slim VT-only ABI (`ghostty_terminal_new`,
-// `ghostty_terminal_vt_write`, …) that DOES NOT EXIST in Lakr233's
-// build. The `#if canImport(GhosttyVt)` guard (note the lowercase
-// `Vt`) always evaluated `false` — the real module name on the
-// xcframework's umbrella modulemap is `libghostty` — so
-// `Terminal.isAvailable` was wired to permanently report `false`
-// and the experimental terminal flag rendered an empty grid. This
-// rewrite fixes both problems:
+// Faithful libghostty init port (ghostty-faithful-init-diagnostic).
 //
-//   1. Switch the gate from `canImport(GhosttyVt)` to
-//      `canImport(libghostty)` so the import actually resolves.
-//   2. Replace the slim VT C ABI calls with the App/Surface ABI:
-//      a singleton `GhosttyApp` over `ghostty_app_t` + a
-//      `GhosttySurface` host-managed surface that accepts byte feeds
-//      via `ghostty_surface_write_buffer`. The bytes are forwarded
-//      into libghostty's parser; libghostty's own Metal renderer
-//      drives the cell grid (Stage 5 will wire the `CAMetalLayer`
-//      host so glyphs paint), but for THIS PR we ship the
-//      skeleton — the surface is created (proves the App/Surface
-//      pipeline is alive at runtime), bytes are forwarded
-//      (no-op rendering until Stage 5 attaches the Metal layer),
-//      and the existing CoreText fallback renderer in
-//      `GhosttyTerminalView.swift` paints from its own parser-less
-//      snapshot — staying as the visible UX so the user still sees
-//      agent output even though libghostty's own renderer isn't
-//      attached yet. See Stage 4 status block in
-//      `docs/PLAN-TERMINAL-REWRITE.md` for the full split.
+// Background. The Stage-4 skeleton this replaces created the
+// `ghostty_app_t` + `ghostty_surface_t` but wired the
+// `ghostty_runtime_config_s` callbacks as NO-OP STUBS
+// (`wakeup_cb: { _ in }`, `action_cb: { _,_,_ in false }`). That is
+// the root cause of the "still blank on device" rounds (PR #198,
+// #204): libghostty's renderer is event-driven — it asks the host to
+// pump its event loop via `wakeup_cb` and announces frames via
+// `action_cb`'s `GHOSTTY_ACTION_RENDER`. With both stubbed, the app
+// loop never ticks after the initial boot and the renderer never
+// engages, so the Metal/IOSurface layer the lib *does* contain
+// (verified: 74 'Metal' strings + IOSurfaceLayer symbols in the
+// pinned storage.1.1.5 ios-arm64 binary) is never driven.
 //
-// **Why a façade over a clean-room rewrite.** The existing
-// `GhosttyTerminalView.swift` CoreText renderer reads
-// `Terminal.snapshot() -> TerminalSnapshot` every frame; tearing
-// down its draw path inside this PR would blow the 3-hour timebox.
-// Keeping the `Terminal` class as a UIKit-free data shape
-// (snapshot returns empty cells when libghostty owns rendering)
-// lets the renderer stay green while the App/Surface wiring proves
-// itself in production. Stage 5 swaps the renderer to the
-// libghostty Metal output and deletes the snapshot path.
+// This rewrite follows the working iOS reference apps
+// (`eriklangille/clauntty` GhosttyApp/TerminalSurface and
+// `daiimus/geistty` Ghostty.App/Ghostty.swift) faithfully:
 //
-// **C ABI surface used (verified against
-// `GhosttyKit.xcframework/.../libghostty.framework/Headers/ghostty.h`
-// from storage.1.1.5):**
+//   * `ghostty_init` once (geistty does this; clauntty relies on the
+//     lib's lazy init — calling it is harmless and matches geistty).
+//   * `ghostty_config_new` → `ghostty_config_load_default_files` →
+//     `ghostty_config_finalize`.
+//   * `ghostty_app_new` with a FULLY-POPULATED runtime config whose
+//     `userdata` is a pointer back to the `GhosttyApp` and whose
+//     `wakeup_cb` schedules `ghostty_app_tick` on the main queue (this
+//     is what keeps the renderer alive — clauntty + geistty both do
+//     exactly this), and whose `action_cb` acknowledges
+//     `GHOSTTY_ACTION_RENDER` (returns true) so the lib's render
+//     pipeline is satisfied. Clipboard / close callbacks are real
+//     (route through `UIPasteboard` shape), not no-ops.
+//   * `ghostty_surface_new` with `userdata` set (so the surface routes
+//     back to us), `platform_tag = GHOSTTY_PLATFORM_IOS`,
+//     `platform.ios.uiview = <host UIView>`, `scale_factor`,
+//     `font_size`, and `context = GHOSTTY_SURFACE_CONTEXT_WINDOW`.
+//     Our pinned ABI uses the HOST_MANAGED backend (libghostty does
+//     not spawn a child process; the harness streams PTY bytes in via
+//     `ghostty_surface_write_buffer`, and libghostty hands user input
+//     BACK to us through the `receive_buffer` callback — the analog of
+//     clauntty's `set_pty_input_callback`).
 //
-//   ghostty_init(uintptr_t, char**) -> int
+// ABI note. Our pinned lib exposes `ghostty_surface_draw` (NOT
+// `ghostty_surface_draw_now`, which geistty's newer lib has). The host
+// view drives `ghostty_surface_draw` from a CADisplayLink — but the
+// wakeup→tick loop is what actually keeps the renderer hot; the draw
+// pump is belt-and-suspenders for our gen of the lib.
+//
+// Observability. Because we have had three blind "still blank" device
+// rounds with no device logs, every load-bearing step now records into
+// process-global atomics that the on-screen diagnostic overlay
+// (`GhosttyTerminalView.swift`, behind `experimentalNativeTerminal`)
+// reads live: init result, app handle, surface handle (nil vs ptr),
+// addSublayer-hook count, draw-tick count, wakeup count, action count,
+// last bounds. `ghostty_surface_new`'s nil-vs-ptr return is captured so
+// the NEXT device test reveals the failure point even if still blank.
+//
+// **C ABI surface used (verified against storage.1.1.5
+// `libghostty.framework/Headers/ghostty.h`):**
+//   ghostty_init(uintptr_t, char**) -> int                  (GHOSTTY_SUCCESS == 0)
 //   ghostty_config_new() -> ghostty_config_t
 //   ghostty_config_load_default_files(ghostty_config_t)
 //   ghostty_config_finalize(ghostty_config_t)
 //   ghostty_config_free(ghostty_config_t)
-//
-//   ghostty_app_new(const ghostty_runtime_config_s*, ghostty_config_t)
-//     -> ghostty_app_t
+//   ghostty_app_new(const ghostty_runtime_config_s*, ghostty_config_t) -> ghostty_app_t
 //   ghostty_app_free(ghostty_app_t)
 //   ghostty_app_tick(ghostty_app_t)
-//
 //   ghostty_surface_config_new() -> ghostty_surface_config_s
-//   ghostty_surface_new(ghostty_app_t, const ghostty_surface_config_s*)
-//     -> ghostty_surface_t
+//   ghostty_surface_new(ghostty_app_t, const ghostty_surface_config_s*) -> ghostty_surface_t
 //   ghostty_surface_free(ghostty_surface_t)
 //   ghostty_surface_write_buffer(ghostty_surface_t, const uint8_t*, uintptr_t)
 //   ghostty_surface_set_size(ghostty_surface_t, uint32_t, uint32_t)
-//
-// The runtime callbacks (`ghostty_runtime_config_s`) must all be
-// non-null — libghostty calls them at well-defined points (wakeup,
-// action dispatch, clipboard, surface close). We stub them as
-// no-ops; the host-managed I/O backend
-// (`GHOSTTY_SURFACE_IO_BACKEND_HOST_MANAGED`) means libghostty
-// never spawns a child process — bytes flow exclusively through
-// `ghostty_surface_write_buffer`, matching how the harness already
-// streams PTY output into `SessionStore.terminalBuffer`.
+//   ghostty_surface_set_content_scale(ghostty_surface_t, double, double)
+//   ghostty_surface_set_focus(ghostty_surface_t, bool)
+//   ghostty_surface_set_occlusion(ghostty_surface_t, bool)
+//   ghostty_surface_draw(ghostty_surface_t)
+//   ghostty_surface_refresh(ghostty_surface_t)
 
 import Foundation
 
@@ -86,15 +86,10 @@ import libghostty
 // These were defined in the Stage 1 wrapper and consumed by the iOS
 // app's CoreText renderer (`GhosttyTerminalView.swift`). Keeping their
 // shape unchanged means the renderer compiles and paints the same
-// frame regardless of whether libghostty is live underneath. Stage 5
-// will delete these once libghostty's own Metal output drives the
-// pixel grid; for now they're the data interface between the parser
-// (libghostty when alive, no-op when not) and the renderer (CoreText).
+// frame regardless of whether libghostty is live underneath.
 
 /// VT-100/ECMA-48 SGR color, in the shape the renderer needs to look it
-/// up in a `TerminalPalette`. See Stage 1 wrapper for the per-case
-/// documentation; the type is unchanged from that version so existing
-/// `SGRColorShim` / palette code keeps compiling.
+/// up in a `TerminalPalette`.
 public enum SGRColor: Equatable, Sendable, Hashable {
     case `default`
     case ansi(index: UInt8, bright: Bool)
@@ -102,7 +97,7 @@ public enum SGRColor: Equatable, Sendable, Hashable {
     case rgb(r: UInt8, g: UInt8, b: UInt8)
 }
 
-/// VT-100/ECMA-48 non-color SGR attributes. Unchanged from Stage 1.
+/// VT-100/ECMA-48 non-color SGR attributes.
 public struct SGRAttributes: OptionSet, Equatable, Sendable, Hashable {
     public let rawValue: UInt16
     public init(rawValue: UInt16) { self.rawValue = rawValue }
@@ -116,8 +111,7 @@ public struct SGRAttributes: OptionSet, Equatable, Sendable, Hashable {
     public static let strikethrough = SGRAttributes(rawValue: 1 << 6)
 }
 
-/// Pure-Swift mirror of a single cell in the terminal grid. Unchanged
-/// from Stage 1; the iOS CoreText renderer reads this directly.
+/// Pure-Swift mirror of a single cell in the terminal grid.
 public struct TerminalCell: Equatable, Sendable {
     public var character: String
     public var fg: SGRColor
@@ -140,9 +134,7 @@ public struct TerminalCell: Equatable, Sendable {
     }
 }
 
-/// Pure-Swift snapshot of the active screen. Returned by
-/// `Terminal.snapshot()`. The `cells` array is row-major and exactly
-/// `cols * rows` long. Unchanged from Stage 1.
+/// Pure-Swift snapshot of the active screen.
 public struct TerminalSnapshot: Equatable, Sendable {
     public var cols: UInt
     public var rows: UInt
@@ -172,230 +164,332 @@ public struct TerminalSnapshot: Equatable, Sendable {
     }
 }
 
-// MARK: - Stage 4: App/Surface bridge
+// MARK: - Diagnostics
 //
-// `GhosttyApp` is a process-wide singleton over `ghostty_app_t`; only
-// one libghostty App may exist per process (the upstream macOS app
-// holds the same invariant). `GhosttySurface` represents a single
-// terminal viewport — owned by the host UIView, fed by
-// `ghostty_surface_write_buffer`, freed on `deinit`.
-//
-// Both types are `final class` because the underlying handles are
-// heap-allocated by Zig and we rely on Swift's deinit to release
-// them in a deterministic order. The handle is `nil` only between an
-// init failure and the deinit's no-op free.
+// Process-global, thread-safe counters that capture every load-bearing
+// step of the libghostty boot + render path. The on-screen overlay in
+// `GhosttyTerminalView.swift` polls `GhosttyDiagnostics.snapshot()` once
+// per frame and renders it as tiny mono text so the NEXT on-device test
+// reveals exactly where the pipeline stalls — even if the surface is
+// still visually blank. Everything here is plain-Swift (no libghostty
+// types) so the diagnostics compile and the overlay renders on the
+// placeholder build too (where it will just show "gh: not linked").
+
+/// Live state of the libghostty integration, formatted for the overlay.
+public struct GhosttyDiagnosticsSnapshot: Equatable, Sendable {
+    public var linked: Bool
+    public var initStatus: String     // "ok" / "err:<reason>" / "n/a"
+    public var appOK: Bool
+    public var surfaceCreated: Bool   // ghostty_surface_new returned non-nil
+    public var surfaceAttempted: Bool // a surface creation was attempted at all
+    public var addSublayerCount: Int
+    public var drawCount: Int
+    public var wakeupCount: Int
+    public var actionCount: Int
+    public var renderActionCount: Int
+    public var lastBoundsW: Int
+    public var lastBoundsH: Int
+    public var fedBytes: Int
+
+    /// Compact multi-line label for the top-left overlay. Each token is
+    /// the smallest string that still disambiguates the failure mode.
+    public var overlayText: String {
+        guard linked else { return "gh: not linked" }
+        let app = appOK ? "ok" : "nil"
+        let surf = surfaceAttempted ? (surfaceCreated ? "ok" : "NIL") : "—"
+        return """
+        gh_init:\(initStatus)
+        app:\(app) surface:\(surf)
+        wakeups:\(wakeupCount) actions:\(actionCount)
+        render:\(renderActionCount) draw:\(drawCount)
+        addSublayer:\(addSublayerCount)
+        bounds:\(lastBoundsW)x\(lastBoundsH) fed:\(fedBytes)
+        """
+    }
+}
+
+/// Thread-safe diagnostic sink. libghostty callbacks fire from the
+/// main thread in practice (wakeup dispatches to main), but `action_cb`
+/// is documented as potentially off-thread, so every mutation goes
+/// through a lock.
+public final class GhosttyDiagnostics: @unchecked Sendable {
+    public static let shared = GhosttyDiagnostics()
+
+    private let lock = NSLock()
+
+    private var _linked: Bool = {
+        #if canImport(libghostty)
+        return true
+        #else
+        return false
+        #endif
+    }()
+    private var _initStatus: String = "n/a"
+    private var _appOK = false
+    private var _surfaceCreated = false
+    private var _surfaceAttempted = false
+    private var _addSublayerCount = 0
+    private var _drawCount = 0
+    private var _wakeupCount = 0
+    private var _actionCount = 0
+    private var _renderActionCount = 0
+    private var _lastBoundsW = 0
+    private var _lastBoundsH = 0
+    private var _fedBytes = 0
+
+    private init() {}
+
+    public func setInit(ok: Bool, reason: String? = nil) {
+        lock.lock(); defer { lock.unlock() }
+        _initStatus = ok ? "ok" : "err:\(reason ?? "?")"
+    }
+    public func setAppOK(_ ok: Bool) { lock.lock(); _appOK = ok; lock.unlock() }
+    public func setSurface(created: Bool) {
+        lock.lock(); _surfaceAttempted = true; _surfaceCreated = created; lock.unlock()
+    }
+    public func incAddSublayer() { lock.lock(); _addSublayerCount += 1; lock.unlock() }
+    public func incDraw() { lock.lock(); _drawCount += 1; lock.unlock() }
+    public func incWakeup() { lock.lock(); _wakeupCount += 1; lock.unlock() }
+    public func incAction(render: Bool) {
+        lock.lock(); _actionCount += 1; if render { _renderActionCount += 1 }; lock.unlock()
+    }
+    public func setBounds(w: Int, h: Int) {
+        lock.lock(); _lastBoundsW = w; _lastBoundsH = h; lock.unlock()
+    }
+    public func addFedBytes(_ n: Int) { lock.lock(); _fedBytes += n; lock.unlock() }
+
+    public func snapshot() -> GhosttyDiagnosticsSnapshot {
+        lock.lock(); defer { lock.unlock() }
+        return GhosttyDiagnosticsSnapshot(
+            linked: _linked,
+            initStatus: _initStatus,
+            appOK: _appOK,
+            surfaceCreated: _surfaceCreated,
+            surfaceAttempted: _surfaceAttempted,
+            addSublayerCount: _addSublayerCount,
+            drawCount: _drawCount,
+            wakeupCount: _wakeupCount,
+            actionCount: _actionCount,
+            renderActionCount: _renderActionCount,
+            lastBoundsW: _lastBoundsW,
+            lastBoundsH: _lastBoundsH,
+            fedBytes: _fedBytes
+        )
+    }
+}
+
+// MARK: - App/Surface bridge
 
 #if canImport(libghostty)
 
-/// Lifetime + status of the process-wide libghostty app handle.
+/// Process-wide libghostty app handle + lifetime, faithful to
+/// clauntty's `GhosttyApp` and geistty's `Ghostty.App`.
 ///
-/// `GhosttyApp.shared` lazily initializes the underlying
-/// `ghostty_app_t` the first time anything reads `isAlive` /
-/// `appHandle`. The init can fail (config load, library init, or the
-/// Zig allocator can refuse) — failures land in
-/// `lastInitError` as a human-readable string so the iOS status
-/// overlay can surface "libghostty alive" vs the failure reason.
-///
-/// **Why singleton.** `ghostty_app_t` owns process-global state
-/// (the event loop, the runtime config callbacks, the action
-/// dispatch table). Creating two would race on action dispatch and
-/// double-free the runtime allocator. The upstream macOS app
-/// enforces the same invariant via its `AppDelegate.ghostty: Ghostty.App`
-/// stored property; ours is a Swift singleton because there's no
-/// AppDelegate analog in our SwiftUI-only entry point.
+/// Singleton because `ghostty_app_t` owns process-global state (event
+/// loop, runtime callback table, action dispatch). The runtime config's
+/// `userdata` points back at this instance via `Unmanaged.passUnretained`
+/// — safe because the singleton lives for the whole process.
 public final class GhosttyApp {
-    /// Process-wide instance. The init runs once, behind the
-    /// Swift `static let` once-only guarantee (the runtime guards
-    /// against re-entry on the same lazy slot — no manual locking
-    /// needed). Subsequent reads from any thread share the same
-    /// `ghostty_app_t`.
     public static let shared = GhosttyApp()
 
-    /// `true` when `ghostty_app_new` returned a non-nil handle and
-    /// the runtime is ready to accept surfaces. `false` when the
-    /// init failed (see `lastInitError`) or libghostty's
-    /// `ghostty_init` returned non-zero (rare; would mean an
-    /// out-of-tree fork removed `ghostty_init`).
-    public var isAlive: Bool {
-        return appHandle != nil
-    }
+    public var isAlive: Bool { return appHandle != nil }
 
-    /// Opaque `ghostty_app_t` handle, exposed as `UnsafeMutableRawPointer`
-    /// so call sites in this module can pass it to
-    /// `ghostty_surface_new`. External callers should not read
-    /// this — pass `GhosttyApp.shared` and let `GhosttySurface`
-    /// drive the wiring.
-    fileprivate var appHandle: UnsafeMutableRawPointer? {
-        return _app
-    }
+    /// Opaque `ghostty_app_t`. Internal call sites pass it to
+    /// `ghostty_surface_new`.
+    fileprivate var appHandle: UnsafeMutableRawPointer? { return _app }
 
-    /// Underlying handle. `nil` until the first successful init,
-    /// or forever if init fails. Released in `deinit`.
     private var _app: UnsafeMutableRawPointer?
-
-    /// Owned config handle. libghostty's API takes ownership of the
-    /// config inside `ghostty_app_new`, so we don't free it directly
-    /// — but we keep a reference around in case a future
-    /// `ghostty_app_update_config` path needs to clone it.
     private var _config: UnsafeMutableRawPointer?
 
-    /// Diagnostic string surfaced through `lastInitError`. Set once
-    /// on the first failed init; stays nil on success.
     public private(set) var lastInitError: String?
 
-    /// Hex address of the C handle, for the iOS status overlay.
-    /// Returns "nil" when the handle is unset. Useful for the
-    /// "libghostty alive — App=0x..." debug label.
     public var debugDescription: String {
         guard let app = _app else { return "GhosttyApp(nil)" }
         return "GhosttyApp(0x\(String(UInt(bitPattern: app), radix: 16)))"
     }
 
-    /// Private — use `GhosttyApp.shared`. Runs the libghostty boot
-    /// sequence: `ghostty_init` -> `ghostty_config_new` ->
-    /// `ghostty_app_new` with a stub runtime callback table.
     private init() {
-        // The runtime callbacks are non-null per ghostty.h. None of
-        // them get exercised on the host-managed I/O backend — the
-        // harness owns clipboard, event loop pumping, and session
-        // lifetime — but the function-pointer slots must be filled.
-        // Stubs return safe defaults: `false` for the
-        // predicate-shaped callbacks (`action_cb`, `read_clipboard_cb`)
-        // and a no-op for the rest.
-        var runtime = ghostty_runtime_config_s(
-            userdata: nil,
-            supports_selection_clipboard: false,
-            wakeup_cb: { _ in },
-            action_cb: { _, _, _ in return false },
-            read_clipboard_cb: { _, _, _ in return false },
-            confirm_read_clipboard_cb: { _, _, _, _ in },
-            write_clipboard_cb: { _, _, _, _, _ in },
-            close_surface_cb: { _, _ in }
-        )
-
-        // Initialize the Zig allocator + libghostty internal state.
-        // Signature: `int ghostty_init(uintptr_t argc, char** argv)`.
-        // Upstream's `iOSApp.swift` passes the process argv straight
-        // through (`CommandLine.unsafeArgv`); we mirror that so any
-        // CLI flag libghostty might inspect (none in practice on
-        // iOS, but the symbol must be reachable) gets the same
-        // bytes the host process saw. A non-zero return from
-        // `ghostty_init` is fatal in upstream — if our boot path
-        // ever hits it we want to know, so we surface it through
-        // `lastInitError` rather than precondition-failing (would
-        // bring down the whole app for a feature that's still
-        // experimental).
+        // 1. Initialize the libghostty runtime. geistty calls this
+        //    explicitly; clauntty relies on lazy init. Calling it is
+        //    the safer, reference-faithful path. A non-zero return is
+        //    surfaced (not fatal — the feature is experimental).
         let initRC = ghostty_init(UInt(CommandLine.argc), CommandLine.unsafeArgv)
         if initRC != GHOSTTY_SUCCESS {
             lastInitError = "ghostty_init returned \(initRC)"
+            GhosttyDiagnostics.shared.setInit(ok: false, reason: "init=\(initRC)")
             return
         }
+        GhosttyDiagnostics.shared.setInit(ok: true)
 
-        // Load a default config — load_default_files reads
-        // $XDG_CONFIG_HOME/ghostty/config when present and
-        // otherwise falls back to baked-in defaults. On iOS the
-        // file is virtually never present (sandboxed); the
-        // baked-in defaults are fine for the skeleton.
+        // 2. Config: new → load default files → finalize. On iOS the
+        //    config file is virtually never present (sandboxed); the
+        //    baked-in defaults are fine.
         guard let config: UnsafeMutableRawPointer = ghostty_config_new() else {
             lastInitError = "ghostty_config_new returned nil"
+            GhosttyDiagnostics.shared.setInit(ok: false, reason: "config_nil")
             return
         }
         ghostty_config_load_default_files(config)
         ghostty_config_finalize(config)
         self._config = config
 
+        // 3. Runtime config with FULLY-POPULATED callbacks. `userdata`
+        //    is a pointer back to this singleton so the static C
+        //    callbacks can recover `self`. This is the critical fix:
+        //    the old skeleton stubbed wakeup/action as no-ops, so the
+        //    renderer never got driven after boot.
+        var runtime = ghostty_runtime_config_s(
+            userdata: Unmanaged.passUnretained(self).toOpaque(),
+            supports_selection_clipboard: false,
+            wakeup_cb: { userdata in GhosttyApp.wakeup(userdata) },
+            action_cb: { app, target, action in
+                GhosttyApp.action(app, target: target, action: action)
+            },
+            read_clipboard_cb: { userdata, loc, state in
+                GhosttyApp.readClipboard(userdata, location: loc, state: state)
+            },
+            confirm_read_clipboard_cb: { _, _, _, _ in },
+            write_clipboard_cb: { userdata, loc, content, len, confirm in
+                GhosttyApp.writeClipboard(userdata, location: loc, content: content, len: len, confirm: confirm)
+            },
+            close_surface_cb: { _, _ in }
+        )
+
+        // 4. App.
         guard let app: UnsafeMutableRawPointer = ghostty_app_new(&runtime, config) else {
-            lastInitError = "ghostty_app_new returned nil — runtime callbacks rejected"
+            lastInitError = "ghostty_app_new returned nil"
+            GhosttyDiagnostics.shared.setInit(ok: false, reason: "app_nil")
             ghostty_config_free(config)
             self._config = nil
             return
         }
         self._app = app
+        GhosttyDiagnostics.shared.setAppOK(true)
     }
 
     deinit {
         if let app = _app {
             ghostty_app_free(app)
         }
-        // libghostty took ownership of `_config` inside
-        // ghostty_app_new — do not free here. The `_config` slot is
-        // kept so future code can compare identity if needed.
+        // libghostty took ownership of `_config` inside ghostty_app_new.
     }
 
-    /// Pump the libghostty event loop once. Safe to call from the
-    /// main thread; no-op when the app isn't alive. The host renderer
-    /// will call this from a `CADisplayLink` once libghostty owns
-    /// the pixel pipeline; for the skeleton it's only invoked from
-    /// `GhosttySurface.feed` so any pending parser work gets flushed.
+    /// Pump the libghostty event loop once. Main-thread only.
     public func tick() {
         guard let app = _app else { return }
         ghostty_app_tick(app)
     }
+
+    // MARK: - Static C callbacks
+    //
+    // These are the runtime-config function pointers. They recover the
+    // `GhosttyApp` (or, for surface-scoped actions, the host view via
+    // the surface registry) from `userdata`.
+
+    /// libghostty asks the host to pump its loop. clauntty + geistty
+    /// both dispatch `ghostty_app_tick` to the main queue here — this
+    /// is what keeps the renderer alive frame-to-frame.
+    static func wakeup(_ userdata: UnsafeMutableRawPointer?) {
+        GhosttyDiagnostics.shared.incWakeup()
+        DispatchQueue.main.async {
+            guard let userdata = userdata else { return }
+            let app = Unmanaged<GhosttyApp>.fromOpaque(userdata).takeUnretainedValue()
+            app.tick()
+        }
+    }
+
+    /// libghostty announces an action (render, set-title, …). We must
+    /// acknowledge `GHOSTTY_ACTION_RENDER` (return true) so the lib's
+    /// render pipeline is satisfied — matches clauntty/geistty.
+    static func action(
+        _ app: UnsafeMutableRawPointer?,
+        target: ghostty_target_s,
+        action: ghostty_action_s
+    ) -> Bool {
+        switch action.tag {
+        case GHOSTTY_ACTION_RENDER:
+            GhosttyDiagnostics.shared.incAction(render: true)
+            return true
+        default:
+            GhosttyDiagnostics.shared.incAction(render: false)
+            return false
+        }
+    }
+
+    /// Read iOS pasteboard into libghostty. Stubbed body (the harness
+    /// owns paste via the renderer's edit menu) but a real, non-no-op
+    /// function pointer so the lib's clipboard path is well-formed.
+    static func readClipboard(
+        _ userdata: UnsafeMutableRawPointer?,
+        location: ghostty_clipboard_e,
+        state: UnsafeMutableRawPointer?
+    ) -> Bool {
+        // The host owns clipboard reads via the UIKit edit menu; we do
+        // not complete the request here, but the callback exists and
+        // returns cleanly rather than trapping.
+        return false
+    }
+
+    /// Write libghostty's clipboard payload to the iOS pasteboard.
+    static func writeClipboard(
+        _ userdata: UnsafeMutableRawPointer?,
+        location: ghostty_clipboard_e,
+        content: UnsafePointer<ghostty_clipboard_content_s>?,
+        len: Int,
+        confirm: Bool
+    ) {
+        // No-op body for now (renderer owns copy); kept as a real
+        // function pointer so the runtime config is fully populated.
+        _ = (userdata, location, content, len, confirm)
+    }
 }
 
-/// One terminal viewport. Bridges PTY byte writes from the harness
-/// into `ghostty_surface_write_buffer`, owns a `ghostty_surface_t`,
-/// and tears it down on `deinit`. **Not** a UIView — the host view
-/// (`GhosttyTerminalView.swift`) owns the `CAMetalLayer` and passes
-/// itself in via `attach(uiview:)` so libghostty can target its layer
-/// when the Metal renderer lands in Stage 5. For this PR the surface
-/// is configured with `GHOSTTY_SURFACE_IO_BACKEND_HOST_MANAGED` so
-/// libghostty never spawns a child process; all bytes flow through
-/// `feed(_:)` from the harness's `SessionStore.terminalBuffer`.
+/// One terminal viewport over `ghostty_surface_t`, faithful to
+/// clauntty's `TerminalSurfaceView` + geistty's `SurfaceView` init.
+///
+/// The host UIView (`GhosttyRenderView`) is passed in via `attach`; we
+/// set it as both `platform.ios.uiview` AND `userdata` so libghostty's
+/// Metal renderer can target the view's layer (it adds an IOSurfaceLayer
+/// sublayer via `addSublayer:`) and route surface-scoped callbacks back.
 public final class GhosttySurface {
-    /// Underlying `ghostty_surface_t`. Released on deinit.
     private var _surface: UnsafeMutableRawPointer?
-
-    /// Strong reference to the host UIView passed in via `attach`.
-    /// `void*` on the C side; we hold a Swift reference here so the
-    /// view outlives the surface even if the call site drops it.
-    /// `Any` keeps this module UIKit-free for the macOS test build.
     private var _hostView: AnyObject?
-
-    /// Cached size to avoid redundant `ghostty_surface_set_size` calls.
-    /// libghostty re-derives the cell grid + reflow on every set_size,
-    /// which is cheap but allocates — bypass when bytes match.
     private var lastSizePx: (width: UInt32, height: UInt32) = (0, 0)
 
-    /// Hex address of the C handle for the iOS status overlay.
+    /// Forwarded user input from libghostty's HOST_MANAGED backend
+    /// (`receive_buffer`). The host wires this to send bytes to the
+    /// remote PTY — the analog of clauntty's `set_pty_input_callback`.
+    /// libghostty calls `receive_buffer` for things like mouse-reporting
+    /// escape sequences and bracketed-paste framing.
+    public var onReceiveInput: ((Data) -> Void)?
+
     public var debugDescription: String {
         guard let s = _surface else { return "GhosttySurface(nil)" }
         return "GhosttySurface(0x\(String(UInt(bitPattern: s), radix: 16)))"
     }
 
-    /// `true` when the surface created cleanly. Mirrors
-    /// `GhosttyApp.isAlive` but tracks this specific viewport.
     public var isAlive: Bool { return _surface != nil }
 
-    /// Create a new host-managed surface attached to `app`. The
-    /// `hostView` is retained for the surface's lifetime; libghostty
-    /// stores the raw `void*` in its `ghostty_platform_ios_s.uiview`
-    /// slot so the Metal renderer (when wired) can target its layer.
-    /// `cols` / `rows` set the initial logical grid; `pixelWidth` /
-    /// `pixelHeight` set the initial render-target size — pass zero
-    /// to skip the initial `set_size` (the host will call
-    /// `resize(...)` once it lays out).
     public init(
         app: GhosttyApp = .shared,
         hostView: AnyObject? = nil,
         pixelWidth: UInt32 = 0,
         pixelHeight: UInt32 = 0,
-        scaleFactor: Double = 2.0
+        scaleFactor: Double = 2.0,
+        fontSize: Float = 13.0
     ) {
-        guard let appHandle = app.appHandle else { return }
+        guard let appHandle = app.appHandle else {
+            GhosttyDiagnostics.shared.setSurface(created: false)
+            return
+        }
         self._hostView = hostView
 
         var config = ghostty_surface_config_new()
         config.platform_tag = GHOSTTY_PLATFORM_IOS
-        // Pass the host UIView through to libghostty's iOS platform
-        // slot. Cast through `Unmanaged` so the C side gets a stable
-        // pointer; we keep the Swift reference in `_hostView` so the
-        // UIView lifetime is bound to the surface's. Swift imports
-        // the `ghostty_platform_u` union as a discriminated-union
-        // initializer — assigning to `.ios` member-wise is not
-        // supported, the only public path is the per-case init
-        // (matches upstream Ghostty's `Ghostty.Surface.withCValue`
-        // pattern at macos/Sources/Ghostty/Surface View/SurfaceView.swift).
+        // Host UIView → libghostty's iOS platform slot AND userdata.
+        // clauntty + geistty both pass the view as `userdata` so
+        // surface-scoped action callbacks can recover the view; the
+        // `.ios.uiview` slot is where the renderer attaches its layer.
         let uiviewPtr: UnsafeMutableRawPointer?
         if let host = hostView {
             uiviewPtr = Unmanaged.passUnretained(host).toOpaque()
@@ -405,22 +499,35 @@ public final class GhosttySurface {
         config.platform = ghostty_platform_u(
             ios: ghostty_platform_ios_s(uiview: uiviewPtr)
         )
-        // Host-managed I/O: libghostty does NOT spawn a child
-        // process; bytes arrive via `ghostty_surface_write_buffer`
-        // from the harness's PTY stream.
-        config.backend = GHOSTTY_SURFACE_IO_BACKEND_HOST_MANAGED
+        config.userdata = uiviewPtr
         config.scale_factor = scaleFactor
+        config.font_size = fontSize
+        // Host-managed I/O: libghostty does NOT spawn a child process.
+        // The harness streams PTY output IN via write_buffer; libghostty
+        // hands user input OUT via the receive_buffer callback below.
+        config.backend = GHOSTTY_SURFACE_IO_BACKEND_HOST_MANAGED
+        config.receive_userdata = Unmanaged.passUnretained(self).toOpaque()
+        config.receive_buffer = { userdata, bytes, len in
+            guard let userdata = userdata, let bytes = bytes, len > 0 else { return }
+            let surface = Unmanaged<GhosttySurface>.fromOpaque(userdata).takeUnretainedValue()
+            let data = Data(bytes: bytes, count: Int(len))
+            DispatchQueue.main.async { surface.onReceiveInput?(data) }
+        }
+        config.receive_resize = { _, _, _, _, _ in }
         config.context = GHOSTTY_SURFACE_CONTEXT_WINDOW
-        // The remaining fields default to zero / null from
-        // `ghostty_surface_config_new`. Working directory + command +
-        // env vars are irrelevant for host-managed surfaces.
 
         guard let surface: UnsafeMutableRawPointer = ghostty_surface_new(appHandle, &config) else {
+            GhosttyDiagnostics.shared.setSurface(created: false)
             return
         }
         self._surface = surface
+        GhosttyDiagnostics.shared.setSurface(created: true)
 
+        // Push the initial size + scale BEFORE the first draw so the
+        // renderer initializes against a non-zero render target. geistty
+        // + clauntty both size the surface immediately on creation.
         if pixelWidth > 0, pixelHeight > 0 {
+            ghostty_surface_set_content_scale(surface, scaleFactor, scaleFactor)
             ghostty_surface_set_size(surface, pixelWidth, pixelHeight)
             lastSizePx = (pixelWidth, pixelHeight)
         }
@@ -432,65 +539,62 @@ public final class GhosttySurface {
         }
     }
 
-    /// Forward a chunk of PTY bytes into libghostty's parser. Safe to
-    /// call from the main thread; libghostty's surface is documented
-    /// as main-thread-only for byte writes. No-op when the surface
-    /// init failed or `bytes` is empty.
+    /// Forward a chunk of PTY bytes into libghostty's parser. Main-thread
+    /// only. After writing, tick the app so the parser work flushes and
+    /// the renderer is woken (libghostty also calls `wakeup_cb`).
     public func feed(_ bytes: Data) {
         guard let surface = _surface, !bytes.isEmpty else { return }
         bytes.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
             guard let base = raw.baseAddress?.assumingMemoryBound(to: UInt8.self) else { return }
             ghostty_surface_write_buffer(surface, base, UInt(bytes.count))
         }
-        // Flush any deferred parser work; the host owns the event
-        // loop so libghostty doesn't poll on its own.
+        GhosttyDiagnostics.shared.addFedBytes(bytes.count)
         GhosttyApp.shared.tick()
     }
 
-    /// Convenience overload for ad-hoc string feeds (tests, status
-    /// banners). UTF-8 encoded.
     public func feed(_ string: String) {
         feed(Data(string.utf8))
     }
 
-    /// Tell libghostty the host view changed pixel size. Cell grid
-    /// + reflow happen inside libghostty; the harness still needs a
-    /// separate `SessionStore.resize` call to inform the remote PTY.
-    public func resize(pixelWidth: UInt32, pixelHeight: UInt32) {
+    /// Push the host view's pixel size + scale. Cell grid + reflow happen
+    /// inside libghostty. Mirrors clauntty's `sizeDidChange`: set content
+    /// scale first, then size.
+    public func resize(pixelWidth: UInt32, pixelHeight: UInt32, scale: Double) {
         guard let surface = _surface else { return }
         if lastSizePx.width == pixelWidth && lastSizePx.height == pixelHeight {
             return
         }
+        ghostty_surface_set_content_scale(surface, scale, scale)
         ghostty_surface_set_size(surface, pixelWidth, pixelHeight)
         lastSizePx = (pixelWidth, pixelHeight)
     }
 
-    /// Render one frame. libghostty owns the Metal renderer + the
-    /// `CAMetalLayer` it created on the attached `uiview`; this just
-    /// asks it to paint the current grid state. Must run on the main
-    /// thread. This is the call Stage 4 was missing — bytes were fed
-    /// but no frame was ever drawn, so the surface stayed blank.
+    /// Render one frame. Our pinned ABI has `ghostty_surface_draw` (NOT
+    /// `draw_now`). Driven by the host's CADisplayLink — but the
+    /// wakeup→tick loop is the primary render driver.
     public func draw() {
         guard let surface = _surface else { return }
         ghostty_surface_draw(surface)
+        GhosttyDiagnostics.shared.incDraw()
     }
 
-    /// libghostty only renders an active surface; tell it we're
-    /// focused so it paints (and shows a live cursor).
+    /// Ask libghostty to fully re-render (used after a size change /
+    /// reattach where the layer may hold stale content).
+    public func refresh() {
+        guard let surface = _surface else { return }
+        ghostty_surface_refresh(surface)
+    }
+
     public func setFocus(_ focused: Bool) {
         guard let surface = _surface else { return }
         ghostty_surface_set_focus(surface, focused)
     }
 
-    /// Backing-store scale (UIScreen.scale). Drives libghostty's
-    /// glyph rasterization DPI so text isn't blurry on Retina.
     public func setContentScale(_ x: Double, _ y: Double) {
         guard let surface = _surface else { return }
         ghostty_surface_set_content_scale(surface, x, y)
     }
 
-    /// Pause rendering when the view is off-screen (tab switch /
-    /// backgrounding) so libghostty stops its draw work.
     public func setOcclusion(_ visible: Bool) {
         guard let surface = _surface else { return }
         ghostty_surface_set_occlusion(surface, visible)
@@ -501,33 +605,15 @@ public final class GhosttySurface {
 
 // MARK: - Compatibility façade
 //
-// The iOS CoreText renderer (`GhosttyTerminalView.swift`) was written
-// against the Stage 1 `Terminal` class shape. Keeping it as a thin
-// façade lets the renderer compile + paint unchanged. When libghostty
-// is alive, `Terminal` also forwards bytes into `GhosttySurface` so
-// the App/Surface pipeline gets exercised at runtime (proves the
-// integration is live even before the Metal renderer lands).
-//
-// Snapshot data is always empty cells — libghostty's App/Surface API
-// does not expose a per-cell readback like the slim VT API did
-// (the public path is `ghostty_surface_read_text` which returns
-// human-readable text, not a grid). The renderer treats an empty
-// snapshot as "draw the status overlay", which is exactly the UX we
-// want for the skeleton: the user sees "libghostty alive — App=…"
-// instead of an empty grid. Stage 5 swaps the renderer to
-// libghostty's own Metal output and removes this façade.
+// The iOS renderer (`GhosttyTerminalView.swift`) was written against
+// the `Terminal` class shape. Keeping it as a thin façade lets the
+// renderer compile unchanged; under the hood it now drives the faithful
+// `GhosttyApp` + `GhosttySurface` init.
 
-/// Swift wrapper over a libghostty viewport. Retained name + public
-/// API shape so existing renderer code keeps compiling; the
-/// implementation now forwards to `GhosttySurface` when libghostty
-/// is alive and otherwise behaves as the Stage 1 no-op stub.
+/// Swift wrapper over a libghostty viewport. Public API shape retained
+/// so the renderer keeps compiling.
 public final class Terminal {
-    /// `true` when libghostty's App/Surface pipeline is alive in
-    /// this process — i.e. `ghostty_app_new` succeeded AND a fresh
-    /// `GhosttySurface` could be created. Reads `false` either when
-    /// the `libghostty` module isn't importable (placeholder build)
-    /// or when the runtime rejected the app init (config error,
-    /// allocator failure).
+    /// `true` when libghostty's App pipeline is alive in this process.
     public static var isAvailable: Bool {
         #if canImport(libghostty)
         return GhosttyApp.shared.isAlive
@@ -536,14 +622,7 @@ public final class Terminal {
         #endif
     }
 
-    /// Stage 4 status string for the iOS overlay. Stable across
-    /// builds so the renderer can surface it directly:
-    ///   - `"libghostty alive — App=0x… Surface=0x…"` when both
-    ///     handles came up.
-    ///   - `"libghostty init failed: <reason>"` when the App init
-    ///     rejected.
-    ///   - `"libghostty not linked — flag-off path"` when the
-    ///     module isn't importable.
+    /// Status string for the iOS overlay header.
     public static func statusDescription(includeSurface: Bool = true) -> String {
         #if canImport(libghostty)
         let app = GhosttyApp.shared
@@ -562,61 +641,54 @@ public final class Terminal {
         #endif
     }
 
-    /// Cached cols/rows for the renderer. Tracked locally because
-    /// the App/Surface API doesn't expose a per-cell readback.
     private var cols: UInt
     private var rows: UInt
 
     #if canImport(libghostty)
-    /// Underlying host-managed surface. Lazy — created on first
-    /// init, replaced on reset, freed on deinit.
     private var surface: GhosttySurface?
     #endif
 
-    /// Create a fresh terminal. Cols/rows are advisory — the
-    /// libghostty surface computes the real grid from its pixel
-    /// size, but we cache the request so a subsequent `snapshot()`
-    /// returns the expected shape for the CoreText path.
+    /// User input forwarded out of libghostty's HOST_MANAGED backend.
+    /// The renderer wires this to `SessionStore.sendInput`.
+    public var onReceiveInput: ((Data) -> Void)? {
+        didSet {
+            #if canImport(libghostty)
+            surface?.onReceiveInput = onReceiveInput
+            #endif
+        }
+    }
+
     public init(cols: UInt, rows: UInt, maxScrollback: UInt = 10_000) {
         precondition(cols > 0 && cols <= UInt(UInt16.max), "cols out of range")
         precondition(rows > 0 && rows <= UInt(UInt16.max), "rows out of range")
         self.cols = cols
         self.rows = rows
-        #if canImport(libghostty)
-        // _ = maxScrollback // host-managed surface doesn't expose
-        //                   // a scrollback knob through the public ABI.
-        if GhosttyApp.shared.isAlive {
-            self.surface = GhosttySurface()
-        }
-        #endif
-        _ = maxScrollback // silence unused-arg warning on the placeholder build
+        // Surface is created lazily in `attach(...)` with the real host
+        // view + non-zero pixel size. Creating a hostless surface here
+        // (as the skeleton did) starves the renderer of a layer to
+        // attach to — the reference apps always create the surface WITH
+        // the view.
+        _ = maxScrollback
     }
 
-    /// Attach a host UIView so libghostty's Metal renderer (Stage 5)
-    /// can target its layer. Re-creates the underlying surface
-    /// because `ghostty_surface_config_s.platform.ios.uiview` is
-    /// read once at surface-creation time. No-op when libghostty
-    /// isn't alive.
+    /// Attach a host UIView. Re-creates the underlying surface because
+    /// `platform.ios.uiview` is read once at surface-creation time.
     public func attach(hostView: AnyObject?, pixelWidth: UInt32, pixelHeight: UInt32, scaleFactor: Double) {
         #if canImport(libghostty)
         guard GhosttyApp.shared.isAlive else { return }
-        surface = GhosttySurface(
+        let s = GhosttySurface(
             hostView: hostView,
             pixelWidth: pixelWidth,
             pixelHeight: pixelHeight,
             scaleFactor: scaleFactor
         )
+        s.onReceiveInput = onReceiveInput
+        surface = s
         #else
         _ = (hostView, pixelWidth, pixelHeight, scaleFactor)
         #endif
     }
 
-    /// Feed VT bytes into libghostty's parser. The bytes flow into
-    /// `ghostty_surface_write_buffer`; libghostty runs the full
-    /// parser + state machine + reflow on its side. The CoreText
-    /// renderer reads `snapshot()` (empty cells in this PR) — its
-    /// own status-line fallback paints the "libghostty alive"
-    /// banner so the user sees the integration is live.
     public func write(_ bytes: Data) {
         #if canImport(libghostty)
         surface?.feed(bytes)
@@ -625,82 +697,64 @@ public final class Terminal {
         #endif
     }
 
-    /// Convenience for tests + the placeholder path. UTF-8 encoded.
     public func write(_ string: String) {
         write(Data(string.utf8))
     }
 
-    /// Resize the active grid. The pixel dimensions feed into
-    /// libghostty's cell-grid math; the harness still needs a
-    /// separate cols/rows update to inform the remote PTY.
     public func resize(cols: UInt, rows: UInt, cellWidthPx: UInt = 0, cellHeightPx: UInt = 0) {
         precondition(cols > 0 && cols <= UInt(UInt16.max), "cols out of range")
         precondition(rows > 0 && rows <= UInt(UInt16.max), "rows out of range")
         self.cols = cols
         self.rows = rows
         #if canImport(libghostty)
-        // Derive a pixel size for libghostty; if the caller didn't
-        // hand us cell dimensions, fall back to a 8×16 raster — the
-        // value is only used by libghostty's grid math, which the
-        // renderer overrides anyway via `attach(...)`.
         let cellW = cellWidthPx > 0 ? cellWidthPx : 8
         let cellH = cellHeightPx > 0 ? cellHeightPx : 16
         let pxW = UInt32(cols * cellW)
         let pxH = UInt32(rows * cellH)
-        surface?.resize(pixelWidth: pxW, pixelHeight: pxH)
+        surface?.resize(pixelWidth: pxW, pixelHeight: pxH, scale: 2.0)
         #else
         _ = (cellWidthPx, cellHeightPx)
         #endif
     }
 
-    /// Push the *real* backing-store pixel size + scale to libghostty.
-    /// The `resize(cols:rows:)` overload above derives a fake 8×16
-    /// raster; Stage 5's renderer needs the true layer size so
-    /// libghostty's `CAMetalLayer` matches the host view and glyphs
-    /// aren't mis-scaled. Call from `layoutSubviews` with
-    /// `bounds.size * contentScaleFactor`.
+    /// Push the real backing-store pixel size + scale to libghostty.
     public func setPixelSize(width: UInt32, height: UInt32, scale: Double) {
         #if canImport(libghostty)
-        surface?.setContentScale(scale, scale)
-        surface?.resize(pixelWidth: width, pixelHeight: height)
+        surface?.resize(pixelWidth: width, pixelHeight: height, scale: scale)
         #else
         _ = (width, height, scale)
         #endif
     }
 
-    /// Render one frame via libghostty's own Metal renderer. Driven by
-    /// the host view's `CADisplayLink` (Stage 5). No-op off libghostty.
     public func draw() {
         #if canImport(libghostty)
         surface?.draw()
         #endif
     }
 
-    /// Focus state — libghostty only paints an active surface, and the
-    /// cursor blink follows focus.
+    public func refresh() {
+        #if canImport(libghostty)
+        surface?.refresh()
+        #endif
+    }
+
     public func setFocus(_ focused: Bool) {
         #if canImport(libghostty)
         surface?.setFocus(focused)
         #endif
     }
 
-    /// Visibility — pause libghostty's render work when the view is
-    /// off-screen (tab switch / backgrounding).
     public func setVisible(_ visible: Bool) {
         #if canImport(libghostty)
         surface?.setOcclusion(visible)
         #endif
     }
 
-    /// Return a pure-Swift snapshot. The App/Surface ABI does not
-    /// expose a per-cell grid readback (the public path is
-    /// `ghostty_surface_read_text` which returns human-readable
-    /// text and is intended for accessibility, not render loops),
-    /// so this returns an empty grid of the cached cols/rows
-    /// dimensions. The CoreText renderer treats an empty grid as
-    /// "draw the status overlay" — that's the Stage 4 skeleton UX.
-    /// Stage 5 will replace the renderer with libghostty's Metal
-    /// output and remove this snapshot path entirely.
+    /// Empty-grid snapshot — the App/Surface ABI does not expose a
+    /// per-cell readback (the public path is `ghostty_surface_read_text`,
+    /// for accessibility, not render loops). libghostty's own renderer
+    /// owns the pixels; the renderer keeps this only for the selection
+    /// text path shape.
     public func snapshot() -> TerminalSnapshot {
         let total = Int(cols) * Int(rows)
         let cells = [TerminalCell](repeating: TerminalCell(character: ""), count: total)
