@@ -244,3 +244,123 @@ struct SessionStoreTests {
         #expect(stored?.assistant == "claude")
     }
 }
+
+/// `fix-history-readonly-default-live` — read-only is the DEFAULT for
+/// any session not positively confirmed live on the broker. These pin
+/// the inversion so a regression that re-introduces a default-`.live`
+/// (the "History still interactive" bug) fails loudly.
+@Suite("SessionStore.isReadOnly — read-only unless confirmed live")
+@MainActor
+struct SessionStoreReadOnlyTests {
+
+    private func session(_ id: String) -> ProjectSession {
+        ProjectSession(
+            id: id, name: id, assistant: "claude", branch: nil,
+            preview: nil, reasoningEffort: nil, cwd: nil,
+            startedAt: nil, lastActivityAt: nil, displayName: nil
+        )
+    }
+
+    private func status(_ id: String, phase: String) -> SessionStatus {
+        SessionStatus(
+            session: id, assistant: "claude", phase: phase, health: "green",
+            rows: 40, cols: 120, yolo: false, preview: nil, sessionName: nil,
+            viewers: 1, reasoningEffort: nil, cwd: nil, startedAt: nil,
+            lastActivityAt: nil, displayName: nil
+        )
+    }
+
+    // MARK: isLivePhase classifier
+
+    @Test func livePhasesClassifyLive() {
+        for p in ["running", "ready", "idle", "thinking", "RUNNING", " ready "] {
+            #expect(SessionStore.isLivePhase(p), "\(p) should be live")
+        }
+    }
+
+    @Test func terminalAndUnknownPhasesClassifyNotLive() {
+        for p in ["exited", "exited(0)", "exited(137)", "failed", "dead", "", "swapped", "zombie"] {
+            #expect(!SessionStore.isLivePhase(p), "\(p) should NOT be live")
+        }
+    }
+
+    @Test func exitCodeParsesFromPhase() {
+        #expect(SessionStore.exitCode(fromPhase: "exited(137)") == 137)
+        #expect(SessionStore.exitCode(fromPhase: "exited(0)") == 0)
+        #expect(SessionStore.exitCode(fromPhase: "exited") == nil)
+    }
+
+    // MARK: default = read-only
+
+    @Test func unknownSessionIsReadOnly() {
+        let store = SessionStore()
+        #expect(store.isReadOnly(sessionID: "never-seen"))
+    }
+
+    @Test func listedButNoStatusIsReadOnly() {
+        // The core's `list_sessions()` can return rows we have no fresh
+        // running status for (recovered / dead). Mere presence must NOT
+        // make the row interactive — this is the exact bug.
+        let store = SessionStore()
+        let id = "listed-\(UUID().uuidString)"
+        store.sessions = [session(id)]
+        #expect(store.isReadOnly(sessionID: id))
+        #expect(!store.isConfirmedLive(sessionID: id))
+    }
+
+    // MARK: confirmed live = interactive
+
+    @Test func runningStatusIsInteractive() {
+        let store = SessionStore()
+        let id = "live-\(UUID().uuidString)"
+        store.ingestStatus(status(id, phase: "running"))
+        #expect(store.isConfirmedLive(sessionID: id))
+        #expect(!store.isReadOnly(sessionID: id))
+    }
+
+    // MARK: exited / recovered = read-only
+
+    @Test func ingestExitMakesReadOnly() {
+        let store = SessionStore()
+        let id = "exit-\(UUID().uuidString)"
+        store.ingestStatus(status(id, phase: "running"))
+        #expect(!store.isReadOnly(sessionID: id))
+        store.ingestExit(id, 0)
+        #expect(store.isReadOnly(sessionID: id))
+    }
+
+    @Test func statusWithExitedPhaseIsReadOnlyEvenWithoutExitFrame() {
+        // Joining an already-dead session: the broker's first status
+        // frame reports `exited` (no prior `exit` frame on this client).
+        // Must lock read-only, not promote to `.live`.
+        let store = SessionStore()
+        let id = "recovered-\(UUID().uuidString)"
+        store.ingestStatus(status(id, phase: "exited(137)"))
+        #expect(store.isReadOnly(sessionID: id))
+        if case .exited(let code) = store.sessionLifecycle[id] {
+            #expect(code == 137)
+        } else {
+            Issue.record("expected .exited lifecycle from an exited status phase")
+        }
+    }
+
+    @Test func liveSessionDemotedByLaterExitedStatus() {
+        let store = SessionStore()
+        let id = "demote-\(UUID().uuidString)"
+        store.ingestStatus(status(id, phase: "running"))
+        #expect(!store.isReadOnly(sessionID: id))
+        store.ingestStatus(status(id, phase: "exited"))
+        #expect(store.isReadOnly(sessionID: id))
+    }
+
+    @Test func exitedLifecycleNeverRevivedByLaterRunningStatus() {
+        // Terminal is terminal — a stale `running` delta after exit must
+        // not resurrect an interactive surface.
+        let store = SessionStore()
+        let id = "terminal-\(UUID().uuidString)"
+        store.ingestExit(id, 0)
+        #expect(store.isReadOnly(sessionID: id))
+        store.ingestStatus(status(id, phase: "running"))
+        #expect(store.isReadOnly(sessionID: id))
+    }
+}

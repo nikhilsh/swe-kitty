@@ -337,13 +337,34 @@ struct SessionsScreen: View {
     /// drill-in. `.unknown` covers a deleted/archived session whose row
     /// still carries a stale status — opening it must not re-attach a
     /// live interactive surface.
+    ///
+    /// Note on stale `.live`: the persisted `SavedSession.status` can lag
+    /// reality — a session that died while the app was disconnected never
+    /// recorded its exit, so the row stays `.live`. We therefore only take
+    /// the interactive attach branch when the row is `.live` AND, if we're
+    /// already connected to its server, the store does NOT positively know
+    /// the session is dead. The destination is also self-correcting:
+    /// `attachLiveSession` joins by id and `ProjectView.isReadOnly` now
+    /// flips to read-only the moment the broker's status reports the
+    /// session as exited, so a stale-`.live` row that turns out dead opens
+    /// as a transcript rather than a dead interactive surface.
     private func resume(_ row: SavedSession) {
         switch row.status {
         case .exited, .unknown:
             transcriptTarget = TranscriptTarget(session: row)
         case .live:
-            if let server = store.savedServers.first(where: { $0.id == row.serverID }),
-               store.endpoint != server.endpoint {
+            let server = store.savedServers.first(where: { $0.id == row.serverID })
+            let connectedToRowServer = server.map { store.endpoint == $0.endpoint } ?? true
+            // If we're already on the row's server and the store has
+            // positively marked this session read-only (exited/failed),
+            // the persisted `.live` is stale — open the transcript.
+            if connectedToRowServer,
+               store.sessions.contains(where: { $0.id == row.id }),
+               store.isReadOnly(sessionID: row.id) {
+                transcriptTarget = TranscriptTarget(session: row)
+                return
+            }
+            if let server, !connectedToRowServer {
                 store.selectSavedServer(server.id, autoConnect: true)
             }
             store.attachLiveSession(sessionID: row.id, assistant: row.agent)

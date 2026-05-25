@@ -1219,8 +1219,20 @@ final class SessionStore {
         if !listed.isEmpty {
             self.sessions = listed
         }
+        // Do NOT blanket-default listed sessions to `.live`. `listSessions`
+        // can include recovered / exited / not-currently-running rows, and
+        // a default of `.live` made every one of them open interactive
+        // (the "History still interactive" bug). Liveness is now proven by
+        // a live-phase status delta (`ingestStatus`) or the create/attach
+        // round-trip — never by mere presence in the list. We seed a
+        // terminal lifecycle from the listed phase when we can already see
+        // the session is dead, so `isReadOnly` is correct on first paint
+        // even before a fresh status frame arrives.
         for s in self.sessions where sessionLifecycle[s.id] == nil {
-            sessionLifecycle[s.id] = .live
+            if let phase = statusBySession[s.id]?.phase,
+               phase.lowercased().hasPrefix("exited") {
+                sessionLifecycle[s.id] = .exited(Self.exitCode(fromPhase: phase) ?? 0)
+            }
         }
         for s in self.sessions {
             refreshConversation(sessionID: s.id)
@@ -1306,9 +1318,31 @@ final class SessionStore {
     func ingestStatus(_ status: SessionStatus) {
         statusBySession[status.session] = status
         if let p = status.preview { preview[status.session] = p }
-        if sessionLifecycle[status.session] == nil ||
-            sessionLifecycle[status.session] == .creating {
-            sessionLifecycle[status.session] = .live
+        // Promote lifecycle from a non-terminal state using the phase the
+        // broker actually reported — NOT a blanket `.live`. A status frame
+        // for a recovered/exited session carries `phase: "exited…"`; that
+        // must lock the row read-only, not resurrect it as interactive.
+        // (`.exited` / `.failed` are terminal and never downgraded here.)
+        switch sessionLifecycle[status.session] {
+        case .none, .creating?:
+            if Self.isLivePhase(status.phase) {
+                sessionLifecycle[status.session] = .live
+            } else if status.phase.lowercased().hasPrefix("exited") {
+                // Surface an explicit exit even if we never saw an
+                // `exit` frame — e.g. joining an already-dead session.
+                let code = Self.exitCode(fromPhase: status.phase) ?? 0
+                sessionLifecycle[status.session] = .exited(code)
+            }
+            // A non-live, non-exited phase (empty / unknown) leaves the
+            // lifecycle unset → `isReadOnly` returns true (fail closed).
+        case .live?:
+            // Already live: a later exited phase still demotes to terminal.
+            if status.phase.lowercased().hasPrefix("exited") {
+                let code = Self.exitCode(fromPhase: status.phase) ?? 0
+                sessionLifecycle[status.session] = .exited(code)
+            }
+        case .exited?, .failed?:
+            break // terminal — never revived by a status delta
         }
         // Mirror a broker-supplied rename label (protocol §3.3) into
         // the local displayNames map so every existing title surface
@@ -1593,24 +1627,99 @@ final class SessionStore {
         displayNames[session.id] ?? session.name
     }
 
-    /// Whether a session is read-only — the agent has exited/been
-    /// archived and there's no live WS to interact with. Drives the
-    /// `ProjectView` collapse to a chat-only, composer-less transcript
-    /// (the user can read the log but can't type, switch tabs, etc.).
+    /// Whether a session is read-only — there's no live WS to interact
+    /// with, so the `ProjectView` collapses to a chat-only, composer-less
+    /// transcript (the user can read the log but can't type, switch tabs,
+    /// etc.).
     ///
-    /// Detected from either source of truth: the local `sessionLifecycle`
-    /// (set to `.exited` by `ingestExit`, the app-delete archive flow,
-    /// and the broker DELETE in #206) or the status phase (`exited(N)`
-    /// from a status delta, e.g. a session that exited on another viewer
-    /// before this client tracked the lifecycle). Either being terminal
-    /// is enough.
+    /// READ-ONLY IS THE DEFAULT. A session opens interactive only when
+    /// we can positively confirm it is *currently live on the broker* —
+    /// i.e. `isConfirmedLive(sessionID:)`. Everything else (exited,
+    /// failed, recovered-but-not-running, archived, or a stale row we
+    /// merely listed without a fresh running status) is read-only.
+    ///
+    /// This inversion fixes the "History still interactive" bug: the old
+    /// logic defaulted to interactive and only flipped read-only on a
+    /// *confirmed-exited* signal (lifecycle `.exited` or a status phase
+    /// of `exited…`). But `refreshSessions` / `ingestStatus` blanket
+    /// marked every listed or status-bearing session `.live`, so a dead
+    /// session the broker never explicitly reported as exited (app was
+    /// disconnected when it died, a recovered session, a phase the broker
+    /// reports as non-running) stayed interactive forever. We now require
+    /// proof of liveness rather than proof of death.
     func isReadOnly(sessionID: String) -> Bool {
-        if case .exited = sessionLifecycle[sessionID] { return true }
-        if let phase = statusBySession[sessionID]?.phase,
-           phase.hasPrefix("exited") {
+        !isConfirmedLive(sessionID: sessionID)
+    }
+
+    /// True only when the session is positively known to be running on
+    /// the broker *right now*. Requires BOTH:
+    ///   1. a non-terminal local lifecycle (`.live` / `.creating` — never
+    ///      `.exited` / `.failed`), and
+    ///   2. a current broker status whose `phase` is a live/running phase
+    ///      (see `Self.isLivePhase`). A session with no status at all is
+    ///      treated as not-confirmed-live: we listed it but the broker
+    ///      hasn't told us it's running.
+    ///
+    /// `.creating` is honored without a status because a brand-new
+    /// session we just spun up locally has no broker status yet but is
+    /// genuinely on its way live — the create round-trip owns that state.
+    func isConfirmedLive(sessionID: String) -> Bool {
+        switch sessionLifecycle[sessionID] {
+        case .exited, .failed, .none:
+            return false
+        case .creating:
+            // Newly-created session mid-handshake: interactive, even
+            // before the first status frame. A confirmed-exited phase
+            // (raced ahead) still wins.
+            if let phase = statusBySession[sessionID]?.phase,
+               !Self.isLivePhase(phase) {
+                return false
+            }
             return true
+        case .live:
+            // `.live` is necessary but not sufficient — it can be a
+            // stale default. Demand a current running phase if we have a
+            // status; if we somehow have a `.live` lifecycle with no
+            // status (e.g. a freshly-created session promoted by the
+            // create path) trust the lifecycle.
+            guard let phase = statusBySession[sessionID]?.phase else {
+                return true
+            }
+            return Self.isLivePhase(phase)
         }
-        return false
+    }
+
+    /// Classify a broker `SessionStatus.phase` as live/running vs
+    /// terminal/unknown. The broker reports `running` for an active
+    /// agent and `exited` (optionally `exited(N)` after our own
+    /// `ingestExit` rewrites it) for a dead one; recovered sessions
+    /// restore whatever phase was persisted. We treat anything that
+    /// isn't an affirmatively-running phase as NOT live so an unfamiliar
+    /// or empty phase fails closed (read-only) rather than open.
+    static func isLivePhase(_ phase: String) -> Bool {
+        let p = phase.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if p.isEmpty { return false }
+        if p.hasPrefix("exited") || p.hasPrefix("failed") || p.hasPrefix("dead") {
+            return false
+        }
+        // Known running/active phases emitted by the broker + adapters.
+        let live: Set<String> = [
+            "running", "ready", "idle", "thinking", "working",
+            "starting", "booting", "swapping",
+        ]
+        return live.contains(p)
+    }
+
+    /// Pull the exit code out of an `exited(N)` phase string. The broker
+    /// emits a bare `exited`; our own `ingestExit` rewrites the cached
+    /// status to `exited(<code>)`. Returns nil when there's no parseable
+    /// code (caller defaults to 0).
+    static func exitCode(fromPhase phase: String) -> Int32? {
+        guard let open = phase.firstIndex(of: "("),
+              let close = phase.firstIndex(of: ")"),
+              open < close else { return nil }
+        let inner = phase[phase.index(after: open)..<close]
+        return Int32(inner.trimmingCharacters(in: .whitespaces))
     }
 
     /// Switch the active session — drives the iPhone `NavigationStack`
@@ -1676,8 +1785,29 @@ final class SessionStore {
                     self.refreshSessions()
                 }
                 if self.sessions.contains(where: { $0.id == sessionID }) {
+                    // Promote the placeholder using the broker's reported
+                    // phase, not a blanket `.live`. Joining an existing id
+                    // can resolve to a session that already exited; in that
+                    // case `ingestStatus` has set `.exited` (so we're no
+                    // longer `.creating` and skip this), or — if no status
+                    // landed yet but the cached phase is terminal — we lock
+                    // it read-only here. Otherwise promote to live and the
+                    // destination opens interactive. Either way navigate so
+                    // the user lands on the (correctly read-only or live)
+                    // session rather than a dead-end.
                     if self.sessionLifecycle[sessionID] == .creating {
-                        self.sessionLifecycle[sessionID] = .live
+                        let phase = self.statusBySession[sessionID]?.phase
+                        if let phase, phase.lowercased().hasPrefix("exited") {
+                            let code = Self.exitCode(fromPhase: phase) ?? 0
+                            self.sessionLifecycle[sessionID] = .exited(code)
+                        } else if phase.map(Self.isLivePhase) ?? true {
+                            // Live phase, or no status yet (a join we
+                            // initiated — trust it as live until a status
+                            // frame says otherwise).
+                            self.sessionLifecycle[sessionID] = .live
+                        }
+                        // A non-live, non-exited phase leaves `.creating`
+                        // in place; the next status frame resolves it.
                     }
                     self.selectedSessionID = sessionID
                 } else if self.sessionLifecycle[sessionID] == .creating {
