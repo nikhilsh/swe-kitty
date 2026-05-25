@@ -391,7 +391,12 @@ private struct PendingSavedSessionDelete: Identifiable, Equatable {
 /// Carrier for the read-only transcript push. Keyed by `compoundID`
 /// (server-scoped) so two rows that share a bare session id across
 /// paired harnesses don't collide in `navigationDestination(item:)`.
-private struct TranscriptTarget: Identifiable, Equatable {
+private struct TranscriptTarget: Identifiable, Hashable {
     let session: SavedSession
     var id: String { session.compoundID }
+    // `navigationDestination(item:)` requires Hashable; key off the
+    // stable compound id rather than relying on SavedSession's
+    // synthesized conformances.
+    static func == (lhs: TranscriptTarget, rhs: TranscriptTarget) -> Bool { lhs.id == rhs.id }
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
