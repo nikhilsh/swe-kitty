@@ -188,6 +188,19 @@ public final class QueryResponseFilter {
             }
         }
 
+        // A lone trailing ESC (state `.escape`, nothing after it in this
+        // chunk) is NOT the start of a query response we can recognise —
+        // every reply we strip continues with a `[` / `P` introducer in the
+        // SAME byte run. Flush it so a bare ESC keypress survives instead of
+        // being swallowed. Partial CSI/DCS sequences (`.csi`, `.dcs`,
+        // `.dcsEscape`) stay buffered so a reply split across chunks is
+        // still reassembled and dropped on the next `filter(_:)` call.
+        if state == .escape {
+            out.append(contentsOf: pending)
+            pending.removeAll(keepingCapacity: true)
+            state = .ground
+        }
+
         return Data(out)
     }
 
