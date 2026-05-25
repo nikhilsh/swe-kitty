@@ -208,10 +208,12 @@ fun HomeScreen(
                 ) {
                     sessions.forEach { session ->
                         val isSelected = selectedId == session.id
-                        // device bug #9: the status dot tracked selection,
-                        // so a second running session looked stopped. Drive
-                        // it from run state — alive unless the agent exited.
-                        val isRunning = !(statuses[session.id]?.phase ?: "ready").startsWith("exited")
+                        // device bug #9: dot tracks run state, not selection.
+                        // device bug #30: and only green when actually
+                        // connected — a stale "running" phase must not show
+                        // green while the connection is down.
+                        val connected = harness is HarnessState.Live || harness is HarnessState.Linked
+                        val isRunning = connected && !(statuses[session.id]?.phase ?: "ready").startsWith("exited")
                         val rowTitle = displayNames[session.id] ?: session.name
                         // Active-row fill per audit §A.1.3 — litter
                         // selects by painting a 6dp rounded rect at
