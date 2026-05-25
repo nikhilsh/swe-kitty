@@ -949,11 +949,17 @@ class SessionStore : ViewModel(), SweKittyDelegate {
 
     fun exit(sessionId: String) {
         val c = client ?: return
+        // Optimistic removal so the row disappears immediately. Previously
+        // we cleared state only *after* the async exitSession +
+        // refreshSessions round-trip, so the row lingered until the call
+        // returned (read as laggy). Prune locally first; refreshSessions
+        // re-pulls the live list afterward, so a failed exit self-corrects.
+        _sessions.value = _sessions.value.filterNot { it.id == sessionId }
+        updateLifecycle { it - sessionId }
+        if (_selectedId.value == sessionId) _selectedId.value = null
         viewModelScope.launch {
             runCatching { withContext(Dispatchers.IO) { c.exitSession(sessionId) } }
-            updateLifecycle { it - sessionId }
             refreshSessions()
-            if (_selectedId.value == sessionId) _selectedId.value = null
         }
     }
 

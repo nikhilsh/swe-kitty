@@ -757,14 +757,19 @@ final class SessionStore {
 
     func exit(sessionID: String) {
         guard let client else { return }
+        // Optimistic removal so the row disappears immediately. Previously
+        // we cleared local state only *after* the async `exitSession` +
+        // `refreshSessions` round-trip, so the row lingered until the
+        // network call returned — it read as laggy/broken. Prune locally
+        // first; `refreshSessions` re-pulls the live list afterward, so a
+        // failed exit self-corrects (the row reappears).
+        sessions.removeAll { $0.id == sessionID }
+        sessionLifecycle[sessionID] = nil
+        if selectedSessionID == sessionID { selectedSessionID = nil }
+        if useRustStore { rustStore.forgetSession(sessionId: sessionID) }
         Task {
             try? await client.exitSession(sessionId: sessionID)
-            self.sessionLifecycle[sessionID] = nil
-            if self.useRustStore {
-                self.rustStore.forgetSession(sessionId: sessionID)
-            }
             self.refreshSessions()
-            if self.selectedSessionID == sessionID { self.selectedSessionID = nil }
         }
     }
 
