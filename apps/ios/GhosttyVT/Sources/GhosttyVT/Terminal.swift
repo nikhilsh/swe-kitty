@@ -599,6 +599,22 @@ public final class GhosttySurface {
         guard let surface = _surface else { return }
         ghostty_surface_set_occlusion(surface, visible)
     }
+
+    /// The grid libghostty itself derived from the current surface pixel
+    /// size + its own font metrics, read back via `ghostty_surface_size`.
+    /// This is the authoritative cols/rows the renderer paints at — the
+    /// host MUST drive the remote PTY to the SAME grid (clauntty reads
+    /// `ghostty_surface_size` after every `set_size` and sends that to its
+    /// SSH winsize), otherwise the PTY app (tmux) draws at a different
+    /// coordinate space than libghostty renders and the screen misdraws.
+    /// Returns nil if the surface isn't alive or libghostty hasn't sized
+    /// the grid yet (zero cols/rows).
+    public func gridSize() -> (cols: UInt16, rows: UInt16, cellWidthPx: UInt32, cellHeightPx: UInt32)? {
+        guard let surface = _surface else { return nil }
+        let s = ghostty_surface_size(surface)
+        guard s.columns > 0, s.rows > 0 else { return nil }
+        return (s.columns, s.rows, s.cell_width_px, s.cell_height_px)
+    }
 }
 
 #endif // canImport(libghostty)
@@ -723,6 +739,19 @@ public final class Terminal {
         surface?.resize(pixelWidth: width, pixelHeight: height, scale: scale)
         #else
         _ = (width, height, scale)
+        #endif
+    }
+
+    /// The grid (cols/rows + cell px) libghostty derived from the current
+    /// surface pixel size. The host reads this after pushing a new size so
+    /// it can resize the remote PTY to libghostty's exact grid instead of
+    /// a divergent client-side cell estimate. nil until a surface exists
+    /// and libghostty has sized a non-empty grid.
+    public func gridSize() -> (cols: UInt16, rows: UInt16, cellWidthPx: UInt32, cellHeightPx: UInt32)? {
+        #if canImport(libghostty)
+        return surface?.gridSize()
+        #else
+        return nil
         #endif
     }
 
