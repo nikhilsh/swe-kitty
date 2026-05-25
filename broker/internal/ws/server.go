@@ -123,6 +123,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/session/start", s.serveSessionStart)
 	mux.HandleFunc("/api/recent-projects", s.serveRecentProjects)
 	mux.HandleFunc("/api/fs/list", s.serveFSList)
+	// Trailing slash: path-prefix match so the session id is the tail.
+	mux.HandleFunc("/api/session/conversation/", s.serveSessionConversation)
 	return mux
 }
 
