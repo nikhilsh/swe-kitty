@@ -72,6 +72,24 @@ struct LitterHomeViewModelTests {
         #expect(rows[0].isSelected == false) // running but not attached → still green
     }
 
+    @Test func sessionRowsMutedWhenDisconnected() {
+        // device bug #30: stale phase ("running") must NOT show green when
+        // the connection is down — the app can't know real state.
+        let snap = LitterUI.HomeSnapshot(
+            harness: .disconnected,
+            sessions: [
+                LitterUI.HomeSnapshotSession(id: "a", displayName: "A", assistant: "claude", phase: "working"),
+                LitterUI.HomeSnapshotSession(id: "b", displayName: "B", assistant: "codex", phase: "ready"),
+            ],
+            placeholders: [],
+            selectedSessionID: "a",
+            endpointDisplayHost: nil
+        )
+        let rows = LitterUI.HomeViewModel.rows(snap)
+        #expect(rows[0].isRunning == false) // disconnected → muted despite "working"
+        #expect(rows[1].isRunning == false)
+    }
+
     @Test func subtitleFallsBackToLocalHostWhenEndpointMissing() {
         // The home subtitle has to print *something* even before the
         // user has paired a server — litter shows the local host name

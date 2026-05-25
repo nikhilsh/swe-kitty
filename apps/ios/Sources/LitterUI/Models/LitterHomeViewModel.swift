@@ -73,6 +73,14 @@ extension LitterUI {
             default: return false
             }
         }
+
+        /// True only when the WS is actually connected. Gates the
+        /// session-row dot so it can't show stale "running" green while
+        /// the connection is down (device bug #30).
+        var isConnected: Bool {
+            if case .live = self { return true }
+            return false
+        }
     }
 
     struct HomeSnapshotSession: Equatable {
@@ -100,9 +108,10 @@ extension LitterUI {
                     title: s.displayName,
                     subtitle: "\(s.assistant) · \(phase) · \(host)",
                     isSelected: snap.selectedSessionID == s.id,
-                    // Alive unless the agent process has exited. Every
-                    // other phase (ready / working / swapping) is running.
-                    isRunning: !phase.hasPrefix("exited")
+                    // Green only when actually connected AND the agent
+                    // hasn't exited — otherwise the dot showed stale
+                    // "running" green while disconnected (device bug #30).
+                    isRunning: snap.harness.isConnected && !phase.hasPrefix("exited")
                 ))
             }
             for p in snap.placeholders {
