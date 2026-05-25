@@ -1,8 +1,8 @@
 package sh.nikhil.swekitty.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -33,7 +33,7 @@ import sh.nikhil.swekitty.SessionLifecycle
 import sh.nikhil.swekitty.SessionStore
 import sh.nikhil.swekitty.VisibleSession
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ProjectListScreen(
     store: SessionStore,
@@ -46,21 +46,33 @@ fun ProjectListScreen(
     val selectedId by store.selectedId.collectAsState()
     val harness by store.harness.collectAsState()
     val endpoint by store.endpoint.collectAsState()
+    val displayNames by store.displayNames.collectAsState()
     val creationError by store.sessionCreationError.collectAsState()
     var showAgentPicker by remember { mutableStateOf(false) }
     var showAddServer by remember { mutableStateOf(false) }
+    // Long-press delete confirmation target. The drawer list previously
+    // had no delete affordance (only HomeScreen did); we mirror that
+    // long-press → confirm → store.exit flow here so the broker-side
+    // DELETE wired in PR #206 is reachable from this list too.
+    var pendingDelete by remember { mutableStateOf<DrawerSessionDeleteTarget?>(null) }
 
     val visible = remember(sessions, lifecycle) { store.visibleSessions() }
+    val connected = harness is HarnessState.Live || harness is HarnessState.Linked
 
     ModalDrawerSheet(modifier = Modifier.fillMaxHeight()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Title + actions
+            // Title + actions — Material header (title + endpoint subtitle).
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("SweKitty", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "SweKitty",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
                     Text(
                         endpoint.displayHost,
                         style = MaterialTheme.typography.bodySmall,
@@ -102,13 +114,25 @@ fun ProjectListScreen(
                     modifier = Modifier.padding(16.dp),
                 )
             } else {
-                LazyColumn(modifier = Modifier.weight(1f)) {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                ) {
+                    item {
+                        SectionHeader(
+                            label = if (connected) "Live" else "Sessions",
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
+                    }
                     items(visible, key = { it.id }) { entry ->
+                        val realId = (entry as? VisibleSession.Real)?.session?.id
                         SessionRow(
                             entry = entry,
-                            health = (entry as? VisibleSession.Real)?.session?.id?.let { statuses[it]?.health },
-                            phase = (entry as? VisibleSession.Real)?.session?.id?.let { statuses[it]?.phase },
+                            displayName = realId?.let { displayNames[it] },
+                            health = realId?.let { statuses[it]?.health },
+                            phase = realId?.let { statuses[it]?.phase },
                             lifecycle = lifecycle[entry.id],
+                            connected = connected,
                             selected = entry.id == selectedId,
                             onTap = {
                                 if (entry is VisibleSession.Real) {
@@ -116,11 +140,42 @@ fun ProjectListScreen(
                                     onCloseDrawer()
                                 }
                             },
+                            onLongPress = {
+                                if (entry is VisibleSession.Real) {
+                                    pendingDelete = DrawerSessionDeleteTarget(
+                                        entry.session.id,
+                                        displayNames[entry.session.id] ?: entry.session.name,
+                                    )
+                                }
+                            },
                         )
                     }
                 }
             }
         }
+    }
+
+    pendingDelete?.let { target ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Delete session?") },
+            text = {
+                Text(
+                    "This ends ${target.title} on the harness. The conversation history stays available under Sessions.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    store.exit(target.id)
+                    pendingDelete = null
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+            },
+        )
     }
 
     if (showAgentPicker) {
@@ -133,6 +188,25 @@ fun ProjectListScreen(
     if (showAddServer) {
         AddServerSheet(store = store, onDismiss = { showAddServer = false })
     }
+}
+
+/**
+ * Carrier for the session-row long-press delete confirmation. Holds the
+ * id (the [SessionStore.exit] target, which now also fires the broker
+ * DELETE from PR #206) plus the already-resolved title so the alert can
+ * name the session without re-reading displayNames at render time.
+ */
+private data class DrawerSessionDeleteTarget(val id: String, val title: String)
+
+@Composable
+private fun SectionHeader(label: String, modifier: Modifier = Modifier) {
+    Text(
+        label.uppercase(),
+        modifier = modifier,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable
@@ -157,37 +231,43 @@ fun HarnessStatusStrip(
     onReconnect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .glassRoundedRect(cornerRadiusDp = SweKittyTheme.smallCornerRadiusDp)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(SweKittyTheme.smallCornerRadiusDp.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+        tonalElevation = 1.dp,
     ) {
-        HarnessBadge(harness)
-        Spacer(Modifier.width(10.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                harness.badgeLabel,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = SweKittyTheme.textPrimary(),
-            )
-            harness.failureReason?.let {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            HarnessBadge(harness)
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = SweKittyTheme.danger(),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    harness.badgeLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
+                harness.failureReason?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
-        }
-        if (harness is HarnessState.Failed || harness is HarnessState.Disconnected) {
-            TextButton(onClick = onReconnect) {
-                Icon(Icons.Default.Refresh, contentDescription = null, tint = SweKittyTheme.accentStrong())
-                Spacer(Modifier.width(4.dp))
-                Text("Reconnect", color = SweKittyTheme.accentStrong())
+            if (harness is HarnessState.Failed || harness is HarnessState.Disconnected) {
+                TextButton(onClick = onReconnect) {
+                    Icon(Icons.Default.Refresh, contentDescription = null, tint = SweKittyTheme.accentStrong())
+                    Spacer(Modifier.width(4.dp))
+                    Text("Reconnect", color = SweKittyTheme.accentStrong())
+                }
             }
         }
     }
@@ -214,32 +294,34 @@ private fun InlineErrorBanner(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .glassRect(
-                cornerRadiusDp = SweKittyTheme.smallCornerRadiusDp,
-                tint = SweKittyTheme.danger().copy(alpha = 0.35f),
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.Top,
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(SweKittyTheme.smallCornerRadiusDp.dp),
+        color = MaterialTheme.colorScheme.errorContainer,
     ) {
-        Icon(
-            Icons.Outlined.Warning,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.error,
-        )
-        Spacer(Modifier.width(10.dp))
-        Text(
-            message,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onErrorContainer,
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis,
-        )
-        IconButton(onClick = onDismiss, modifier = Modifier.size(20.dp)) {
-            Icon(Icons.Default.Close, "Dismiss", tint = MaterialTheme.colorScheme.onErrorContainer)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Icon(
+                Icons.Outlined.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                message,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+            IconButton(onClick = onDismiss, modifier = Modifier.size(20.dp)) {
+                Icon(Icons.Default.Close, "Dismiss", tint = MaterialTheme.colorScheme.onErrorContainer)
+            }
         }
     }
 }
@@ -250,103 +332,161 @@ private fun EmptySessionsHint(
     onCreate: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .glassRoundedRect()
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(SweKittyTheme.cardCornerRadiusDp.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        tonalElevation = 1.dp,
     ) {
-        Text(
-            if (canCreate) "Start a session" else "Waiting for harness",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            if (canCreate)
-                "Pick an agent and we'll spin up a new conversation against the harness."
-            else
-                "Once we can reach the harness this is where your sessions will appear.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        if (canCreate) {
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { onCreate("claude") }) { Text("Claude") }
-                OutlinedButton(onClick = { onCreate("codex") }) { Text("Codex") }
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                if (canCreate) "Start a session" else "Waiting for harness",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                if (canCreate)
+                    "Pick an agent and we'll spin up a new conversation against the harness."
+                else
+                    "Once we can reach the harness this is where your sessions will appear.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (canCreate) {
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { onCreate("claude") }) { Text("Claude") }
+                    OutlinedButton(onClick = { onCreate("codex") }) { Text("Codex") }
+                }
             }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SessionRow(
     entry: VisibleSession,
+    displayName: String?,
     health: String?,
     phase: String?,
     lifecycle: SessionLifecycle?,
+    connected: Boolean,
     selected: Boolean,
     onTap: () -> Unit,
+    onLongPress: () -> Unit,
 ) {
     val isFailed = lifecycle is SessionLifecycle.FailedToStart
-    val tint = when {
-        selected  -> SweKittyTheme.accentStrong().copy(alpha = 0.45f)
-        isFailed  -> SweKittyTheme.danger().copy(alpha = 0.40f)
-        else      -> null
+    // device bug #30 parity: only "live" when the connection is actually
+    // up — a stale "running" phase must not read green while offline.
+    val isRunning = entry is VisibleSession.Real &&
+        connected && !(phase ?: "ready").startsWith("exited")
+
+    // Material tonal containers instead of the iOS copper glass pill:
+    //  - selected → accent-tinted secondary container (copper, Material way)
+    //  - failed   → errorContainer
+    //  - else     → surfaceVariant tonal card
+    val containerColor = when {
+        selected -> SweKittyTheme.accentStrong().copy(alpha = 0.16f)
+        isFailed -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f)
+        else     -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     }
-    Row(
+
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp)
-            .clickable(enabled = entry is VisibleSession.Real, onClick = onTap)
-            .glassRect(tint = tint)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .combinedClickable(
+                enabled = entry is VisibleSession.Real,
+                onClick = onTap,
+                onLongClick = onLongPress,
+            ),
+        shape = RoundedCornerShape(SweKittyTheme.smallCornerRadiusDp.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 2.dp else 1.dp),
     ) {
-        when {
-            lifecycle is SessionLifecycle.Creating ->
-                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
-            isFailed ->
-                Icon(
-                    Icons.Outlined.Warning,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(14.dp),
-                )
-            else -> HealthDot(health)
-        }
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                when (entry) {
-                    is VisibleSession.Real     -> entry.session.name
-                    is VisibleSession.Creating -> "Starting session…"
-                },
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = SweKittyTheme.textPrimary(),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            val subtitle: String = when (entry) {
-                is VisibleSession.Real -> {
-                    val branch = entry.session.branch ?: "—"
-                    listOf(entry.session.assistant, branch, phase ?: "ready").joinToString(" · ")
-                }
-                is VisibleSession.Creating -> {
-                    if (lifecycle is SessionLifecycle.FailedToStart) lifecycle.reason
-                    else "asking harness for a session…"
-                }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            when {
+                lifecycle is SessionLifecycle.Creating ->
+                    CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                isFailed ->
+                    Icon(
+                        Icons.Outlined.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(14.dp),
+                    )
+                else ->
+                    // Leading status dot: copper accent when live/running,
+                    // muted onSurfaceVariant when exited/idle.
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isRunning) SweKittyTheme.accentStrong()
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            ),
+                    )
             }
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = SweKittyTheme.textMuted(),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    rowTitle(entry, displayName),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    rowSubtitle(entry, phase, lifecycle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
+}
+
+/**
+ * Headline for a row: user display name, else the cwd basename, else the
+ * session's own name, else a short id. Mirrors the
+ * displayName → cwd → name precedence used by ProjectHeaderModel.
+ */
+private fun rowTitle(entry: VisibleSession, displayName: String?): String = when (entry) {
+    is VisibleSession.Real -> {
+        val s = entry.session
+        displayName?.trim()?.takeIf { it.isNotEmpty() }
+            ?: s.displayName?.trim()?.takeIf { it.isNotEmpty() }
+            ?: s.cwd?.trim()?.trimEnd('/')?.substringAfterLast('/')?.takeIf { it.isNotEmpty() }
+            ?: s.name.takeIf { it.isNotBlank() }
+            ?: s.id.take(8)
+    }
+    is VisibleSession.Creating -> "Starting session…"
+}
+
+/** Supporting text: "<agent> — <status>" (e.g. "codex — running"). */
+private fun rowSubtitle(
+    entry: VisibleSession,
+    phase: String?,
+    lifecycle: SessionLifecycle?,
+): String = when (entry) {
+    is VisibleSession.Real ->
+        "${entry.session.assistant} — ${phase ?: "ready"}"
+    is VisibleSession.Creating ->
+        if (lifecycle is SessionLifecycle.FailedToStart) lifecycle.reason
+        else "asking harness for a session…"
 }
