@@ -3,18 +3,15 @@ package sh.nikhil.swekitty.ui
 import sh.nikhil.swekitty.BuildConfig
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
@@ -27,13 +24,18 @@ import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.UnfoldLess
-import androidx.compose.material.icons.outlined.Circle
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -50,10 +52,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -70,7 +72,12 @@ import sh.nikhil.swekitty.SessionStore
  * Experimental. Adding a server lives in [AddServerSheet], opened via
  * the "Add server" CTA inside the Servers section.
  *
- * Mirrors `apps/ios/Sources/Views/SettingsSheet.swift`.
+ * Styling follows native Material 3 idioms: each section is a tonal
+ * [Card], rows are Material [ListItem]s, single-select choices use
+ * [RadioButton]s, and toggles use [Switch]. Color comes from
+ * [MaterialTheme.colorScheme]; the SweKitty copper brand accent
+ * ([SweKittyTheme.accentStrong]) is applied the Material way as the
+ * control/selection tint.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,11 +111,11 @@ fun SettingsScreen(store: SessionStore, onDismiss: () -> Unit) {
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(22.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Text(
                 "Settings",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
             )
 
@@ -145,7 +152,7 @@ fun SettingsScreen(store: SessionStore, onDismiss: () -> Unit) {
                         isSelected = fontFamily == choice,
                         onClick = { appearance.setFontFamily(choice) },
                     )
-                    if (idx < AppearanceStore.FontFamily.values().lastIndex) HorizontalDivider()
+                    if (idx < AppearanceStore.FontFamily.values().lastIndex) SettingsDivider()
                 }
             }
 
@@ -155,28 +162,28 @@ fun SettingsScreen(store: SessionStore, onDismiss: () -> Unit) {
             // clamps so out-of-range writes can't blow out layout.
             SettingsSection("Font Size") {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Filled.FormatSize,
                             contentDescription = null,
                             tint = SweKittyTheme.accentStrong(),
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(24.dp),
                         )
-                        Spacer(Modifier.width(12.dp))
+                        Spacer(Modifier.width(16.dp))
                         Text(
                             "Body",
-                            color = SweKittyTheme.textPrimary(),
-                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         Spacer(Modifier.weight(1f))
                         Text(
                             "${bodyPointSize.toInt()}pt",
-                            color = SweKittyTheme.textMuted(),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.SemiBold,
                         )
                     }
                     Slider(
@@ -192,7 +199,7 @@ fun SettingsScreen(store: SessionStore, onDismiss: () -> Unit) {
                     )
                     Text(
                         "The quick brown fox jumps over the lazy dog.",
-                        color = SweKittyTheme.textSecondary(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = androidx.compose.ui.unit.TextUnit(
                             bodyPointSize,
                             androidx.compose.ui.unit.TextUnitType.Sp,
@@ -215,53 +222,48 @@ fun SettingsScreen(store: SessionStore, onDismiss: () -> Unit) {
             // Servers
             SettingsSection("Servers") {
                 savedServers.forEachIndexed { idx, server ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Filled.Apps,
-                            contentDescription = null,
-                            tint = SweKittyTheme.accentStrong(),
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                server.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
+                    ListItem(
+                        leadingContent = {
+                            Icon(
+                                Icons.Filled.Apps,
+                                contentDescription = null,
+                                tint = SweKittyTheme.accentStrong(),
                             )
+                        },
+                        headlineContent = { Text(server.name) },
+                        supportingContent = {
                             Text(
                                 server.endpoint.displayHost,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                        }
-                        if (server.isDefault) {
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = SweKittyTheme.accentStrong().copy(alpha = 0.22f),
-                            ) {
-                                Text(
-                                    "Default",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                )
+                        },
+                        trailingContent = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (server.isDefault) {
+                                    Surface(
+                                        shape = RoundedCornerShape(50),
+                                        color = MaterialTheme.colorScheme.secondaryContainer,
+                                    ) {
+                                        Text(
+                                            "Default",
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        )
+                                    }
+                                }
+                                TextButton(onClick = { store.selectSavedServer(server.id, autoConnect = true) }) {
+                                    Text("Use")
+                                }
+                                IconButton(onClick = { pendingForget = server }) {
+                                    Icon(Icons.Filled.Delete, contentDescription = "Forget")
+                                }
                             }
-                            Spacer(Modifier.width(6.dp))
-                        }
-                        TextButton(onClick = { store.selectSavedServer(server.id, autoConnect = true) }) {
-                            Text("Use")
-                        }
-                        IconButton(onClick = { pendingForget = server }) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Forget")
-                        }
-                    }
-                    HorizontalDivider()
+                        },
+                        colors = transparentListItemColors(),
+                    )
+                    SettingsDivider()
                 }
                 SettingsRow(
                     icon = Icons.Filled.AddCircle,
@@ -274,30 +276,32 @@ fun SettingsScreen(store: SessionStore, onDismiss: () -> Unit) {
             // Harness (only when paired)
             if (endpoint.isComplete) {
                 SettingsSection("Harness") {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        Icon(
-                            Icons.Filled.Link,
-                            contentDescription = null,
-                            tint = SweKittyTheme.accentStrong(),
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Text("Link", modifier = Modifier.weight(1f))
-                        HarnessBadge(state = harness)
-                    }
+                    ListItem(
+                        leadingContent = {
+                            Icon(
+                                Icons.Filled.Link,
+                                contentDescription = null,
+                                tint = SweKittyTheme.accentStrong(),
+                            )
+                        },
+                        headlineContent = { Text("Link") },
+                        trailingContent = { HarnessBadge(state = harness) },
+                        colors = transparentListItemColors(),
+                    )
                     harness.failureReason?.let { reason ->
-                        HorizontalDivider()
+                        SettingsDivider()
                         Text(
                             reason,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         )
                     }
                     val needsReconnect = endpoint.isComplete &&
                         (harness is sh.nikhil.swekitty.HarnessState.Disconnected ||
                             harness is sh.nikhil.swekitty.HarnessState.Failed)
                     if (needsReconnect) {
-                        HorizontalDivider()
+                        SettingsDivider()
                         SettingsRow(
                             icon = Icons.Filled.Refresh,
                             title = "Reconnect",
@@ -305,7 +309,7 @@ fun SettingsScreen(store: SessionStore, onDismiss: () -> Unit) {
                             onClick = { store.reconnect() },
                         )
                     }
-                    HorizontalDivider()
+                    SettingsDivider()
                     SettingsRow(
                         icon = Icons.Filled.Delete,
                         title = "Forget harness",
@@ -394,28 +398,53 @@ fun SettingsScreen(store: SessionStore, onDismiss: () -> Unit) {
     }
 }
 
+/**
+ * A grouped settings section: a Material `titleSmall` header in the
+ * primary color above a tonal [Card]. Replaces the iOS-style ALL-CAPS
+ * monospace glass label + translucent blur card with native Material 3
+ * grouping.
+ */
 @Composable
 internal fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            title.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.SemiBold,
-            fontFamily = FontFamily.Monospace,
-            modifier = Modifier.padding(bottom = 6.dp, start = 4.dp),
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
         )
-        Surface(
-            shape = RoundedCornerShape(SweKittyTheme.cardCornerRadiusDp.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        Card(
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         ) {
-            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 content()
             }
         }
     }
 }
+
+/** Inset divider between rows within a settings [Card]. */
+@Composable
+private fun SettingsDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+    )
+}
+
+/**
+ * Transparent [ListItem] colors so rows sit on the section [Card]'s
+ * tonal surface rather than painting their own opaque background.
+ */
+@Composable
+private fun transparentListItemColors() = ListItemDefaults.colors(
+    containerColor = Color.Transparent,
+)
 
 @Composable
 internal fun SettingsRow(
@@ -426,38 +455,30 @@ internal fun SettingsRow(
     titleColor: Color = MaterialTheme.colorScheme.onSurface,
     onClick: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                color = titleColor,
-                fontWeight = FontWeight.SemiBold,
-            )
-            if (!subtitle.isNullOrBlank()) {
+    ListItem(
+        modifier = Modifier.clickable(onClick = onClick),
+        leadingContent = {
+            Icon(icon, contentDescription = null, tint = iconTint)
+        },
+        headlineContent = { Text(title, color = titleColor) },
+        supportingContent = if (!subtitle.isNullOrBlank()) {
+            {
                 Text(
                     subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-        }
-        Icon(
-            Icons.Filled.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+        } else null,
+        trailingContent = {
+            Icon(
+                Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        colors = transparentListItemColors(),
+    )
 }
 
 @Composable
@@ -468,31 +489,26 @@ internal fun ToggleRow(
     isOn: Boolean,
     onChange: (Boolean) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, contentDescription = null, tint = SweKittyTheme.accentStrong(), modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            if (!subtitle.isNullOrBlank()) {
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        Switch(
-            checked = isOn,
-            onCheckedChange = onChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = SweKittyTheme.accentStrong(),
-                checkedTrackColor = SweKittyTheme.accentStrong().copy(alpha = 0.35f),
-            ),
-        )
-    }
+    ListItem(
+        leadingContent = {
+            Icon(icon, contentDescription = null, tint = SweKittyTheme.accentStrong())
+        },
+        headlineContent = { Text(title) },
+        supportingContent = if (!subtitle.isNullOrBlank()) {
+            { Text(subtitle) }
+        } else null,
+        trailingContent = {
+            Switch(
+                checked = isOn,
+                onCheckedChange = onChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                    checkedTrackColor = SweKittyTheme.accentStrong(),
+                ),
+            )
+        },
+        colors = transparentListItemColors(),
+    )
 }
 
 @Composable
@@ -502,50 +518,43 @@ internal fun PickerRow(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, contentDescription = null, tint = SweKittyTheme.accentStrong(), modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(12.dp))
-        Text(
-            title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.weight(1f),
-        )
-        if (isSelected) {
-            Icon(
-                Icons.Filled.CheckCircle,
-                contentDescription = null,
-                tint = SweKittyTheme.accentStrong(),
+    ListItem(
+        modifier = Modifier.selectable(
+            selected = isSelected,
+            onClick = onClick,
+            role = Role.RadioButton,
+        ),
+        leadingContent = {
+            Icon(icon, contentDescription = null, tint = SweKittyTheme.accentStrong())
+        },
+        headlineContent = { Text(title) },
+        trailingContent = {
+            RadioButton(
+                selected = isSelected,
+                onClick = null,
+                colors = RadioButtonDefaults.colors(
+                    selectedColor = SweKittyTheme.accentStrong(),
+                ),
             )
-        } else {
-            Icon(
-                Icons.Outlined.Circle,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
+        },
+        colors = transparentListItemColors(),
+    )
 }
 
 @Composable
 private fun KeyValueRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.weight(1f))
-        Text(
-            value,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+    ListItem(
+        headlineContent = {
+            Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        },
+        trailingContent = {
+            Text(
+                value,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        colors = transparentListItemColors(),
+    )
 }

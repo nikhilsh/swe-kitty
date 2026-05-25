@@ -50,7 +50,7 @@ fun AppearanceSheet(appearance: AppearanceStore, onDismiss: () -> Unit) {
         ) {
             Text(
                 "Appearance",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
             )
 
@@ -62,7 +62,12 @@ fun AppearanceSheet(appearance: AppearanceStore, onDismiss: () -> Unit) {
                         isSelected = themeMode == choice,
                         onClick = { appearance.setThemeMode(choice) },
                     )
-                    if (idx < AppearanceStore.ThemeMode.values().lastIndex) HorizontalDivider()
+                    if (idx < AppearanceStore.ThemeMode.values().lastIndex) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        )
+                    }
                 }
             }
 
@@ -74,7 +79,12 @@ fun AppearanceSheet(appearance: AppearanceStore, onDismiss: () -> Unit) {
                         isSelected = fontFamily == choice,
                         onClick = { appearance.setFontFamily(choice) },
                     )
-                    if (idx < AppearanceStore.FontFamily.values().lastIndex) HorizontalDivider()
+                    if (idx < AppearanceStore.FontFamily.values().lastIndex) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        )
+                    }
                 }
             }
 
