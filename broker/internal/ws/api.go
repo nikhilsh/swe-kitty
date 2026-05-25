@@ -175,6 +175,35 @@ func (s *Server) serveRecentProjects(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// sessionConversationResponse is the body of GET
+// /api/session/conversation/<id>. `items` is the persisted transcript in
+// chronological order — the same `{role, content, ts, files}` shape the
+// clients already render for live chat.
+type sessionConversationResponse struct {
+	Items []session.ConvEntry `json:"items"`
+}
+
+// serveSessionConversation returns a session's persisted conversation
+// transcript by id. Works for live AND exited sessions (the broker
+// appends both sides to a per-session conversation.jsonl that survives
+// reap), so the app can reopen a past session read-only.
+func (s *Server) serveSessionConversation(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAuth(w, r) {
+		return
+	}
+	id := strings.TrimSpace(strings.TrimPrefix(r.URL.Path, "/api/session/conversation/"))
+	if id == "" {
+		writeAPIError(w, http.StatusBadRequest, "invalid_request", "missing session id")
+		return
+	}
+	items, err := s.Sessions.ConversationLog(id)
+	if err != nil {
+		writeAPIError(w, http.StatusNotFound, "not_found", "no conversation for session")
+		return
+	}
+	writeJSON(w, http.StatusOK, sessionConversationResponse{Items: items})
+}
+
 func newSessionID() string {
 	var b [16]byte
 	_, _ = rand.Read(b[:])

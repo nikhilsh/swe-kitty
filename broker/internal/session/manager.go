@@ -117,6 +117,13 @@ type Session struct {
 	// so the drain / publish paths don't have to branch.
 	recorder *replay.Recorder
 
+	// convLog persists the full conversation (user + assistant + tool)
+	// to `<sessionDir>/conversation.jsonl` so an exited session's
+	// transcript can be re-read after reap. Unlike the recorder it
+	// captures user prompts too (see convlog.go). Always non-nil once
+	// applyPaths runs; appends tolerate concurrent callers.
+	convLog *convLogger
+
 	// agentHomeDir is the per-session ephemeral $HOME. ALWAYS populated
 	// for every session (except in the rare case the mkdir fails, in
 	// which case the agent falls back to inheriting the broker $HOME).
@@ -479,16 +486,29 @@ func (s *Session) PublishText(payload []byte) {
 	// produced it, and keeps the recorder schema-stable (we record
 	// `event` not the WS envelope, so the replay player can render
 	// without re-decoding swe-kitty's WS shape).
-	if s.recorder != nil {
+	// Parse the view_event once and feed two sinks: the replay recorder
+	// (full PTY+event stream, debug/replay) and the conversation log
+	// (chat frames only, for reopening an exited session's transcript).
+	// Re-parsing here is cheap relative to the Marshal that produced the
+	// payload.
+	{
 		var frame struct {
 			Type  string          `json:"type"`
 			View  string          `json:"view"`
 			Event json.RawMessage `json:"event"`
 		}
 		if err := json.Unmarshal(payload, &frame); err == nil && frame.Type == "view_event" {
-			var evt any
-			if uerr := json.Unmarshal(frame.Event, &evt); uerr == nil {
-				s.recorder.RecordEvent(frame.View, evt, time.Now())
+			if s.recorder != nil {
+				var evt any
+				if uerr := json.Unmarshal(frame.Event, &evt); uerr == nil {
+					s.recorder.RecordEvent(frame.View, evt, time.Now())
+				}
+			}
+			// Persist assistant/tool/system chat messages. User prompts
+			// are captured separately in SendChat (they never flow back
+			// through PublishText).
+			if frame.View == "chat" {
+				s.convLog.appendRaw(frame.Event)
 			}
 		}
 	}
@@ -528,6 +548,10 @@ func (s *Session) SendChat(msg string) bool {
 	if s.chat == nil {
 		return false
 	}
+	// Persist the user prompt before handing it to the agent — the
+	// publish stream only carries the agent's side, so without this the
+	// reopened transcript would show replies with no questions.
+	s.convLog.appendUser(msg)
 	if err := s.chat.Send(msg); err != nil {
 		fmt.Fprintf(os.Stderr, "session %s: chat send: %v\n", s.ID, err)
 	}
@@ -899,6 +923,18 @@ func (m *Manager) AssistantNames() []string {
 	return m.registry.Names()
 }
 
+// ConversationLog returns the persisted conversation transcript for a
+// session id, read from `<kittyRoot>/sessions/<id>/conversation.jsonl`.
+// Works for both live and exited sessions — both append to the same
+// on-disk log, which survives reap — so the app can reopen a past
+// session read-only. Returns an error only when no log exists for the id.
+func (m *Manager) ConversationLog(id string) ([]ConvEntry, error) {
+	if id == "" {
+		return nil, os.ErrNotExist
+	}
+	return readConvLog(filepath.Join(m.kittyRoot, "sessions", id, "conversation.jsonl"))
+}
+
 // GetOrCreate returns the existing session for id, or starts a new one
 // with the given assistant. assistant is honored only on creation.
 func (m *Manager) GetOrCreate(id, assistant string) (*Session, bool, error) {
@@ -1056,6 +1092,7 @@ type sessionMetadata struct {
 
 func (s *Session) applyPaths() {
 	s.sessionDir = filepath.Join(s.kittyRoot, "sessions", s.ID)
+	s.convLog = newConvLogger(filepath.Join(s.sessionDir, "conversation.jsonl"))
 	s.worktreeDir = filepath.Join(s.sessionDir, "work")
 	s.scrollbackPath = filepath.Join(s.sessionDir, "scrollback.bin")
 	s.metaPath = filepath.Join(s.sessionDir, "meta.json")
