@@ -223,6 +223,30 @@ final class GhosttyRenderView: UIView, UIKeyInput {
     /// render target. nil until/unless libghostty attaches one.
     private var ghosttySublayer: CALayer?
 
+    /// On-screen diagnostic overlay (top-left, tiny mono text). Surfaces
+    /// the live `GhosttyDiagnostics` state — init result, app/surface
+    /// handles (nil vs ptr), addSublayer-hook count, draw-tick count,
+    /// wakeup/action counts, bounds, fed bytes — so a device tester can
+    /// read off exactly where the libghostty pipeline stalls even if the
+    /// surface is still visually blank. Behind `experimentalNativeTerminal`
+    /// (this whole view only mounts on the flag-on path), so default
+    /// users never see it. A `CADisplayLink`-driven label refresh keeps
+    /// it live. Set `showDiagnosticOverlay = false` to compile it out of
+    /// the layout entirely (kept on by default while we chase the blank
+    /// screen).
+    static var showDiagnosticOverlay = true
+    private lazy var diagnosticLabel: UILabel = {
+        let label = UILabel()
+        label.numberOfLines = 0
+        label.font = UIFont.monospacedSystemFont(ofSize: 9, weight: .regular)
+        label.textColor = UIColor.green
+        label.backgroundColor = UIColor.black.withAlphaComponent(0.55)
+        label.layer.zPosition = 10_000  // above libghostty's sublayer
+        label.isUserInteractionEnabled = false
+        label.lineBreakMode = .byClipping
+        return label
+    }()
+
     /// Frame pacing. A `CADisplayLink` drives `Terminal.draw()` (→
     /// `ghostty_surface_draw`) once per frame while the view is on a
     /// window. geistty pumps the renderer the same way (its
@@ -250,6 +274,7 @@ final class GhosttyRenderView: UIView, UIKeyInput {
             #if canImport(GhosttyVT)
             view.terminal?.draw()
             #endif
+            view.refreshDiagnosticOverlay()
         }
     }
 
@@ -488,19 +513,30 @@ final class GhosttyRenderView: UIView, UIKeyInput {
         pan.require(toFail: longPress)
         addGestureRecognizer(pan)
 
+        // Diagnostic overlay (top-left). Added unconditionally on the
+        // flag-on path so it still reports "gh: not linked" on the
+        // placeholder build. It sits above libghostty's sublayer via
+        // its high zPosition; `layoutSubviews` keeps it pinned top-left.
+        if GhosttyRenderView.showDiagnosticOverlay {
+            addSubview(diagnosticLabel)
+            refreshDiagnosticOverlay()
+        }
+
         #if canImport(GhosttyVT)
-        // Stage 4: with the wrapper rewired to the libghostty
-        // App/Surface API, `Terminal.isAvailable` now reads `true`
-        // once `GhosttyApp.shared` boots — so we instantiate
-        // a real host-managed surface and attach this UIView so
-        // libghostty's iOS platform slot (`ghostty_platform_ios_s.uiview`)
-        // can target our layer when the Metal renderer lands.
+        // Faithful init: with `GhosttyApp.shared` booted (real
+        // wakeup/action callbacks), instantiate the surface WITH this
+        // host UIView so libghostty's iOS platform slot
+        // (`ghostty_platform_ios_s.uiview`) targets our layer and its
+        // renderer attaches its IOSurface sublayer here.
         if Terminal.isAvailable {
             let term = Terminal(cols: UInt(cols), rows: UInt(rows))
-            // Attach with the real (now non-zero) pixel size so
-            // libghostty's 1.1.5 renderer initializes against a sized
-            // metal layer. `sizeGhosttyLayer` re-pushes the true size on
-            // every `layoutSubviews` once UIKit measures us for real.
+            // Forward user input libghostty emits from its HOST_MANAGED
+            // backend (mouse-reporting, bracketed-paste framing) to the
+            // harness PTY — analog of clauntty's set_pty_input_callback.
+            term.onReceiveInput = { [weak self] bytes in self?.onInput(bytes) }
+            // Attach with the real (now non-zero) pixel size so the
+            // renderer initializes against a sized layer. `sizeGhosttyLayer`
+            // re-pushes the true size on every `layoutSubviews`.
             let scale = UIScreen.main.scale
             term.attach(
                 hostView: self,
@@ -511,6 +547,32 @@ final class GhosttyRenderView: UIView, UIKeyInput {
             terminal = term
         }
         #endif
+    }
+
+    /// Pull the latest `GhosttyDiagnostics` snapshot and repaint the
+    /// overlay label. Cheap (string format + frame set); called once per
+    /// frame from the display-link proxy and on layout. No-op when the
+    /// overlay is compiled out.
+    func refreshDiagnosticOverlay() {
+        guard GhosttyRenderView.showDiagnosticOverlay else { return }
+        #if canImport(GhosttyVT)
+        let snap = GhosttyDiagnostics.shared.snapshot()
+        diagnosticLabel.text = snap.overlayText
+        #else
+        diagnosticLabel.text = "gh: not linked (flag-on, no lib)"
+        #endif
+        diagnosticLabel.sizeToFit()
+        let pad: CGFloat = 4
+        let size = diagnosticLabel.intrinsicContentSize
+        let topInset = safeAreaInsets.top
+        let maxWidth = max(0, bounds.width - pad * 2)
+        diagnosticLabel.frame = CGRect(
+            x: pad,
+            y: topInset + pad,
+            width: min(size.width + pad * 2, maxWidth),
+            height: size.height + pad
+        )
+        bringSubviewToFront(diagnosticLabel)
     }
 
     // MARK: - Selection gestures
@@ -721,6 +783,7 @@ final class GhosttyRenderView: UIView, UIKeyInput {
         super.layoutSubviews()
         recomputeGridFromBounds()
         sizeGhosttyLayer()
+        refreshDiagnosticOverlay()
     }
 
     /// Keep both possible render targets working. With the `CAMetalLayer`
@@ -735,9 +798,13 @@ final class GhosttyRenderView: UIView, UIKeyInput {
     /// regardless of which layer ends up holding the pixels.
     @objc(addSublayer:)
     func addSublayer(_ sublayer: CALayer) {
+        #if canImport(GhosttyVT)
+        GhosttyDiagnostics.shared.incAddSublayer()
+        #endif
         ghosttySublayer = sublayer
         layer.addSublayer(sublayer)
         sizeGhosttyLayer()
+        refreshDiagnosticOverlay()
     }
 
     /// Keep libghostty's render target sized to our bounds at the real
@@ -748,6 +815,9 @@ final class GhosttyRenderView: UIView, UIKeyInput {
     /// sublayer at a zero frame, so it paints nothing until we size it.
     private func sizeGhosttyLayer() {
         guard bounds.width > 0, bounds.height > 0 else { return }
+        #if canImport(GhosttyVT)
+        GhosttyDiagnostics.shared.setBounds(w: Int(bounds.width), h: Int(bounds.height))
+        #endif
         let scale = contentScaleFactor > 0 ? contentScaleFactor : UIScreen.main.scale
         // No implicit animation on the resize — terminals must snap.
         CATransaction.begin()
@@ -784,13 +854,24 @@ final class GhosttyRenderView: UIView, UIKeyInput {
         let visible = window != nil
         #if canImport(GhosttyVT)
         terminal?.setVisible(visible)
-        terminal?.setFocus(visible)
+        if visible {
+            // clauntty toggles focus false→true to wake the renderer
+            // thread when a surface becomes visible; mirror that, then
+            // ask for a full refresh so a reattach doesn't show stale
+            // (or blank) layer content.
+            terminal?.setFocus(false)
+            terminal?.setFocus(true)
+            terminal?.refresh()
+        } else {
+            terminal?.setFocus(false)
+        }
         #endif
         if visible {
             startFrameDisplayLink()
         } else {
             stopFrameDisplayLink()
         }
+        refreshDiagnosticOverlay()
     }
 
     /// Start the per-frame draw pump. The link drives `Terminal.draw()`
@@ -845,10 +926,24 @@ final class GhosttyRenderView: UIView, UIKeyInput {
 
     func resetAndFeed(_ bytes: Data) {
         #if canImport(GhosttyVT)
-        // No `reset()` on the Stage 1 wrapper — recreate the handle.
+        // No `reset()` on the wrapper — recreate the handle AND
+        // re-attach this host view + re-wire input. The old skeleton
+        // recreated the Terminal without re-attaching, leaving the new
+        // surface with no host view (guaranteed blank). Mirror the
+        // `configure()` attach so the renderer keeps a layer to paint
+        // into across a buffer-shrink reset.
         if Terminal.isAvailable {
-            terminal = Terminal(cols: UInt(cols), rows: UInt(rows))
-            terminal?.write(bytes)
+            let term = Terminal(cols: UInt(cols), rows: UInt(rows))
+            term.onReceiveInput = { [weak self] inBytes in self?.onInput(inBytes) }
+            let scale = contentScaleFactor > 0 ? contentScaleFactor : UIScreen.main.scale
+            term.attach(
+                hostView: self,
+                pixelWidth: UInt32(bounds.width * scale),
+                pixelHeight: UInt32(bounds.height * scale),
+                scaleFactor: Double(scale)
+            )
+            term.write(bytes)
+            terminal = term
         }
         #endif
         refreshSnapshot()
