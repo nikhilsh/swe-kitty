@@ -352,6 +352,208 @@ struct ConversationRenderer {
     }
 }
 
+// MARK: - Structured markdown
+
+/// One renderable piece of a `.markdown` block, after splitting on
+/// block boundaries that `AttributedString(markdown:)` collapses.
+///
+/// Why this exists: `AttributedString(markdown: ..., interpretedSyntax:
+/// .full)` interprets *inline* syntax (bold / links / code spans) but
+/// flattens *block* structure — paragraphs, list items and headings are
+/// concatenated with no vertical separation, and GFM tables are emitted
+/// as their cell text run together with no row/column structure. On a
+/// narrow phone that reads as the "SessionAssistantNotes062e…" run-on
+/// the device bug reported. We pre-split the markdown into these typed
+/// blocks here (pure function, unit-testable) and render each with its
+/// own vertical rhythm in `LitterStructuredMarkdownView`, so headings
+/// get weight + space, lists get bullets + indent, and tables render as
+/// stacked records instead of one concatenated string.
+enum LitterMarkdownPiece: Equatable {
+    /// `# … ######` — `level` is 1...6, `text` is the heading body
+    /// (markers stripped). Rendered larger/bold with space above/below.
+    case heading(level: Int, text: String)
+    /// A run of prose lines (a paragraph). `text` keeps soft line
+    /// breaks; inline markdown is interpreted at render time.
+    case paragraph(String)
+    /// An unordered (`-`/`*`/`+`) or ordered (`1.`) list. Each item is
+    /// the text after the marker; `ordered` picks bullet vs. number.
+    case list(ordered: Bool, items: [String])
+    /// A GFM pipe table: `headers` is the first row, `rows` the body
+    /// rows (the `---|---` separator row is dropped). Rendered as
+    /// stacked "header: value" records, robust on a narrow phone.
+    case table(headers: [String], rows: [[String]])
+}
+
+enum LitterMarkdownStructure {
+
+    /// Split a markdown string (already free of fenced code — that's
+    /// handled upstream by `ConversationRenderer.blocks`) into typed
+    /// pieces on block boundaries. The output never concatenates two
+    /// logical blocks: headings, paragraphs, lists and tables each
+    /// become their own piece so the renderer can space them.
+    static func parse(_ markdown: String) -> [LitterMarkdownPiece] {
+        let lines = markdown.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        var pieces: [LitterMarkdownPiece] = []
+        var paragraph: [String] = []
+
+        func flushParagraph() {
+            let text = paragraph.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            if !text.isEmpty { pieces.append(.paragraph(text)) }
+            paragraph.removeAll(keepingCapacity: true)
+        }
+
+        var i = 0
+        while i < lines.count {
+            let line = lines[i]
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+            // Blank line — paragraph boundary.
+            if trimmed.isEmpty {
+                flushParagraph()
+                i += 1
+                continue
+            }
+
+            // Heading (#, ##, … up to ######).
+            if let heading = parseHeading(trimmed) {
+                flushParagraph()
+                pieces.append(.heading(level: heading.level, text: heading.text))
+                i += 1
+                continue
+            }
+
+            // GFM table: a pipe row immediately followed by a
+            // delimiter row (`| --- | :--: |`). We need the lookahead
+            // so a lone `a | b` prose line isn't mistaken for a table.
+            if isTableRow(trimmed), i + 1 < lines.count,
+               isTableDelimiter(lines[i + 1].trimmingCharacters(in: .whitespaces)) {
+                flushParagraph()
+                let (table, consumed) = parseTable(lines, startingAt: i)
+                pieces.append(table)
+                i += consumed
+                continue
+            }
+
+            // List (unordered or ordered) — consume the contiguous run.
+            if listMarker(trimmed) != nil {
+                flushParagraph()
+                let (list, consumed) = parseList(lines, startingAt: i)
+                pieces.append(list)
+                i += consumed
+                continue
+            }
+
+            // Otherwise accumulate into the current paragraph.
+            paragraph.append(line)
+            i += 1
+        }
+        flushParagraph()
+
+        if pieces.isEmpty {
+            // Preserve the documented "always at least one piece"
+            // contract so an all-whitespace block still renders.
+            pieces.append(.paragraph(markdown.trimmingCharacters(in: .whitespacesAndNewlines)))
+        }
+        return pieces
+    }
+
+    // MARK: Heading
+
+    private static func parseHeading(_ trimmed: String) -> (level: Int, text: String)? {
+        guard trimmed.hasPrefix("#") else { return nil }
+        var level = 0
+        var idx = trimmed.startIndex
+        while idx < trimmed.endIndex, trimmed[idx] == "#", level < 6 {
+            level += 1
+            idx = trimmed.index(after: idx)
+        }
+        guard level >= 1 else { return nil }
+        // ATX headings require a space (or end of line) after the run
+        // of `#` — `#foo` (no space) is not a heading.
+        let rest = String(trimmed[idx...])
+        guard rest.isEmpty || rest.first == " " else { return nil }
+        let text = rest.trimmingCharacters(in: .whitespaces)
+        return (level, text)
+    }
+
+    // MARK: List
+
+    /// Returns the marker prefix length if `trimmed` opens a list item
+    /// (`- `, `* `, `+ `, or `<n>. `), else nil.
+    private static func listMarker(_ trimmed: String) -> (ordered: Bool, contentStart: String.Index)? {
+        if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") || trimmed.hasPrefix("+ ") {
+            return (false, trimmed.index(trimmed.startIndex, offsetBy: 2))
+        }
+        // Ordered: leading digits then `. ` or `) `.
+        var idx = trimmed.startIndex
+        var sawDigit = false
+        while idx < trimmed.endIndex, trimmed[idx].isNumber {
+            sawDigit = true
+            idx = trimmed.index(after: idx)
+        }
+        if sawDigit, idx < trimmed.endIndex,
+           trimmed[idx] == "." || trimmed[idx] == ")" {
+            let after = trimmed.index(after: idx)
+            if after < trimmed.endIndex, trimmed[after] == " " {
+                return (true, trimmed.index(after: after))
+            }
+        }
+        return nil
+    }
+
+    private static func parseList(_ lines: [String], startingAt start: Int) -> (LitterMarkdownPiece, Int) {
+        var items: [String] = []
+        var ordered = false
+        var i = start
+        var first = true
+        while i < lines.count {
+            let trimmed = lines[i].trimmingCharacters(in: .whitespaces)
+            guard let marker = listMarker(trimmed) else { break }
+            if first { ordered = marker.ordered; first = false }
+            let item = String(trimmed[marker.contentStart...]).trimmingCharacters(in: .whitespaces)
+            items.append(item)
+            i += 1
+        }
+        return (.list(ordered: ordered, items: items), i - start)
+    }
+
+    // MARK: Table
+
+    private static func isTableRow(_ trimmed: String) -> Bool {
+        trimmed.contains("|")
+    }
+
+    /// A GFM delimiter row is all `|`, `-`, `:` and whitespace, with at
+    /// least one `-`.
+    private static func isTableDelimiter(_ trimmed: String) -> Bool {
+        guard trimmed.contains("-") else { return false }
+        return trimmed.allSatisfy { $0 == "|" || $0 == "-" || $0 == ":" || $0 == " " }
+    }
+
+    private static func splitRow(_ row: String) -> [String] {
+        var cells = row.trimmingCharacters(in: .whitespaces)
+        // Drop the optional leading/trailing pipe so a `| a | b |` row
+        // doesn't produce empty edge cells.
+        if cells.hasPrefix("|") { cells.removeFirst() }
+        if cells.hasSuffix("|") { cells.removeLast() }
+        return cells.split(separator: "|", omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+    }
+
+    private static func parseTable(_ lines: [String], startingAt start: Int) -> (LitterMarkdownPiece, Int) {
+        let headers = splitRow(lines[start])
+        var rows: [[String]] = []
+        var i = start + 2 // skip header + delimiter
+        while i < lines.count {
+            let trimmed = lines[i].trimmingCharacters(in: .whitespaces)
+            guard isTableRow(trimmed), !trimmed.isEmpty else { break }
+            rows.append(splitRow(lines[i]))
+            i += 1
+        }
+        return (.table(headers: headers, rows: rows), i - start)
+    }
+}
+
 // MARK: - Diff parser
 
 struct ConversationDiffFile: Identifiable {

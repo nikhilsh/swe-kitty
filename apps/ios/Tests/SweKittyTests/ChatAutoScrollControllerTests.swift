@@ -94,6 +94,48 @@ struct ChatAutoScrollControllerTests {
         #expect(c.isNearBottom)
     }
 
+    // MARK: - Scroll-to-bottom button visibility (BUG 2)
+
+    @Test func buttonHiddenWhenPracticallyAtBottom() {
+        // BUG 2: the button fades out when the user is practically at
+        // the bottom (within buttonVisibleThreshold), even after a drag.
+        var c = ChatAutoScrollController(nearBottomThreshold: 80, buttonVisibleThreshold: 160)
+        c.userDragged()
+        _ = c.bottomProximityChanged(20) // basically at bottom
+        #expect(!c.showScrollToBottomButton)
+    }
+
+    @Test func buttonShownAfterScrollingUpMeaningfully() {
+        var c = ChatAutoScrollController(nearBottomThreshold: 80, buttonVisibleThreshold: 160)
+        _ = c.bottomProximityChanged(400) // scrolled well up
+        #expect(c.showScrollToBottomButton)
+    }
+
+    @Test func tinyOverscrollPastBottomKeepsButtonHidden() {
+        // A rubber-band overscroll reports a negative distance; it must
+        // not flash the button on.
+        var c = ChatAutoScrollController(buttonVisibleThreshold: 160)
+        _ = c.bottomProximityChanged(-40)
+        #expect(!c.showScrollToBottomButton)
+    }
+
+    @Test func buttonHiddenBetweenNearBottomAndVisibleThreshold() {
+        // 120pt is past the near-bottom band (80) but inside the
+        // button-visible band (160), so the button stays hidden — it
+        // only appears once the user scrolls a meaningful amount.
+        var c = ChatAutoScrollController(nearBottomThreshold: 80, buttonVisibleThreshold: 160)
+        _ = c.bottomProximityChanged(120)
+        #expect(!c.showScrollToBottomButton)
+    }
+
+    @Test func scrollToBottomRequestedHidesButton() {
+        var c = ChatAutoScrollController(buttonVisibleThreshold: 160)
+        _ = c.bottomProximityChanged(500)
+        #expect(c.showScrollToBottomButton)
+        c.scrollToBottomRequested()
+        #expect(!c.showScrollToBottomButton)
+    }
+
     @Test func customThresholdIsHonoured() {
         var c = ChatAutoScrollController(nearBottomThreshold: 20)
         c.userDragged()
