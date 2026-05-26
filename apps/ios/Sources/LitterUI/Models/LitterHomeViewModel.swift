@@ -36,6 +36,12 @@ extension LitterUI {
         /// per-session work dir (`…/sessions/<id>/work`) is deliberately
         /// dropped — it's not a meaningful project path.
         var workingDir: String?
+        /// One-line preview of the latest activity in the session (the
+        /// most recent assistant reply / tool action), condensed to a
+        /// single line. Empty when the transcript carries nothing useful
+        /// yet. The title is the FIRST user message; this complements it
+        /// so the user can tell active sessions apart at a glance.
+        var lastActivityPreview: String
         var isSelected: Bool
         /// Whether the agent session is live (drives the status dot's
         /// green vs muted). Independent of `isSelected` — device bug #9:
@@ -109,6 +115,12 @@ extension LitterUI {
         /// passes nil for the ephemeral per-session work dir; we only
         /// carry a path here when it's worth showing.
         var workingDir: String?
+        /// Already-condensed one-line preview of the latest activity (most
+        /// recent assistant/tool item) for this session, or nil/empty when
+        /// the transcript has nothing to preview. The view layer builds
+        /// this from `store.conversationLog` via
+        /// `HomeViewModel.activityPreview(from:)`.
+        var lastActivityPreview: String?
 
         init(
             id: String,
@@ -116,7 +128,8 @@ extension LitterUI {
             assistant: String,
             phase: String?,
             lastActivityAt: String? = nil,
-            workingDir: String? = nil
+            workingDir: String? = nil,
+            lastActivityPreview: String? = nil
         ) {
             self.id = id
             self.displayName = displayName
@@ -124,6 +137,7 @@ extension LitterUI {
             self.phase = phase
             self.lastActivityAt = lastActivityAt
             self.workingDir = workingDir
+            self.lastActivityPreview = lastActivityPreview
         }
     }
 
@@ -148,6 +162,7 @@ extension LitterUI {
                     statusText: statusText(phase: phase, connected: snap.harness.isConnected),
                     relativeTime: relativeTime(s.lastActivityAt, now: now),
                     workingDir: s.workingDir,
+                    lastActivityPreview: s.lastActivityPreview ?? "",
                     isSelected: snap.selectedSessionID == s.id,
                     // Green only when actually connected AND the agent
                     // hasn't exited — otherwise the dot showed stale
@@ -163,11 +178,70 @@ extension LitterUI {
                     statusText: p.label,
                     relativeTime: "",
                     workingDir: nil,
+                    lastActivityPreview: "",
                     isSelected: false,
                     isRunning: false
                 ))
             }
             return rows
+        }
+
+        /// Condense the latest transcript activity into a single short
+        /// preview line for the home card's secondary row. Prefers a tool
+        /// action's command/label (e.g. "Run: cargo test") so an in-flight
+        /// session reads "what's happening"; otherwise the latest message
+        /// body's first non-empty line. Returns nil when there's nothing
+        /// worth previewing (e.g. the only item is the first user message,
+        /// which is already the card title).
+        ///
+        /// Pure string inputs (role / kind / toolName / command / content)
+        /// keep the view-model free of the generated core `ConversationItem`
+        /// type — the view layer pulls the latest item out of
+        /// `store.conversationLog` and hands the fields in.
+        static func activityPreview(
+            role: String,
+            kind: String,
+            toolName: String?,
+            command: String?,
+            content: String,
+            budget: Int = 72
+        ) -> String? {
+            // A tool action: surface the command (most informative for an
+            // active session) or fall back to a "<TOOL>: <first line>".
+            if role.lowercased() == "tool" || kind.lowercased() == "tool" {
+                if let command, !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    let label = (toolName?.isEmpty == false) ? toolName! : "Run"
+                    return clip("\(label): \(firstLine(command))", budget: budget)
+                }
+                let body = firstLine(content)
+                if !body.isEmpty {
+                    let prefix = (toolName?.isEmpty == false) ? "\(toolName!): " : ""
+                    return clip(prefix + body, budget: budget)
+                }
+                if let toolName, !toolName.isEmpty { return clip(toolName, budget: budget) }
+                return nil
+            }
+            // Assistant / other text: first non-empty line of the body.
+            let body = firstLine(content)
+            return body.isEmpty ? nil : clip(body, budget: budget)
+        }
+
+        /// First non-empty line of a (possibly multi-line) string with
+        /// internal whitespace runs collapsed to single spaces.
+        private static func firstLine(_ raw: String) -> String {
+            for line in raw.split(whereSeparator: { $0.isNewline }) {
+                let collapsed = line
+                    .split(whereSeparator: { $0.isWhitespace })
+                    .joined(separator: " ")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if !collapsed.isEmpty { return collapsed }
+            }
+            return ""
+        }
+
+        /// Trim to `budget` chars with an ellipsis when over.
+        private static func clip(_ s: String, budget: Int) -> String {
+            s.count <= budget ? s : String(s.prefix(budget - 1)) + "…"
         }
 
         /// Human status word for the row's secondary line. Disconnected

@@ -258,7 +258,8 @@ extension LitterUI {
                     lastActivityAt: lastActivity,
                     // Drop the ephemeral per-session work dir; only a real
                     // user-picked cwd surfaces in the row.
-                    workingDir: SessionNaming.meaningfulWorkingDir(cwd)
+                    workingDir: SessionNaming.meaningfulWorkingDir(cwd),
+                    lastActivityPreview: latestActivityPreview(for: s.id)
                 )
             }
             return LitterUI.HomeSnapshot(
@@ -267,6 +268,26 @@ extension LitterUI {
                 placeholders: [],
                 selectedSessionID: store.selectedSessionID,
                 endpointDisplayHost: endpointHost
+            )
+        }
+
+        /// One-line preview of the latest activity in a session for the
+        /// home card. Pulls the most recent NON-user transcript item from
+        /// `store.conversationLog` (assistant reply or tool action) — the
+        /// first user message is already the card title, so this surfaces
+        /// "what's happening" instead. Returns nil when the log carries
+        /// nothing but the user's prompts (or is empty), so the card simply
+        /// drops the line. Condensing lives in the pure view-model so it's
+        /// unit-testable.
+        private func latestActivityPreview(for sessionID: String) -> String? {
+            guard let log = store.conversationLog[sessionID], !log.isEmpty else { return nil }
+            guard let latest = log.last(where: { $0.role.lowercased() != "user" }) else { return nil }
+            return LitterUI.HomeViewModel.activityPreview(
+                role: latest.role,
+                kind: latest.kind,
+                toolName: latest.toolName,
+                command: latest.command,
+                content: latest.content
             )
         }
 
@@ -442,6 +463,7 @@ private struct HomeRowView: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                 secondaryLine
+                activityPreviewLine
             }
             Spacer(minLength: 0)
         }
@@ -502,6 +524,23 @@ private struct HomeRowView: View {
                 }
             }
             .lineLimit(1)
+        }
+    }
+
+    /// Third line: a one-line preview of the latest activity (most recent
+    /// assistant reply / tool action) so the user can tell active sessions
+    /// apart and see "what's happening" at a glance. The title is the
+    /// FIRST user message; this complements it. Muted, single-line,
+    /// truncating; renders nothing when there's no preview (placeholder
+    /// rows, or a transcript with only the user's prompt).
+    @ViewBuilder
+    private var activityPreviewLine: some View {
+        if case .session = row.kind, !row.lastActivityPreview.isEmpty {
+            Text(row.lastActivityPreview)
+                .font(.system(size: HomeRowMetrics.subtitlePointSize, weight: .regular))
+                .foregroundStyle(LitterUI.Palette.textMuted.color)
+                .lineLimit(1)
+                .truncationMode(.tail)
         }
     }
 
