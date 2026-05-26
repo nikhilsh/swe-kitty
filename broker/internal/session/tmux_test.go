@@ -66,15 +66,24 @@ func TestTerminalShellArgv(t *testing.T) {
 			t.Fatalf("expected [bash -lc <script>], got %v", got)
 		}
 		script := got[2]
-		if !strings.Contains(script, "/usr/bin/tmux") {
-			t.Fatalf("script missing tmux path: %q", script)
+		// Pin the exact command string. The `\;` are literal tmux command
+		// separators (escaped so bash passes them through to tmux), chaining
+		// the global `set -g` options onto the same tmux invocation; the
+		// final bare `;` is a real bash separator for `exec bash -l`.
+		want := `/usr/bin/tmux new-session -A -s kitty-abc \; set -g mouse on \; set -g history-limit 50000; exec bash -l`
+		if script != want {
+			t.Fatalf("script:\n want %q\n got  %q", want, script)
 		}
 		// attach-or-create: `new-session -A` is the single-command idiom.
 		if !strings.Contains(script, "new-session -A") {
 			t.Fatalf("script missing attach-or-create form: %q", script)
 		}
-		if !strings.Contains(script, "kitty-abc") {
-			t.Fatalf("script missing session name: %q", script)
+		// Mouse mode + deeper scrollback set globally, on create and attach.
+		if !strings.Contains(script, `\; set -g mouse on`) {
+			t.Fatalf("script missing mouse-on option: %q", script)
+		}
+		if !strings.Contains(script, `\; set -g history-limit 50000`) {
+			t.Fatalf("script missing history-limit option: %q", script)
 		}
 	})
 }
