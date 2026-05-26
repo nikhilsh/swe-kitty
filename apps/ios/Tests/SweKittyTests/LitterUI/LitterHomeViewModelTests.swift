@@ -201,6 +201,91 @@ struct LitterHomeViewModelTests {
         #expect(LitterUI.HomeViewModel.emptySymbol(reachable) == "sparkles")
     }
 
+    @Test func sessionRowCarriesActivityPreview() {
+        // The card's third line is a one-line preview of the latest
+        // activity. The view layer pre-condenses it and hands it through
+        // the snapshot; the row simply carries it.
+        let snap = LitterUI.HomeSnapshot(
+            harness: .live,
+            sessions: [
+                LitterUI.HomeSnapshotSession(
+                    id: "s1",
+                    displayName: "feature-branch",
+                    assistant: "claude",
+                    phase: "working",
+                    lastActivityPreview: "Run: cargo test"
+                )
+            ],
+            placeholders: [],
+            selectedSessionID: nil,
+            endpointDisplayHost: nil
+        )
+        let rows = LitterUI.HomeViewModel.rows(snap)
+        #expect(rows[0].lastActivityPreview == "Run: cargo test")
+    }
+
+    @Test func sessionRowPreviewDefaultsEmpty() {
+        // No preview supplied → the row carries an empty string and the
+        // view drops the line.
+        let snap = LitterUI.HomeSnapshot(
+            harness: .live,
+            sessions: [LitterUI.HomeSnapshotSession(id: "s", displayName: "S", assistant: "claude", phase: "ready")],
+            placeholders: [],
+            selectedSessionID: nil,
+            endpointDisplayHost: nil
+        )
+        #expect(LitterUI.HomeViewModel.rows(snap)[0].lastActivityPreview == "")
+    }
+
+    @Test func activityPreviewPrefersToolCommand() {
+        // A tool item surfaces its command, labelled by the tool name.
+        let preview = LitterUI.HomeViewModel.activityPreview(
+            role: "tool",
+            kind: "tool",
+            toolName: "Bash",
+            command: "cargo test --all\nshould-not-show",
+            content: "ignored body"
+        )
+        #expect(preview == "Bash: cargo test --all")
+    }
+
+    @Test func activityPreviewFallsBackToAssistantBody() {
+        // An assistant message uses its first non-empty line, condensed.
+        let preview = LitterUI.HomeViewModel.activityPreview(
+            role: "assistant",
+            kind: "message",
+            toolName: nil,
+            command: nil,
+            content: "\n   Here is the   plan\nmore detail"
+        )
+        #expect(preview == "Here is the plan")
+    }
+
+    @Test func activityPreviewClipsLongLines() {
+        let long = String(repeating: "a", count: 200)
+        let preview = LitterUI.HomeViewModel.activityPreview(
+            role: "assistant",
+            kind: "message",
+            toolName: nil,
+            command: nil,
+            content: long,
+            budget: 10
+        )
+        #expect(preview?.count == 10)            // 9 chars + ellipsis
+        #expect(preview?.hasSuffix("…") == true)
+    }
+
+    @Test func activityPreviewNilOnEmptyContent() {
+        let preview = LitterUI.HomeViewModel.activityPreview(
+            role: "assistant",
+            kind: "message",
+            toolName: nil,
+            command: nil,
+            content: "   \n  "
+        )
+        #expect(preview == nil)
+    }
+
     @Test func placeholdersAppearAfterRealSessions() {
         // Placeholder = an in-flight session-creation, must render
         // *under* real sessions so a long-running placeholder doesn't
