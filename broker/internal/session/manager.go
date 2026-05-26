@@ -541,8 +541,19 @@ func (s *Session) PublishText(payload []byte) {
 
 // MarkUserChatSent primes the chat scraper to capture the next
 // assistant reply. Called by the websocket chat handler right before
-// the user's message is written into the PTY.
+// the user's message is written into the PTY — i.e. the legacy
+// TUI-scrape path (s.chat == nil), the structured path goes through
+// SendChat instead.
+//
+// We also persist the user prompt here. On this path the assistant
+// reply lands in conversation.jsonl via the scraper's chat view_event
+// (PublishText → appendRaw), but the user's side never flows back
+// through PublishText, so without this the reopened transcript would be
+// one-sided (replies with no questions) — or empty when the very first
+// turn hasn't replied yet. This mirrors what SendChat already does for
+// the structured channel, so history works regardless of chat_mode.
 func (s *Session) MarkUserChatSent(msg string) {
+	s.convLog.appendUser(msg)
 	if s.scraper != nil {
 		s.scraper.markUserSent(msg)
 	}

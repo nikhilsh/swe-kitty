@@ -2,6 +2,7 @@ package session
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -123,6 +124,96 @@ func TestWatchdogMarksWarningAndDead(t *testing.T) {
 	if got := sess.Status().Health; got != "dead" {
 		t.Fatalf("expected dead health, got %q", got)
 	}
+}
+
+// TestTUIScrapeChatPersistsBothSides proves the regression fix: on the
+// legacy TUI-scrape path (adapter with no chat_mode → s.chat == nil),
+// a chat exchange persists BOTH the user prompt and the assistant reply
+// to conversation.jsonl, and ConversationLog reads them back in order.
+//
+// Before the fix, MarkUserChatSent only primed the scraper and never
+// recorded the user side — so a reopened session showed "No saved
+// transcript" (the file was never created when the first turn's reply
+// hadn't been scraped yet) or a one-sided transcript (replies with no
+// questions). The two calls driven here are exactly the ones the
+// websocket chat handler + chat scraper make on a TUI-path turn:
+//
+//	user side:      Session.MarkUserChatSent(prompt)
+//	assistant side: Session.PublishText(<view_event view:"chat">)
+//
+// PublishText with a chat frame is byte-for-byte what chatScraper.flush
+// emits, so this exercises the real persistence seam without depending
+// on PTY/ANSI scrape timing.
+func TestTUIScrapeChatPersistsBothSides(t *testing.T) {
+	root := testRoot(t)
+	reg := testRegistry(t, root, map[string]string{
+		"claude": idleScript("scrape-ready"),
+	})
+	m := NewManager(reg)
+	t.Cleanup(m.Close)
+
+	sess, _, err := m.GetOrCreate("session-scrape-chat", "claude")
+	if err != nil {
+		t.Fatalf("GetOrCreate: %v", err)
+	}
+	// No chat_mode → TUI-scrape path: the structured chat backend is
+	// absent (s.chat == nil) and the scraper is active. This is the
+	// configuration that produced the "No saved transcript" bug.
+	if sess.chat != nil {
+		t.Fatal("expected TUI-scrape path (s.chat == nil) for an adapter without chat_mode")
+	}
+	if sess.scraper == nil {
+		t.Fatal("expected an active chat scraper on the TUI path")
+	}
+	waitForOutput(t, sess, "scrape-ready")
+
+	// Turn 1: user prompt (recorded by the fix) then the scraped reply.
+	sess.MarkUserChatSent("what is two plus two")
+	sess.PublishText(scrapedAssistantFrame(t, "the answer is four"))
+	// Turn 2: prove ordering across turns and that the user side of a
+	// follow-up is captured too.
+	sess.MarkUserChatSent("thanks, and three plus three?")
+	sess.PublishText(scrapedAssistantFrame(t, "six"))
+
+	entries, err := m.ConversationLog("session-scrape-chat")
+	if err != nil {
+		t.Fatalf("ConversationLog: %v", err)
+	}
+	want := []ConvEntry{
+		{Role: "user", Content: "what is two plus two"},
+		{Role: "assistant", Content: "the answer is four"},
+		{Role: "user", Content: "thanks, and three plus three?"},
+		{Role: "assistant", Content: "six"},
+	}
+	if len(entries) != len(want) {
+		t.Fatalf("want %d entries, got %d (%+v)", len(want), len(entries), entries)
+	}
+	for i, w := range want {
+		if entries[i].Role != w.Role || entries[i].Content != w.Content {
+			t.Fatalf("entry %d = {%s %q}, want {%s %q}", i, entries[i].Role, entries[i].Content, w.Role, w.Content)
+		}
+	}
+}
+
+// scrapedAssistantFrame builds the exact view_event JSON envelope the
+// chat scraper publishes for an assistant turn (and that PublishText
+// persists via appendRaw).
+func scrapedAssistantFrame(t *testing.T, content string) []byte {
+	t.Helper()
+	payload, err := json.Marshal(map[string]any{
+		"type": "view_event",
+		"view": "chat",
+		"event": map[string]any{
+			"role":    "assistant",
+			"content": content,
+			"ts":      time.Now().UTC().Format(time.RFC3339Nano),
+			"files":   []any{},
+		},
+	})
+	if err != nil {
+		t.Fatalf("marshal frame: %v", err)
+	}
+	return payload
 }
 
 func TestManagerRecoverRestoresPersistedSnapshot(t *testing.T) {
