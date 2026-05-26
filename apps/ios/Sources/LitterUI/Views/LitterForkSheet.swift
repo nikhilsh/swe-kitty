@@ -25,7 +25,10 @@ extension LitterUI {
         let currentEffort: String?
 
         @State private var effort: String
-        @State private var modelDraft: String
+        /// The selected model option. `ForkOptions.inheritModel` (empty
+        /// string) means "no override — keep the current model", which is
+        /// what an untouched fork sends.
+        @State private var model: String
 
         init(session: ProjectSession, currentEffort: String?) {
             self.session = session
@@ -34,11 +37,15 @@ extension LitterUI {
             let initial = currentEffort.flatMap { options.contains($0) ? $0 : nil }
                 ?? (options.contains("medium") ? "medium" : (options.first ?? "medium"))
             self._effort = State(initialValue: initial)
-            self._modelDraft = State(initialValue: "")
+            self._model = State(initialValue: ForkOptions.inheritModel)
         }
 
         private var effortOptions: [String] {
             ForkOptions.efforts(forAssistant: session.assistant)
+        }
+
+        private var modelOptions: [String] {
+            ForkOptions.models(forAssistant: session.assistant)
         }
 
         var body: some View {
@@ -59,13 +66,27 @@ extension LitterUI {
                         .pickerStyle(.segmented)
 
                         sectionLabel("Model (optional)")
-                        TextField(ForkOptions.modelPlaceholder(forAssistant: session.assistant), text: $modelDraft)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled(true)
+                        Menu {
+                            Picker("Model", selection: $model) {
+                                ForEach(modelOptions, id: \.self) { option in
+                                    Text(ForkOptions.modelLabel(option)).tag(option)
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Text(ForkOptions.modelLabel(model))
+                                    .foregroundStyle(LitterUI.Palette.textPrimary.color)
+                                Spacer()
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(LitterUI.Palette.textMuted.color)
+                            }
                             .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
+                            .padding(.vertical, 12)
                             .litterGlassRoundedRect(cornerRadius: 14)
-                        Text("Leave blank to keep the current model. Use an alias (e.g. \(ForkOptions.modelPlaceholder(forAssistant: session.assistant))) or a full model name.")
+                        }
+                        .tint(LitterUI.Palette.brand.color)
+                        Text("Default keeps the current model. Pick an alias to fork onto a different one.")
                             .font(.caption2)
                             .foregroundStyle(LitterUI.Palette.textMuted.color)
 
@@ -83,7 +104,6 @@ extension LitterUI {
                     }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Fork") {
-                            let model = modelDraft.trimmingCharacters(in: .whitespacesAndNewlines)
                             store.forkSession(
                                 sessionID: session.id,
                                 reasoningEffort: effort,
@@ -108,6 +128,11 @@ extension LitterUI {
     /// effort levels (broker/internal/session/override.go) so the UI never
     /// offers a level the agent would silently drop.
     enum ForkOptions {
+        /// Sentinel for the "keep the current model" option. Sent to
+        /// forkSession as nil so the spawn carries no --model override —
+        /// byte-for-byte identical to the pre-picker untouched fork.
+        static let inheritModel = ""
+
         static func efforts(forAssistant assistant: String) -> [String] {
             switch assistant {
             case "claude":
@@ -119,15 +144,27 @@ extension LitterUI {
             }
         }
 
-        static func modelPlaceholder(forAssistant assistant: String) -> String {
+        /// Curated per-assistant model aliases for the fork picker. The
+        /// broker passes the chosen value straight to the agent's --model
+        /// flag (broker/internal/session/override.go), so these are the
+        /// CLI's accepted aliases. The leading inheritModel entry maps to
+        /// "no override". Aliases (opus/sonnet/haiku, gpt-5-codex) avoid
+        /// pinning a dated full model name in the client.
+        static func models(forAssistant assistant: String) -> [String] {
             switch assistant {
             case "claude":
-                return "opus"
+                return [inheritModel, "opus", "sonnet", "haiku"]
             case "codex":
-                return "gpt-5-codex"
+                return [inheritModel, "gpt-5-codex"]
             default:
-                return "model"
+                return [inheritModel]
             }
+        }
+
+        /// Display label for a model option. The sentinel renders as the
+        /// "inherit" affordance; everything else shows its alias verbatim.
+        static func modelLabel(_ option: String) -> String {
+            option.isEmpty ? "Default (inherit)" : option
         }
     }
 }

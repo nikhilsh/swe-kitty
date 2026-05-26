@@ -17,10 +17,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CallSplit
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -83,7 +86,12 @@ fun SessionInfoScreen(store: SessionStore, session: ProjectSession, onDismiss: (
                 ?: if (effortOptions.contains("medium")) "medium" else effortOptions.first(),
         )
     }
-    var forkModel by remember(showFork) { mutableStateOf("") }
+    // forkModel is a model alias or "" (inherit = no override). The
+    // dropdown is filtered by assistant; the leading "" entry keeps the
+    // current model, byte-for-byte identical to the pre-picker fork.
+    val modelOptions = remember(session.assistant) { forkModelOptions(session.assistant) }
+    var forkModel by remember(showFork) { mutableStateOf(forkModelInherit) }
+    var modelMenuExpanded by remember(showFork) { mutableStateOf(false) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
@@ -317,32 +325,48 @@ fun SessionInfoScreen(store: SessionStore, session: ProjectSession, onDismiss: (
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                    ) {
-                        BasicTextField(
-                            value = forkModel,
-                            onValueChange = { forkModel = it },
-                            singleLine = true,
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                color = MaterialTheme.colorScheme.onSurface,
-                            ),
-                            decorationBox = { inner ->
-                                if (forkModel.isEmpty()) {
-                                    Text(
-                                        forkModelPlaceholder(session.assistant),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                                inner()
-                            },
-                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
-                        )
+                    Box {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { modelMenuExpanded = true },
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp).fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    forkModelLabel(forkModel),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Icon(
+                                    Icons.Default.ArrowDropDown,
+                                    contentDescription = "Choose model",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        DropdownMenu(
+                            expanded = modelMenuExpanded,
+                            onDismissRequest = { modelMenuExpanded = false },
+                        ) {
+                            modelOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(forkModelLabel(option)) },
+                                    onClick = {
+                                        forkModel = option
+                                        modelMenuExpanded = false
+                                    },
+                                )
+                            }
+                        }
                     }
                     Text(
-                        "Leave blank to keep the current model.",
+                        "Default keeps the current model.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -463,12 +487,31 @@ internal fun forkEffortOptions(assistant: String): List<String> = when (assistan
     else -> listOf("low", "medium", "high")
 }
 
-/** Placeholder model alias hint for the fork chooser's model field. */
-internal fun forkModelPlaceholder(assistant: String): String = when (assistant) {
-    "claude" -> "opus"
-    "codex" -> "gpt-5-codex"
-    else -> "model"
+/**
+ * Sentinel for the fork chooser's "keep the current model" option. Sent
+ * to forkSession as null so the spawn carries no --model override —
+ * byte-for-byte identical to the pre-picker untouched fork.
+ */
+internal const val forkModelInherit = ""
+
+/**
+ * Curated per-assistant model aliases offered in the fork chooser's
+ * model dropdown. The broker passes the chosen value straight to the
+ * agent's --model flag (`broker/internal/session/override.go`), so these
+ * are the CLI's accepted aliases. The leading inherit entry maps to "no
+ * override". Aliases (opus/sonnet/haiku, gpt-5-codex) avoid pinning a
+ * dated full model name in the client. Mirror of iOS
+ * `LitterUI.ForkOptions.models(forAssistant:)`.
+ */
+internal fun forkModelOptions(assistant: String): List<String> = when (assistant) {
+    "claude" -> listOf(forkModelInherit, "opus", "sonnet", "haiku")
+    "codex" -> listOf(forkModelInherit, "gpt-5-codex")
+    else -> listOf(forkModelInherit)
 }
+
+/** Display label for a fork model option; the sentinel reads as inherit. */
+internal fun forkModelLabel(option: String): String =
+    if (option.isEmpty()) "Default (inherit)" else option
 
 /**
  * Client-side stats derived from the conversation log. Mirrors
