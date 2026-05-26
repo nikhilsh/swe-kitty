@@ -47,6 +47,18 @@ func terminalShellArgv(tmuxPath, sessionName string) []string {
 	// We wrap it in `bash -lc` so the PTY still owns a bash login shell
 	// (matching the env we set: TERM, PS1) and so a clean tmux detach
 	// (prefix-d) drops the user back to a usable shell rather than EOF.
-	cmd := tmuxPath + " new-session -A -s " + sessionName + "; exec bash -l"
+	//
+	// We chain two global `set -g` options onto the same tmux invocation so
+	// they apply server-wide (all sessions) and run on BOTH the create and
+	// the `-A` attach path:
+	//   - `mouse on`           lets tmux turn mobile touch/wheel scroll into
+	//                          copy-mode scrolling of its own history.
+	//   - `history-limit 50000` gives a much deeper scrollback buffer.
+	// The separator between tmux commands is tmux's own `;`, which must reach
+	// tmux *literally* — so we escape it as `\;` in the shell string (bash
+	// would otherwise eat a bare `;` as its own command separator). The final
+	// `; exec bash -l` is intentionally a REAL (unescaped) bash separator so
+	// bash exec's a login shell once tmux detaches/exits, exactly as before.
+	cmd := tmuxPath + " new-session -A -s " + sessionName + ` \; set -g mouse on \; set -g history-limit 50000; exec bash -l`
 	return []string{"bash", "-lc", cmd}
 }
