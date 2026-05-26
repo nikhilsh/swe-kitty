@@ -198,3 +198,117 @@ struct ConversationRendererTests {
     // `alignment(for:)` rule has its own coverage in
     // `LitterUI.ChatViewModel`-adjacent tests.
 }
+
+/// Pins the structured-markdown splitter (BUG 1). `AttributedString
+/// (markdown:)` flattens block structure — headings jam into following
+/// text and GFM tables collapse into concatenated cell text. The
+/// splitter pre-separates the body into typed pieces so the renderer can
+/// space them and stack table rows instead of running them together.
+@Suite("LitterMarkdownStructure.parse")
+struct LitterMarkdownStructureTests {
+
+    @Test func headingIsItsOwnPieceAndDoesNotMergeIntoNextBlock() {
+        let pieces = LitterMarkdownStructure.parse("""
+        ## Summary
+        The build is green.
+        """)
+        // Two distinct pieces — the heading must NOT concatenate with
+        // the paragraph that follows it.
+        #expect(pieces.count == 2)
+        guard case .heading(let level, let text) = pieces[0] else {
+            Issue.record("first piece not a heading: \(pieces[0])"); return
+        }
+        #expect(level == 2)
+        #expect(text == "Summary")
+        guard case .paragraph(let body) = pieces[1] else {
+            Issue.record("second piece not a paragraph: \(pieces[1])"); return
+        }
+        #expect(body == "The build is green.")
+    }
+
+    @Test func gfmTableParsesIntoHeadersAndRowsNotConcatenated() {
+        let pieces = LitterMarkdownStructure.parse("""
+        | Session | Assistant | Notes |
+        | --- | --- | --- |
+        | 062e6bf1 | claude | 120x40 |
+        | a1b2c3d4 | codex | 80x24 |
+        """)
+        #expect(pieces.count == 1)
+        guard case .table(let headers, let rows) = pieces[0] else {
+            Issue.record("not a table: \(pieces[0])"); return
+        }
+        #expect(headers == ["Session", "Assistant", "Notes"])
+        #expect(rows.count == 2)
+        // The delimiter row must be dropped, and cells must stay split
+        // (the device bug rendered these run together).
+        #expect(rows[0] == ["062e6bf1", "claude", "120x40"])
+        #expect(rows[1] == ["a1b2c3d4", "codex", "80x24"])
+    }
+
+    @Test func pipeProseLineIsNotMistakenForATable() {
+        // A lone pipe line with no delimiter row underneath stays prose.
+        let pieces = LitterMarkdownStructure.parse("Run `a | b` to pipe.")
+        #expect(pieces.count == 1)
+        guard case .paragraph(let text) = pieces[0] else {
+            Issue.record("pipe prose collapsed into \(pieces[0])"); return
+        }
+        #expect(text == "Run `a | b` to pipe.")
+    }
+
+    @Test func unorderedListParsesItems() {
+        let pieces = LitterMarkdownStructure.parse("""
+        - first
+        - second
+        - third
+        """)
+        #expect(pieces.count == 1)
+        guard case .list(let ordered, let items) = pieces[0] else {
+            Issue.record("not a list: \(pieces[0])"); return
+        }
+        #expect(!ordered)
+        #expect(items == ["first", "second", "third"])
+    }
+
+    @Test func orderedListParsesItemsAndMarkerType() {
+        let pieces = LitterMarkdownStructure.parse("""
+        1. alpha
+        2. beta
+        """)
+        #expect(pieces.count == 1)
+        guard case .list(let ordered, let items) = pieces[0] else {
+            Issue.record("not a list: \(pieces[0])"); return
+        }
+        #expect(ordered)
+        #expect(items == ["alpha", "beta"])
+    }
+
+    @Test func mixedBodySeparatesEveryBlock() {
+        // Heading + paragraph + list + table all in one body must yield
+        // four separate pieces in order — no block bunching.
+        let pieces = LitterMarkdownStructure.parse("""
+        # Report
+
+        Here are the results.
+
+        - passed
+        - failed
+
+        | Test | Status |
+        | --- | --- |
+        | unit | ok |
+        """)
+        #expect(pieces.count == 4)
+        if case .heading = pieces[0] {} else { Issue.record("0 not heading: \(pieces[0])") }
+        if case .paragraph = pieces[1] {} else { Issue.record("1 not paragraph: \(pieces[1])") }
+        if case .list = pieces[2] {} else { Issue.record("2 not list: \(pieces[2])") }
+        if case .table = pieces[3] {} else { Issue.record("3 not table: \(pieces[3])") }
+    }
+
+    @Test func emptyInputProducesOneEmptyParagraph() {
+        let pieces = LitterMarkdownStructure.parse("")
+        #expect(pieces.count == 1)
+        if case .paragraph(let t) = pieces[0] { #expect(t == "") } else {
+            Issue.record("empty input not a paragraph: \(pieces[0])")
+        }
+    }
+}

@@ -135,6 +135,32 @@ extension LitterUI {
             }
         }
 
+        /// Stable id for an invisible spacer pinned at the very end of
+        /// the list. Scrolling to *this* (rather than the last event)
+        /// guarantees we reach the absolute bottom — below the typing
+        /// indicator and any trailing padding — so tap-to-bottom and
+        /// stream-follow never land a few pixels short.
+        private static let bottomAnchorID = "litter-chat-bottom-anchor"
+
+        /// Scroll to the true bottom, then re-scroll on the next runloop.
+        /// A single `scrollTo` can land short while content is still
+        /// laying out / streaming (the row it targets grows after the
+        /// scroll resolves); the deferred second pass settles it onto the
+        /// real bottom (BUG 2).
+        private func scrollToTrueBottom(_ proxy: ScrollViewProxy, animated: Bool = true) {
+            func jump() {
+                if animated {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo(Self.bottomAnchorID, anchor: .bottom)
+                    }
+                } else {
+                    proxy.scrollTo(Self.bottomAnchorID, anchor: .bottom)
+                }
+            }
+            jump()
+            DispatchQueue.main.async { jump() }
+        }
+
         private var messagesList: some View {
             ScrollViewReader { proxy in
                 ScrollView {
@@ -146,8 +172,22 @@ extension LitterUI {
                             .id(event.id)
                             .padding(.horizontal, 16)
                         }
+                        // BUG 3: "agent is typing" indicator lives inside
+                        // the scroll content so it follows autoscroll like
+                        // any new content while the user is at the bottom.
+                        if isStreaming {
+                            LitterTypingIndicator()
+                                .padding(.horizontal, 16)
+                                .transition(.opacity)
+                        }
+                        // Zero-height bottom anchor — the scroll target for
+                        // true-bottom jumps (sits below the typing row).
+                        Color.clear
+                            .frame(height: 1)
+                            .id(Self.bottomAnchorID)
                     }
                     .padding(.vertical, 14)
+                    .animation(.easeOut(duration: 0.18), value: isStreaming)
                 }
                 .scrollDismissesKeyboard(.interactively)
                 // Measure distance from the bottom edge so the controller
@@ -173,16 +213,16 @@ extension LitterUI {
                 // Follow the stream: re-scroll on each token, but only
                 // while the user hasn't scrolled up.
                 .onChange(of: streamingContentLength) { _, _ in
-                    guard autoScroll.shouldFollowStreaming, let id = events.last?.id else { return }
+                    guard autoScroll.shouldFollowStreaming else { return }
                     withAnimation(.easeOut(duration: 0.12)) {
-                        proxy.scrollTo(id, anchor: .bottom)
+                        proxy.scrollTo(Self.bottomAnchorID, anchor: .bottom)
                     }
                 }
                 // A brand-new message (user send / fresh assistant turn).
-                .onChange(of: events.last?.id) { _, newID in
-                    guard autoScroll.shouldFollowNewMessage, let newID else { return }
+                .onChange(of: events.last?.id) { _, _ in
+                    guard autoScroll.shouldFollowNewMessage else { return }
                     withAnimation(.easeOut(duration: 0.22)) {
-                        proxy.scrollTo(newID, anchor: .bottom)
+                        proxy.scrollTo(Self.bottomAnchorID, anchor: .bottom)
                     }
                 }
                 // ~300ms settle after the stream ends: the final layout
@@ -191,37 +231,37 @@ extension LitterUI {
                 // are quiet (unless the user has scrolled away).
                 .onChange(of: isStreaming) { wasStreaming, nowStreaming in
                     guard wasStreaming, !nowStreaming else { return }
-                    guard autoScroll.shouldFollowStreaming, let id = events.last?.id else { return }
+                    guard autoScroll.shouldFollowStreaming else { return }
                     Task {
                         try? await Task.sleep(nanoseconds: 300_000_000)
                         guard autoScroll.shouldFollowStreaming else { return }
-                        withAnimation(.easeOut(duration: 0.2)) {
-                            proxy.scrollTo(id, anchor: .bottom)
-                        }
+                        scrollToTrueBottom(proxy)
                     }
                 }
+                // BUG 2: the button is a fixed overlay anchored to the
+                // view (not the content), so it never moves as messages
+                // appear/stream. It fades + scales out smoothly as the
+                // user reaches the bottom rather than popping.
                 .overlay(alignment: .bottomTrailing) {
-                    if autoScroll.showScrollToBottomButton {
-                        scrollToBottomButton(proxy: proxy)
-                            .padding(.trailing, 16)
-                            .padding(.bottom, 12)
-                            .transition(.scale.combined(with: .opacity))
-                    }
+                    scrollToBottomButton(proxy: proxy)
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 12)
+                        .opacity(autoScroll.showScrollToBottomButton ? 1 : 0)
+                        .scaleEffect(autoScroll.showScrollToBottomButton ? 1 : 0.8)
+                        .allowsHitTesting(autoScroll.showScrollToBottomButton)
+                        .accessibilityHidden(!autoScroll.showScrollToBottomButton)
+                        .animation(.easeOut(duration: 0.2), value: autoScroll.showScrollToBottomButton)
                 }
-                .animation(.easeOut(duration: 0.18), value: autoScroll.showScrollToBottomButton)
             }
         }
 
-        /// Scroll-to-latest affordance shown when the user has scrolled
-        /// up. Tapping clears the latch and jumps to the newest message.
+        /// Scroll-to-latest affordance, faded in when the user has
+        /// scrolled a meaningful amount above the bottom. Tapping clears
+        /// the latch and jumps to the absolute bottom (BUG 2).
         private func scrollToBottomButton(proxy: ScrollViewProxy) -> some View {
             Button {
                 autoScroll.scrollToBottomRequested()
-                if let id = events.last?.id {
-                    withAnimation(.easeOut(duration: 0.22)) {
-                        proxy.scrollTo(id, anchor: .bottom)
-                    }
-                }
+                scrollToTrueBottom(proxy)
             } label: {
                 Image(systemName: "arrow.down")
                     .font(.system(size: 16, weight: .semibold))
@@ -491,54 +531,33 @@ private struct LitterMarkdownBlock: View {
     @Environment(StreamingRendererCoordinator.self) private var coordinator
 
     // Compute-once-into-@State (task #38 / claude-code-ios
-    // EnhancedMessageView pattern). Parsing markdown into an
-    // `AttributedString` is the hot allocator on the chat list; doing it
-    // inside `body` re-parsed on every recycle. Instead we parse once in
-    // `.task(id:)` and store the result, so a recycled row's `body`
-    // renders straight from `@State` (or the shared LRU cache) with no
+    // EnhancedMessageView pattern). Parsing markdown into structured
+    // pieces + inline `AttributedString`s is the hot allocator on the
+    // chat list; doing it inside `body` re-parsed on every recycle.
+    // Instead we parse once in `.task(id:)` and store the result, so a
+    // recycled row's `body` renders straight from `@State` with no
     // re-parse. The render key folds content + appearance so the parse
     // re-fires only when something that affects the output changes.
-    @State private var formatted: AttributedString = AttributedString("")
+    //
+    // BUG 1 fix: a single message body can carry headings, paragraphs,
+    // lists AND GFM tables. `AttributedString(markdown:)` interprets
+    // *inline* syntax but flattens *block* structure (no inter-block
+    // spacing, and tables collapse to concatenated cell text). We now
+    // split the body into `LitterMarkdownPiece`s and render each with
+    // its own vertical rhythm — tables become stacked records, headings
+    // get weight + space, lists get bullets + indent.
+    @State private var pieces: [LitterMarkdownPiece] = []
     @State private var renderedKey: Int? = nil
 
     private func revision(for content: String) -> Int {
         // Re-render when the user changes their body-size slider — the
-        // attributed cache stores absolute font sizes (PR 4 heading
-        // scale) so the cache key has to vary with the size.
+        // rendered runs store absolute font sizes (PR 4 heading scale)
+        // so the cache key has to vary with the size.
         var hasher = Hasher()
         hasher.combine(content)
         hasher.combine(appearance.bodyPointSize)
         hasher.combine(appearance.fontFamily.rawValue)
         return hasher.finalize()
-    }
-
-    /// Resolve the formatted string for `content` at the current
-    /// appearance — cache hit first, parse-and-store on miss. Returns
-    /// the value so the `.task` can also assign it to `@State`.
-    @discardableResult
-    private func resolve(_ content: String) -> AttributedString {
-        let rev = revision(for: content)
-        if let id = itemID, let hit = MessageRenderCache.shared.get(itemID: id, revision: rev) {
-            return hit
-        }
-        let parsed = parseAndScale(content)
-        if let id = itemID {
-            MessageRenderCache.shared.set(itemID: id, revision: rev, value: parsed)
-        }
-        return parsed
-    }
-
-    private func parseAndScale(_ content: String) -> AttributedString {
-        var attr = (try? AttributedString(
-            markdown: content,
-            options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .full)
-        )) ?? AttributedString(content)
-        LitterMarkdownHeadingScaler.apply(
-            to: &attr,
-            basePointSize: appearance.bodyPointSize,
-            design: SweKittyTypography.design(for: appearance.fontFamily)
-        )
-        return attr
     }
 
     private var displayedText: String {
@@ -566,40 +585,175 @@ private struct LitterMarkdownBlock: View {
     private var renderKey: Int { revision(for: displayedText) }
 
     var body: some View {
-        // Outer `.font` picks up `bodyPointSize` (PR 1 slider) via
-        // `SweKittyTypography.body(appearance)`. The attributed string
-        // itself carries per-run overrides for headings via
-        // `LitterMarkdownHeadingScaler`, so this base only applies to
-        // body / paragraph runs and the larger header sizes win.
-        Text(formatted)
-            .font(SweKittyTypography.body(appearance))
+        LitterStructuredMarkdownView(
+            pieces: pieces,
+            role: role,
+            basePointSize: appearance.bodyPointSize,
+            design: SweKittyTypography.design(for: appearance.fontFamily)
+        )
+        .frame(maxWidth: role == .user ? nil : .infinity, alignment: role == .user ? .trailing : .leading)
+        .transition(isStreaming ? .opacity : .identity)
+        .animation(isStreaming ? .easeOut(duration: 0.05) : nil, value: pieces)
+        // Parse once per key into @State. `.task(id:)` cancels +
+        // re-runs when `renderKey` changes; the synchronous seed below
+        // covers the very first frame (and recycled rows that already
+        // match) so the row never flashes empty at 0px.
+        .task(id: renderKey) {
+            if renderedKey != renderKey {
+                pieces = LitterMarkdownStructure.parse(displayedText)
+                renderedKey = renderKey
+            }
+        }
+        .onAppear {
+            // First appearance (or recycle into a row whose key differs
+            // from the last assignment): seed synchronously so we don't
+            // draw an empty row for one frame while the `.task`
+            // schedules.
+            if renderedKey != renderKey {
+                pieces = LitterMarkdownStructure.parse(displayedText)
+                renderedKey = renderKey
+            }
+        }
+    }
+}
+
+// MARK: - Structured markdown renderer
+//
+// Renders the typed `LitterMarkdownPiece`s with explicit vertical
+// rhythm: headings get weight + space above/below, paragraphs/list
+// items/tables get consistent gaps, lists show bullets/numbers + hang
+// indent, and GFM tables render as stacked "header: value" records
+// (robust on a narrow phone — never the run-on concatenation the device
+// bug reported). Inline markdown (bold / code spans / links) inside each
+// piece is interpreted per-segment via `AttributedString(markdown:)`,
+// looked up through `MessageRenderCache` so a recycled row doesn't
+// re-parse.
+private struct LitterStructuredMarkdownView: View {
+    let pieces: [LitterMarkdownPiece]
+    let role: LitterRole
+    let basePointSize: CGFloat
+    let design: Font.Design
+
+    /// Vertical gap between top-level blocks (BUG 1: blocks were bunched
+    /// with no rhythm). 10pt reads as a clear paragraph break without
+    /// looking double-spaced.
+    private let blockSpacing: CGFloat = 10
+
+    var body: some View {
+        VStack(alignment: role == .user ? .trailing : .leading, spacing: blockSpacing) {
+            ForEach(Array(pieces.enumerated()), id: \.offset) { _, piece in
+                pieceView(piece)
+                    .frame(maxWidth: role == .user ? nil : .infinity,
+                           alignment: role == .user ? .trailing : .leading)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func pieceView(_ piece: LitterMarkdownPiece) -> some View {
+        switch piece {
+        case .heading(let level, let text):
+            headingView(level: level, text: text)
+        case .paragraph(let text):
+            inlineText(text)
+                .font(.system(size: basePointSize, weight: .regular, design: design))
+        case .list(let ordered, let items):
+            listView(ordered: ordered, items: items)
+        case .table(let headers, let rows):
+            tableView(headers: headers, rows: rows)
+        }
+    }
+
+    // MARK: Heading
+
+    private func headingView(level: Int, text: String) -> some View {
+        let mult = LitterMarkdownHeadingScaler.multiplier(forLevel: level) ?? 1.0
+        // Extra space above a heading (but not the very first block)
+        // keeps headings from jamming into the preceding text. The
+        // outer VStack supplies the gap below.
+        return inlineText(text)
+            .font(.system(size: basePointSize * mult, weight: .semibold, design: design))
+            .padding(.top, level <= 2 ? 6 : 2)
+    }
+
+    // MARK: List
+
+    private func listView(ordered: Bool, items: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(Array(items.enumerated()), id: \.offset) { idx, item in
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(ordered ? "\(idx + 1)." : "•")
+                        .font(.system(size: basePointSize, weight: .regular, design: design))
+                        .foregroundStyle(LitterUI.Palette.textSecondary.color)
+                        .frame(minWidth: ordered ? 18 : 10, alignment: .trailing)
+                    inlineText(item)
+                        .font(.system(size: basePointSize, weight: .regular, design: design))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+    }
+
+    // MARK: Table (stacked records)
+
+    private func tableView(headers: [String], rows: [[String]]) -> some View {
+        // Stacked "header: value" records. On a narrow phone a true
+        // grid wraps illegibly; stacking each row as a small card of
+        // header→value pairs stays readable and never concatenates.
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                VStack(alignment: .leading, spacing: 3) {
+                    ForEach(Array(row.enumerated()), id: \.offset) { col, cell in
+                        let header = col < headers.count ? headers[col] : ""
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            if !header.isEmpty {
+                                Text(header)
+                                    .font(.system(size: basePointSize * 0.85, weight: .semibold, design: design))
+                                    .foregroundStyle(LitterUI.Palette.textSecondary.color)
+                            }
+                            inlineText(cell)
+                                .font(.system(size: basePointSize, weight: .regular, design: design))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(LitterUI.Palette.surfaceLight.color.opacity(0.5))
+                )
+            }
+        }
+    }
+
+    // MARK: Inline
+
+    /// Render a single block's text with inline markdown (bold / code
+    /// spans / links) interpreted. `interpretedSyntax: .inlineOnly`
+    /// keeps block markers (which we've already stripped) from being
+    /// re-interpreted, and avoids the block-flattening that caused the
+    /// run-on bug. Cached so recycled rows skip the parse.
+    private func inlineText(_ raw: String) -> some View {
+        let attr = Self.inlineAttributed(raw)
+        return Text(attr)
             .foregroundStyle(foregroundForRole)
             .textSelection(.enabled)
             .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: role == .user ? nil : .infinity, alignment: role == .user ? .trailing : .leading)
-            .transition(isStreaming ? .opacity : .identity)
-            .animation(isStreaming ? .easeOut(duration: 0.05) : nil, value: formatted)
-            // Parse once per key into @State. `.task(id:)` cancels +
-            // re-runs when `renderKey` changes; the synchronous seed
-            // below covers the very first frame (and recycled rows that
-            // already match) so the row never flashes empty at 0px.
-            .task(id: renderKey) {
-                if renderedKey != renderKey {
-                    let resolved = resolve(displayedText)
-                    formatted = resolved
-                    renderedKey = renderKey
-                }
-            }
-            .onAppear {
-                // First appearance (or recycle into a row whose key
-                // differs from the last assignment): seed synchronously
-                // so we don't draw an empty row for one frame while the
-                // `.task` schedules. A cache hit makes this near-free.
-                if renderedKey != renderKey {
-                    formatted = resolve(displayedText)
-                    renderedKey = renderKey
-                }
-            }
+    }
+
+    private static func inlineAttributed(_ raw: String) -> AttributedString {
+        let key = "litter-md-inline:\(raw.hashValue)"
+        if let hit = MessageRenderCache.shared.get(itemID: key, revision: 0) {
+            return hit
+        }
+        let attr = (try? AttributedString(
+            markdown: raw,
+            options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )) ?? AttributedString(raw)
+        MessageRenderCache.shared.set(itemID: key, revision: 0, value: attr)
+        return attr
     }
 
     private var foregroundForRole: Color {
@@ -607,6 +761,43 @@ private struct LitterMarkdownBlock: View {
         case .user:      return LitterUI.Palette.brand.color
         case .system:    return LitterUI.Palette.textSecondary.color
         default:         return LitterUI.Palette.textBody.color
+        }
+    }
+}
+
+// MARK: - Typing indicator
+//
+// BUG 3: a lightweight "agent is working" affordance shown at the bottom
+// of the message list while any turn is streaming. Three dots pulse in a
+// staggered loop (scale + opacity) so the user can tell the agent is
+// still generating. Matches the assistant role label styling so it reads
+// as the agent's in-progress turn.
+private struct LitterTypingIndicator: View {
+    @State private var phase = 0
+
+    private let timer = Timer.publish(every: 0.3, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("assistant")
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundStyle(LitterUI.Palette.textSecondary.color)
+                .textCase(.uppercase)
+            HStack(spacing: 5) {
+                ForEach(0..<3, id: \.self) { i in
+                    Circle()
+                        .fill(LitterUI.Palette.textSecondary.color)
+                        .frame(width: 7, height: 7)
+                        .scaleEffect(phase == i ? 1.0 : 0.6)
+                        .opacity(phase == i ? 1.0 : 0.4)
+                        .animation(.easeInOut(duration: 0.3), value: phase)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityLabel("Assistant is typing")
+        .onReceive(timer) { _ in
+            phase = (phase + 1) % 3
         }
     }
 }
