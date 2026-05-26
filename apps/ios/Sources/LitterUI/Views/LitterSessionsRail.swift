@@ -199,7 +199,7 @@ private struct RailRowView: View {
                     .font(.system(size: 14, weight: .semibold, design: .monospaced))
                     .foregroundStyle(LitterUI.Palette.textPrimary.color)
                     .lineLimit(1)
-                Text(row.subtitle)
+                Text(subtitle)
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(LitterUI.Palette.textMuted.color)
                     .lineLimit(1)
@@ -215,6 +215,22 @@ private struct RailRowView: View {
                       : Color.clear)
         )
         .contentShape(Rectangle())
+    }
+
+    /// Compact rail subtitle reassembled from the structured `HomeRow`
+    /// fields (the old single `subtitle` string is gone): agent + status,
+    /// plus a relative time when we have one.
+    private var subtitle: String {
+        switch row.kind {
+        case .creatingPlaceholder:
+            return row.statusText
+        case .session:
+            var parts: [String] = []
+            if !row.agent.isEmpty { parts.append(row.agent) }
+            parts.append(row.statusText)
+            if !row.relativeTime.isEmpty { parts.append(row.relativeTime) }
+            return parts.joined(separator: " · ")
+        }
     }
 
     @ViewBuilder
