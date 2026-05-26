@@ -187,9 +187,33 @@ extension LitterUI {
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     if !isReadOnly {
                         VStack(spacing: 0) {
+                            // Device feedback v0.0.47 #3: the
+                            // scroll-to-bottom button lives ABOVE the
+                            // composer (top-trailing of the inset cluster)
+                            // so it can never collide with the send / mic
+                            // button. As part of the keyboard-tracking
+                            // inset it rides up with the IME, keeping the
+                            // #226/#232 pinned + fade-at-bottom behavior.
+                            HStack {
+                                Spacer()
+                                scrollToBottomButton(proxy: proxy)
+                                    .opacity(autoScroll.showScrollToBottomButton ? 1 : 0)
+                                    .scaleEffect(autoScroll.showScrollToBottomButton ? 1 : 0.8)
+                                    .allowsHitTesting(autoScroll.showScrollToBottomButton)
+                                    .accessibilityHidden(!autoScroll.showScrollToBottomButton)
+                                    .animation(.easeOut(duration: 0.2), value: autoScroll.showScrollToBottomButton)
+                            }
+                            .padding(.trailing, 16)
+                            .padding(.bottom, 8)
                             suggestionBar
                             composer
                         }
+                        // Device feedback v0.0.47 #4: the whole inset
+                        // cluster (and the safe-area band it pushes into
+                        // above the keyboard) uses the same chat surface
+                        // color, so there's no color seam where the chat
+                        // meets the composer / keyboard inset.
+                        .background(LitterUI.Palette.surface.color)
                     }
                 }
                 // Measure distance from the bottom edge so the controller
@@ -239,20 +263,6 @@ extension LitterUI {
                         guard autoScroll.shouldFollowStreaming else { return }
                         scrollToTrueBottom(proxy)
                     }
-                }
-                // BUG 2: the button is a fixed overlay anchored to the
-                // view (not the content), so it never moves as messages
-                // appear/stream. It fades + scales out smoothly as the
-                // user reaches the bottom rather than popping.
-                .overlay(alignment: .bottomTrailing) {
-                    scrollToBottomButton(proxy: proxy)
-                        .padding(.trailing, 16)
-                        .padding(.bottom, 12)
-                        .opacity(autoScroll.showScrollToBottomButton ? 1 : 0)
-                        .scaleEffect(autoScroll.showScrollToBottomButton ? 1 : 0.8)
-                        .allowsHitTesting(autoScroll.showScrollToBottomButton)
-                        .accessibilityHidden(!autoScroll.showScrollToBottomButton)
-                        .animation(.easeOut(duration: 0.2), value: autoScroll.showScrollToBottomButton)
                 }
             }
         }
@@ -894,7 +904,12 @@ enum LitterToolCardMetrics {
 
 private struct LitterToolCard: View {
     let event: ConversationItem
-    @State private var expanded = true
+    // Device feedback v0.0.47 #2: tool/bash cards open COLLAPSED — just
+    // the header row (label · status · command one-liner · time + a
+    // chevron). Tapping expands to the full COMMAND box + output. State
+    // is per-card @State, so it persists for the session (the card stays
+    // expanded once tapped) while every fresh card starts collapsed.
+    @State private var expanded = false
 
     private var sections: [ToolSection] { ConversationRenderer.toolSections(for: event) }
 
@@ -945,10 +960,18 @@ private struct LitterToolCard: View {
                                 .clipShape(Capsule())
                         }
                     }
-                    Text(summary)
-                        .font(.footnote)
-                        .foregroundStyle(LitterUI.Palette.textBody.color)
-                        .lineLimit(1)
+                    // Device feedback v0.0.47 #1: the command one-liner
+                    // is the collapsed card's only command surface. When
+                    // expanded the COMMAND box (`LitterCommandBlock`)
+                    // shows the full command, so this row would duplicate
+                    // it — hide it once expanded to kill the redundant
+                    // plain-text "Bash: …" line the device reported.
+                    if !expanded {
+                        Text(summary)
+                            .font(.footnote)
+                            .foregroundStyle(LitterUI.Palette.textBody.color)
+                            .lineLimit(1)
+                    }
                 }
                 Spacer()
                 if !event.ts.isEmpty {
