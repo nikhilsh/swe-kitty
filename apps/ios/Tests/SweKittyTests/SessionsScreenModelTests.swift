@@ -10,47 +10,96 @@ import Foundation
 @Suite("SessionsScreen — list + search filtering")
 struct SessionsScreenModelTests {
 
-    // MARK: - Grouping by server
+    // MARK: - Grouping by recency bucket
 
-    @Test func sessionsGroupedByServerPreserveLatestFirstOrder() {
-        // Input list is already latest-first (that's what
-        // `SavedSessionsStore.recent` returns). Sections should
-        // appear in the order the first session of each server was
-        // encountered → the most recently active server's bucket
-        // floats to the top.
+    // Fixed "now" anchor used by every time-bucket test so the grouping is
+    // deterministic regardless of when CI runs. Buckets are computed
+    // against the device calendar, so we use a calendar pinned to UTC to
+    // match the UTC timestamps the helper rows carry.
+    private static let now = ISO8601DateFormatter().date(from: "2026-05-25T12:00:00Z")!
+    private static var utcCalendar: Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "UTC")!
+        return c
+    }
+
+    private func build(
+        _ rows: [SavedSession],
+        servers: [SavedServer] = [],
+        query: String = ""
+    ) -> SessionsScreenModel {
+        SessionsScreenModel.from(
+            sessions: rows,
+            savedServers: servers,
+            query: query,
+            now: Self.now,
+            calendar: Self.utcCalendar
+        )
+    }
+
+    @Test func sessionsGroupedIntoTimeBuckets() {
+        // One row per bucket relative to the 2026-05-25T12:00 anchor.
         let rows: [SavedSession] = [
-            row(id: "a-new", server: "srv-a", last: "2026-05-20T05:00:00Z"),
-            row(id: "b-mid", server: "srv-b", last: "2026-05-20T03:00:00Z"),
-            row(id: "a-old", server: "srv-a", last: "2026-05-20T01:00:00Z"),
+            row(id: "today",      server: "srv", last: "2026-05-25T09:00:00Z"),
+            row(id: "yesterday",  server: "srv", last: "2026-05-24T09:00:00Z"),
+            row(id: "thisweek",   server: "srv", last: "2026-05-21T09:00:00Z"),
+            row(id: "earlier",    server: "srv", last: "2026-04-01T09:00:00Z"),
         ]
-        let model = SessionsScreenModel.from(
-            sessions: rows,
-            savedServers: [savedServer("srv-a", "alpha"), savedServer("srv-b", "beta")],
-            query: ""
-        )
-        #expect(model.sections.map(\.serverID) == ["srv-a", "srv-b"])
-        #expect(model.sections[0].sessions.map(\.id) == ["a-new", "a-old"])
-        #expect(model.sections[1].sessions.map(\.id) == ["b-mid"])
+        let model = build(rows)
+        #expect(model.sections.map(\.title) == ["Today", "Yesterday", "Previous 7 Days", "Earlier"])
+        #expect(model.sections.map { $0.sessions.map(\.id) } == [["today"], ["yesterday"], ["thisweek"], ["earlier"]])
     }
 
-    @Test func sectionUsesSavedServerName() {
-        let rows = [row(id: "s", server: "srv-a", last: "ts")]
-        let model = SessionsScreenModel.from(
-            sessions: rows,
-            savedServers: [savedServer("srv-a", "Production")],
-            query: ""
-        )
-        #expect(model.sections.first?.serverName == "Production")
+    @Test func emptyBucketsAreOmittedInFixedOrder() {
+        // No "Yesterday" rows → that bucket simply doesn't appear, and the
+        // remaining buckets keep their fixed Today→Earlier order.
+        let rows: [SavedSession] = [
+            row(id: "earlier", server: "srv", last: "2026-01-01T09:00:00Z"),
+            row(id: "today",   server: "srv", last: "2026-05-25T08:00:00Z"),
+        ]
+        let model = build(rows)
+        #expect(model.sections.map(\.title) == ["Today", "Earlier"])
     }
 
-    @Test func sectionFallsBackToServerIDWhenUnknown() {
-        let rows = [row(id: "s", server: "srv-unknown", last: "ts")]
-        let model = SessionsScreenModel.from(
-            sessions: rows,
-            savedServers: [],
-            query: ""
+    @Test func rowsWithinBucketAreLatestFirst() {
+        // Input is already latest-first (what `recent()` returns); the
+        // grouping must preserve that within a bucket.
+        let rows: [SavedSession] = [
+            row(id: "t-late",  server: "srv", last: "2026-05-25T11:00:00Z"),
+            row(id: "t-early", server: "srv", last: "2026-05-25T01:00:00Z"),
+        ]
+        let model = build(rows)
+        #expect(model.sections.count == 1)
+        #expect(model.sections[0].sessions.map(\.id) == ["t-late", "t-early"])
+    }
+
+    @Test func multiServerRowsShareTimeBuckets() {
+        // Server identity is now a per-row chip, not the section — rows
+        // from different servers land in the same time bucket.
+        let rows: [SavedSession] = [
+            row(id: "a", server: "srv-a", last: "2026-05-25T11:00:00Z"),
+            row(id: "b", server: "srv-b", last: "2026-05-25T10:00:00Z"),
+        ]
+        let model = build(
+            rows,
+            servers: [savedServer("srv-a", "alpha"), savedServer("srv-b", "beta")]
         )
-        #expect(model.sections.first?.serverName == "srv-unknown")
+        #expect(model.sections.map(\.title) == ["Today"])
+        #expect(model.sections[0].sessions.map(\.id) == ["a", "b"])
+        #expect(model.serverName(for: rows[0]) == "alpha")
+        #expect(model.serverName(for: rows[1]) == "beta")
+    }
+
+    @Test func serverNameFallsBackToServerIDWhenUnknown() {
+        let rows = [row(id: "s", server: "srv-unknown", last: "2026-05-25T09:00:00Z")]
+        let model = build(rows)
+        #expect(model.serverName(for: rows[0]) == "srv-unknown")
+    }
+
+    @Test func unparseableTimestampSinksToEarlier() {
+        let rows = [row(id: "s", server: "srv", last: "not-a-date")]
+        let model = build(rows)
+        #expect(model.sections.map(\.title) == ["Earlier"])
     }
 
     // MARK: - Search

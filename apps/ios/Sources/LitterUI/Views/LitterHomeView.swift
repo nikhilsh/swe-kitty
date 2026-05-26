@@ -242,11 +242,23 @@ extension LitterUI {
                 }
             }()
             let sessions = store.sessions.map { s in
-                LitterUI.HomeSnapshotSession(
+                let status = store.statusBySession[s.id]
+                // Prefer the freshest activity timestamp the store carries
+                // for the relative "last active" stamp.
+                let lastActivity = status?.lastActivityAt
+                    ?? s.lastActivityAt
+                    ?? status?.startedAt
+                    ?? s.startedAt
+                let cwd = status?.cwd ?? s.cwd
+                return LitterUI.HomeSnapshotSession(
                     id: s.id,
                     displayName: store.displayName(for: s),
                     assistant: s.assistant,
-                    phase: store.statusBySession[s.id]?.phase
+                    phase: status?.phase,
+                    lastActivityAt: lastActivity,
+                    // Drop the ephemeral per-session work dir; only a real
+                    // user-picked cwd surfaces in the row.
+                    workingDir: SessionNaming.meaningfulWorkingDir(cwd)
                 )
             }
             return LitterUI.HomeSnapshot(
@@ -396,20 +408,17 @@ private struct HomeRowView: View {
         HStack(spacing: 10) {
             indicator
                 .frame(width: HomeRowMetrics.indicatorSize, height: HomeRowMetrics.indicatorSize)
-            VStack(alignment: .leading, spacing: 1) {
-                // Title shrunk from .title3 (~20pt) bold mono to footnote-
-                // sized 13pt semibold per audit §A.1.1. Subtitle drops
-                // to caption2-sized 11pt mono (audit §A.1.1).
+            VStack(alignment: .leading, spacing: 2) {
+                // Prominent friendly name. 13pt semibold per audit §A.1.1
+                // (litter-faithful density); single line, truncating.
                 Text(row.title)
                     .font(.system(size: HomeRowMetrics.titlePointSize, weight: .semibold))
                     .foregroundStyle(LitterUI.Palette.textPrimary.color)
                     .lineLimit(1)
-                Text(row.subtitle)
-                    .font(.system(size: HomeRowMetrics.subtitlePointSize, weight: .regular, design: .monospaced))
-                    .foregroundStyle(LitterUI.Palette.textMuted.color)
-                    .lineLimit(1)
+                    .truncationMode(.tail)
+                secondaryLine
             }
-            Spacer()
+            Spacer(minLength: 0)
         }
         .padding(.leading, HomeRowMetrics.leadingPadding)
         .padding(.trailing, HomeRowMetrics.trailingPadding)
@@ -422,6 +431,71 @@ private struct HomeRowView: View {
                 .fill(LitterUI.Palette.surfaceLight.color.opacity(row.isSelected ? HomeRowMetrics.activeRowOpacity : 0))
         )
         .contentShape(Rectangle())
+    }
+
+    /// Secondary line: agent chip · status (tinted by run state) ·
+    /// relative time, with an optional real cwd. Caption2-sized (11pt)
+    /// per audit §A.1.1. Replaces the old `"agent · phase · host"` mono
+    /// string — the host wasn't useful and the row never carried a
+    /// meaningful path.
+    @ViewBuilder
+    private var secondaryLine: some View {
+        switch row.kind {
+        case .creatingPlaceholder:
+            Text(row.statusText)
+                .font(.system(size: HomeRowMetrics.subtitlePointSize, weight: .regular, design: .monospaced))
+                .foregroundStyle(LitterUI.Palette.textMuted.color)
+                .lineLimit(1)
+        case .session:
+            HStack(spacing: 5) {
+                if !row.agent.isEmpty {
+                    Text(row.agent)
+                        .font(.system(size: HomeRowMetrics.subtitlePointSize, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(LitterUI.Palette.textSecondary.color)
+                }
+                statusDot
+                    .frame(width: 5, height: 5)
+                Text(row.statusText)
+                    .font(.system(size: HomeRowMetrics.subtitlePointSize, weight: .regular))
+                    .foregroundStyle(statusColor)
+                if !row.relativeTime.isEmpty {
+                    Text("·")
+                        .font(.system(size: HomeRowMetrics.subtitlePointSize))
+                        .foregroundStyle(LitterUI.Palette.textMuted.color)
+                    Text(row.relativeTime)
+                        .font(.system(size: HomeRowMetrics.subtitlePointSize, weight: .regular, design: .monospaced))
+                        .foregroundStyle(LitterUI.Palette.textMuted.color)
+                }
+                if let dir = row.workingDir {
+                    Text("·")
+                        .font(.system(size: HomeRowMetrics.subtitlePointSize))
+                        .foregroundStyle(LitterUI.Palette.textMuted.color)
+                    Text(dirLeaf(dir))
+                        .font(.system(size: HomeRowMetrics.subtitlePointSize, weight: .regular, design: .monospaced))
+                        .foregroundStyle(LitterUI.Palette.textMuted.color)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
+            .lineLimit(1)
+        }
+    }
+
+    /// Final path component of a cwd, for the compact dir label.
+    private func dirLeaf(_ path: String) -> String {
+        let trimmed = path.hasSuffix("/") ? String(path.dropLast()) : path
+        return trimmed.split(separator: "/").last.map(String.init) ?? trimmed
+    }
+
+    /// Run-state tint shared by the status word and its inline dot.
+    private var statusColor: Color {
+        row.isRunning
+            ? LitterUI.Palette.accentStrong.color
+            : LitterUI.Palette.textMuted.color
+    }
+
+    private var statusDot: some View {
+        Circle().fill(statusColor)
     }
 
     @ViewBuilder

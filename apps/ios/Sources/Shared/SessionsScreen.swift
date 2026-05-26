@@ -1,37 +1,68 @@
 import SwiftUI
 
 /// Pure-data view-model for `SessionsScreen`. The screen renders a
-/// section list grouped by server with a search bar at top; the model
+/// section list grouped by recency with a search bar at top; the model
 /// owns the filter + group derivation so `SessionsScreenModelTests` can
 /// pin the behaviour without hosting a SwiftUI view.
 ///
-/// Section ordering is "latest-active server first" — derived from the
-/// max `lastSeen` across each server's rows. That makes the active
-/// server's bucket float to the top so the user lands on the right
-/// section without scrolling.
+/// Sections are TIME buckets — "Today", "Yesterday", "Previous 7 Days",
+/// "Earlier" — derived from each row's `lastSeen`. Only non-empty buckets
+/// are emitted, always in that fixed order; rows within a bucket are
+/// latest-first. The server identity moves to a per-row chip (so a
+/// multi-server history is still readable) rather than being the section.
 struct SessionsScreenModel: Equatable {
-    /// One section per known server, in render order.
+    /// Recency bucket a row falls into, by `lastSeen` relative to now.
+    /// `rawValue` is the section title; `order` fixes the render sequence.
+    enum Bucket: String, CaseIterable {
+        case today = "Today"
+        case yesterday = "Yesterday"
+        case previous7Days = "Previous 7 Days"
+        case earlier = "Earlier"
+
+        /// Classify a date relative to `now` on `calendar`. Uses a
+        /// `now`-relative whole-day distance (not `Calendar.isDateInYesterday`,
+        /// which ignores the anchor and compares to the real clock) so the
+        /// buckets are deterministic for an injected `now` in tests.
+        static func classify(_ date: Date, now: Date, calendar: Calendar) -> Bucket {
+            let distance = SessionNaming.dayDistance(from: date, to: now, calendar: calendar) ?? Int.max
+            if distance <= 0 { return .today }
+            if distance == 1 { return .yesterday }
+            // Within the trailing 7 days (but not today/yesterday).
+            if distance < 7 { return .previous7Days }
+            return .earlier
+        }
+    }
+
+    /// One time-bucket section, in render order.
     struct Section: Equatable, Identifiable {
-        let serverID: String
-        let serverName: String
+        let bucket: Bucket
         let sessions: [SavedSession]
 
-        var id: String { serverID }
+        var title: String { bucket.rawValue }
+        var id: String { bucket.rawValue }
     }
 
     let sections: [Section]
     let totalRows: Int
     let isEmpty: Bool
+    /// serverID → friendly server name, for the per-row server chip.
+    let serverNames: [String: String]
+
+    /// Friendly name for a row's server (falls back to the raw id).
+    func serverName(for row: SavedSession) -> String {
+        serverNames[row.serverID] ?? row.serverID
+    }
 
     /// Build a model from the saved store + the saved-server list. The
     /// search filter is applied case-insensitively to the session
-    /// summary AND name (display name overrides the harness name on
-    /// iOS today; on the saved screen we only have the saved metadata
-    /// so we match against `summary` and the `id` substring).
+    /// summary, id, agent, and cwd. `now`/`calendar` are injectable so
+    /// the time-bucket grouping is deterministic in tests.
     static func from(
         sessions: [SavedSession],
         savedServers: [SavedServer],
-        query: String
+        query: String,
+        now: Date = Date(),
+        calendar: Calendar = .current
     ) -> SessionsScreenModel {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let filtered: [SavedSession]
@@ -47,35 +78,37 @@ struct SessionsScreenModel: Equatable {
             }
         }
 
-        // Group by serverID preserving the already-sorted (latest-first)
-        // order of `sessions`. We can't use `Dictionary(grouping:)` because
-        // it doesn't preserve insertion order; build the lookup manually.
-        var orderedServerIDs: [String] = []
-        var byServer: [String: [SavedSession]] = [:]
+        // Group by recency bucket. A row whose `lastSeen` doesn't parse
+        // sinks into "Earlier" (it's the catch-all oldest bucket). Within
+        // each bucket we preserve the already-sorted latest-first order of
+        // the input (`SavedSessionsStore.recent` returns latest-first).
+        var byBucket: [Bucket: [SavedSession]] = [:]
         for row in filtered {
-            if byServer[row.serverID] == nil {
-                orderedServerIDs.append(row.serverID)
-                byServer[row.serverID] = []
+            let bucket: Bucket
+            if let date = SessionNaming.parseTimestamp(row.lastSeen) {
+                bucket = Bucket.classify(date, now: now, calendar: calendar)
+            } else {
+                bucket = .earlier
             }
-            byServer[row.serverID]?.append(row)
+            byBucket[bucket, default: []].append(row)
+        }
+
+        // Emit buckets in fixed order, dropping empties.
+        let sections = Bucket.allCases.compactMap { bucket -> Section? in
+            guard let rows = byBucket[bucket], !rows.isEmpty else { return nil }
+            return Section(bucket: bucket, sessions: rows)
         }
 
         let nameLookup: [String: String] = Dictionary(
-            uniqueKeysWithValues: savedServers.map { ($0.id, $0.name) }
+            savedServers.map { ($0.id, $0.name) },
+            uniquingKeysWith: { first, _ in first }
         )
-
-        let sections = orderedServerIDs.map { serverID -> Section in
-            Section(
-                serverID: serverID,
-                serverName: nameLookup[serverID] ?? serverID,
-                sessions: byServer[serverID] ?? []
-            )
-        }
 
         return SessionsScreenModel(
             sections: sections,
             totalRows: filtered.count,
-            isEmpty: sessions.isEmpty
+            isEmpty: sessions.isEmpty,
+            serverNames: nameLookup
         )
     }
 }
@@ -235,11 +268,14 @@ struct SessionsScreen: View {
 
     @ViewBuilder
     private func sectionList(_ model: SessionsScreenModel) -> some View {
+        // Multi-server histories show a server chip per row; a
+        // single-server setup doesn't need the redundant chip.
+        let showServerChip = Set(model.sections.flatMap { $0.sessions.map(\.serverID) }).count > 1
         List {
             ForEach(model.sections) { section in
                 Section {
                     ForEach(section.sessions, id: \.compoundID) { row in
-                        sessionRow(row)
+                        sessionRow(row, serverName: showServerChip ? model.serverName(for: row) : nil)
                             .listRowBackground(Color.clear)
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
@@ -270,10 +306,7 @@ struct SessionsScreen: View {
 
     private func sectionHeader(_ section: SessionsScreenModel.Section) -> some View {
         HStack(spacing: 6) {
-            Circle()
-                .fill(SweKittyTheme.accentStrong.opacity(0.75))
-                .frame(width: 6, height: 6)
-            Text(section.serverName)
+            Text(section.title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(SweKittyTheme.textPrimary)
             Text("·")
@@ -287,7 +320,7 @@ struct SessionsScreen: View {
         .padding(.vertical, 6)
     }
 
-    private func sessionRow(_ row: SavedSession) -> some View {
+    private func sessionRow(_ row: SavedSession, serverName: String?) -> some View {
         Button {
             resume(row)
         } label: {
@@ -309,6 +342,19 @@ struct SessionsScreen: View {
                             .font(.caption.monospaced())
                             .foregroundStyle(SweKittyTheme.textMuted)
                             .lineLimit(1)
+                        if let serverName {
+                            Text("·")
+                                .font(.caption)
+                                .foregroundStyle(SweKittyTheme.textMuted)
+                            HStack(spacing: 3) {
+                                Image(systemName: "server.rack")
+                                    .font(.system(size: 9, weight: .semibold))
+                                Text(serverName)
+                                    .font(.caption.weight(.medium))
+                                    .lineLimit(1)
+                            }
+                            .foregroundStyle(SweKittyTheme.textMuted)
+                        }
                     }
                 }
                 Spacer()
@@ -413,9 +459,16 @@ struct SessionsScreen: View {
         }
     }
 
+    /// Friendly history-row title. Mirrors the live `displayName(for:)`
+    /// priority on the persisted metadata we carry: the stored `summary`
+    /// is the first user message (`SavedSessionsStore.upsert` persists it),
+    /// trimmed to a short single line; with no summary we fall back to
+    /// `"<agent> · <relative start time>"`. NEVER the raw UUID.
     private func rowTitle(_ row: SavedSession) -> String {
-        if !row.summary.isEmpty { return row.summary }
-        return row.id
+        if let title = SessionNaming.titleFromMessage(row.summary) {
+            return title
+        }
+        return SessionNaming.fallbackName(agent: row.agent, startedAt: row.firstSeen)
     }
 
     private func healthLabel(for status: SavedSessionStatus) -> String {

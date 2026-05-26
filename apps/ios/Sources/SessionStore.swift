@@ -1360,7 +1360,14 @@ final class SessionStore {
             .trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 }
             ?? (status.sessionName?
                 .trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 }
-        if let label = serverLabel, displayNames[status.session] != label {
+        // Only mirror a *meaningful* broker label. The broker frequently
+        // echoes the bare session id as its `sessionName`/`displayName`;
+        // mirroring that would re-pollute `displayNames` with a UUID and
+        // resurrect the raw-id-as-title bug, so we drop any UUID-shaped or
+        // id-equal label here.
+        if let label = serverLabel,
+           !SessionNaming.looksLikeRawID(label, sessionID: status.session),
+           displayNames[status.session] != label {
             displayNames[status.session] = label
         }
         harness = .live
@@ -1629,9 +1636,28 @@ final class SessionStore {
         }
     }
 
-    /// User-supplied name for a session if any, otherwise the harness name.
+    /// Friendly, user-facing name for a session. NEVER returns the raw
+    /// UUID. Priority (see `SessionNaming`):
+    ///   1. A genuine user-set custom name — one the user typed, never a
+    ///      UUID. We screen `displayNames[id]` because the broker also
+    ///      mirrors its `sessionName`/`displayName` label here, and that
+    ///      label is frequently the bare session id.
+    ///   2. The first user chat message (live: scanned from
+    ///      `conversationLog`), trimmed to a short single line.
+    ///   3. Fallback: `"<agent> · <relative start time>"`.
     func displayName(for session: ProjectSession) -> String {
-        displayNames[session.id] ?? session.name
+        if let custom = displayNames[session.id],
+           !SessionNaming.looksLikeRawID(custom, sessionID: session.id) {
+            return custom
+        }
+        if let message = firstUserMessage(in: session.id),
+           let title = SessionNaming.titleFromMessage(message) {
+            return title
+        }
+        return SessionNaming.fallbackName(
+            agent: session.assistant,
+            startedAt: session.startedAt ?? session.lastActivityAt
+        )
     }
 
     /// Whether a session is read-only — there's no live WS to interact

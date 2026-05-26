@@ -13,7 +13,10 @@ struct LitterHomeViewModelTests {
         #expect(LitterUI.HomeViewModel.rows(snap).isEmpty)
     }
 
-    @Test func sessionRowSubtitleHasAssistantPhaseAndHost() {
+    @Test func sessionRowSecondaryLineCarriesAgentAndStatus() {
+        // The secondary line is now structured: agent + status word +
+        // relative time (host dropped — it wasn't useful). A connected,
+        // non-exited session reads "running".
         let snap = LitterUI.HomeSnapshot(
             harness: .live,
             sessions: [
@@ -30,7 +33,81 @@ struct LitterHomeViewModelTests {
         )
         let rows = LitterUI.HomeViewModel.rows(snap)
         #expect(rows.count == 1)
-        #expect(rows[0].subtitle == "claude · working · 192.168.4.30")
+        #expect(rows[0].agent == "claude")
+        #expect(rows[0].statusText == "running")
+    }
+
+    @Test func sessionRowStatusReadsExitedAndIdle() {
+        // An `exited…` phase reads "exited"; a disconnected harness reads
+        // "idle" (device bug #30 — can't trust a stale running phase).
+        let exited = LitterUI.HomeSnapshot(
+            harness: .live,
+            sessions: [LitterUI.HomeSnapshotSession(id: "e", displayName: "E", assistant: "claude", phase: "exited(0)")],
+            placeholders: [],
+            selectedSessionID: nil,
+            endpointDisplayHost: nil
+        )
+        #expect(LitterUI.HomeViewModel.rows(exited)[0].statusText == "exited")
+
+        let disconnected = LitterUI.HomeSnapshot(
+            harness: .disconnected,
+            sessions: [LitterUI.HomeSnapshotSession(id: "d", displayName: "D", assistant: "claude", phase: "working")],
+            placeholders: [],
+            selectedSessionID: nil,
+            endpointDisplayHost: nil
+        )
+        #expect(LitterUI.HomeViewModel.rows(disconnected)[0].statusText == "idle")
+    }
+
+    @Test func sessionRowRelativeTimeIsDeterministic() {
+        let now = ISO8601DateFormatter().date(from: "2026-05-25T12:00:00Z")!
+        let snap = LitterUI.HomeSnapshot(
+            harness: .live,
+            sessions: [
+                LitterUI.HomeSnapshotSession(
+                    id: "s1",
+                    displayName: "x",
+                    assistant: "claude",
+                    phase: "working",
+                    lastActivityAt: "2026-05-25T11:58:00Z"
+                )
+            ],
+            placeholders: [],
+            selectedSessionID: nil,
+            endpointDisplayHost: nil
+        )
+        let rows = LitterUI.HomeViewModel.rows(snap, now: now)
+        #expect(rows[0].relativeTime == "2m ago")
+    }
+
+    @Test func sessionRowDropsEphemeralWorkDir() {
+        // The per-session scratch dir must NOT surface as a project path;
+        // a real cwd does.
+        let snap = LitterUI.HomeSnapshot(
+            harness: .live,
+            sessions: [
+                LitterUI.HomeSnapshotSession(
+                    id: "eph",
+                    displayName: "eph",
+                    assistant: "claude",
+                    phase: "working",
+                    workingDir: SessionNaming.meaningfulWorkingDir("/root/.swe-kitty/sessions/abc/work")
+                ),
+                LitterUI.HomeSnapshotSession(
+                    id: "real",
+                    displayName: "real",
+                    assistant: "claude",
+                    phase: "working",
+                    workingDir: SessionNaming.meaningfulWorkingDir("/Users/me/code/swe-kitty")
+                ),
+            ],
+            placeholders: [],
+            selectedSessionID: nil,
+            endpointDisplayHost: nil
+        )
+        let rows = LitterUI.HomeViewModel.rows(snap)
+        #expect(rows[0].workingDir == nil)
+        #expect(rows[1].workingDir == "/Users/me/code/swe-kitty")
     }
 
     @Test func sessionRowFlagsSelectedWhenIDMatches() {
@@ -90,11 +167,9 @@ struct LitterHomeViewModelTests {
         #expect(rows[1].isRunning == false)
     }
 
-    @Test func subtitleFallsBackToLocalHostWhenEndpointMissing() {
-        // The home subtitle has to print *something* even before the
-        // user has paired a server — litter shows the local host name
-        // so the user can tell at a glance which server a session
-        // belongs to.
+    @Test func secondaryLineOmitsTimeWhenNoTimestamp() {
+        // No `lastActivityAt` → the relative-time slot is empty (the row
+        // simply doesn't render the time chip). Agent + status still show.
         let snap = LitterUI.HomeSnapshot(
             harness: .live,
             sessions: [
@@ -105,7 +180,9 @@ struct LitterHomeViewModelTests {
             endpointDisplayHost: nil
         )
         let rows = LitterUI.HomeViewModel.rows(snap)
-        #expect(rows[0].subtitle == "claude · ready · local")
+        #expect(rows[0].agent == "claude")
+        #expect(rows[0].statusText == "running")
+        #expect(rows[0].relativeTime == "")
     }
 
     @Test func emptyStateChangesByHarnessReachability() {
