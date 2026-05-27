@@ -29,6 +29,24 @@ jobs:
       release_tag: ${{ steps.tag.outputs.value }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Need full history (not the default shallow tag checkout) so the
+          # provenance backstop below can ask whether origin/main contains
+          # the tagged commit.
+          fetch-depth: 0
+      - name: Verify tagged commit is on origin/main
+        # Backstop for scripts/cut-release.sh: refuse to build a tag whose
+        # commit isn't reachable from origin/main. Prevents the v0.0.35
+        # stale-tag class of incident even if someone tags by hand. Only
+        # runs for real tag pushes; workflow_dispatch can ship arbitrary refs.
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "tagged commit $GITHUB_SHA is not contained in origin/main — refusing to release a stale/off-main tag" >&2
+            exit 1
+          fi
+          echo "tagged commit $GITHUB_SHA is on origin/main"
       - name: Resolve release tag
         id: tag
         run: |

@@ -48,10 +48,34 @@ Optional:
 
 If omitted, the deploy workflow uses the default `server.fyra.sh:50051`.
 
+## Cutting a release
+
+**Always cut tags from a freshly-fetched `origin/main`.** The release workflow
+builds whatever commit the tag points at. We once tagged `v0.0.35` from a stale
+local `main` — the tag captured old code, CI shipped it, and an on-device test
+cycle was wasted. (The About screen now shows the git SHA so a stale ship is at
+least visible.)
+
+Use the guard script — it fetches origin, refuses to tag if `HEAD` isn't
+`origin/main`'s tip, refuses on a dirty tree or an existing tag, then tags and
+pushes:
+
+```sh
+scripts/cut-release.sh v0.0.X
+```
+
+Set `DRY_RUN=1` to validate without tagging. Only fall back to the manual
+`git tag` / `git push` dance below if the script is unavailable — and even then,
+verify `git rev-parse HEAD` equals `git rev-parse origin/main` first.
+
+As a server-side backstop, the `prepare` job in `release.yml` also fails fast on
+a tag push if the tagged commit isn't contained in `origin/main` — so a
+hand-tagged stale commit can't slip through CI either.
+
 ## Release flow
 
 1. Make sure `main` contains the code you want to ship.
-2. Create and push a new tag:
+2. Create and push a new tag (prefer `scripts/cut-release.sh v0.0.X`, see above):
 
 ```sh
 git checkout main
