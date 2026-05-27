@@ -204,7 +204,10 @@ struct ConversationRenderer {
         if meta.exitCode != nil || meta.duration != nil {
             sections.append(.meta(meta))
         }
-        if let command = extractCommand(from: event) {
+        // Extract the command once so we can suppress any plain-text echo of
+        // it that appears later in the content body.
+        let extractedCommand = extractCommand(from: event)
+        if let command = extractedCommand {
             sections.append(.command(command))
         }
 
@@ -239,6 +242,13 @@ struct ConversationRenderer {
                 if currentStream == "stderr" {
                     sections.append(.stderr(text))
                     currentStream = nil
+                    continue
+                }
+                // Drop single-line text blocks that are just a tool-name prefix
+                // followed by the command already shown in the COMMAND card
+                // (e.g. "Bash: ls -la" when the card already renders COMMAND:
+                // ls -la). Only the echo is suppressed — actual output is not.
+                if let cmd = extractedCommand, isCommandEcho(text, command: cmd) {
                     continue
                 }
                 if looksLikeDiff(text) {
@@ -332,6 +342,25 @@ struct ConversationRenderer {
             }
         }
         return nil
+    }
+
+    /// Returns `true` when `text` is a single-line command-echo that
+    /// duplicates the COMMAND card already shown in the tool card header.
+    /// Patterns: `<ToolName>: <cmd>`, `Bash: <cmd>`, `Tool: <cmd>`.
+    /// Matching is case-insensitive; only suppresses single-line blocks
+    /// so multi-line output is never dropped.
+    static func isCommandEcho(_ text: String, command: String) -> Bool {
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: true)
+        guard lines.count == 1 else { return false }
+        let line = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalCmd = command.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if let colonRange = line.range(of: ": ") {
+            let suffix = String(line[colonRange.upperBound...])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+            if suffix == normalCmd { return true }
+        }
+        return false
     }
 
     static func extractPendingOptions(from text: String) -> [String] {

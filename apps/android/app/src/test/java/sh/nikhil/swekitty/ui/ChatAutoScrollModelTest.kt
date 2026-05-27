@@ -99,24 +99,41 @@ class ChatAutoScrollModelTest {
         assertEquals(80f, ChatAutoScrollModel.DEFAULT_THRESHOLD_PX, 0.001f)
     }
 
-    // --- Bug 2: button visibility is distance-driven, with a fade ---
+    // --- Button visibility: separate buttonVisibleThresholdPx (#item3) ---
+    // The button is hidden below buttonVisibleThresholdPx (default 2×near =
+    // 160px) so a user who is "practically at the bottom" (100-160px away)
+    // never sees the arrow. It only appears after a meaningful scroll up.
 
     @Test fun buttonHiddenWhenPracticallyAtBottom() {
-        // Pinned / tiny overscroll inside the band → button faded out.
+        // Pinned / inside near-bottom band → button faded out.
         val m = ChatAutoScrollModel(nearBottomThresholdPx = 80f)
+            .onUserDragged()
             .onBottomProximityChanged(10f)
         assertFalse(m.showScrollToBottomButton)
         assertEquals(0f, m.scrollToBottomButtonAlpha, 0.001f)
     }
 
-    @Test fun buttonHiddenExactlyAtThreshold() {
+    @Test fun buttonHiddenBetweenNearBottomAndVisibleThreshold() {
+        // 120px is past the near-bottom band (80px) but inside
+        // buttonVisibleThresholdPx (160px) → button hidden, matching iOS.
         val m = ChatAutoScrollModel(nearBottomThresholdPx = 80f)
-            .onBottomProximityChanged(80f)
+            .onUserDragged()
+            .onBottomProximityChanged(120f)
+        assertFalse(m.showScrollToBottomButton)
+        assertEquals(0f, m.scrollToBottomButtonAlpha, 0.001f)
+    }
+
+    @Test fun buttonHiddenExactlyAtVisibleThreshold() {
+        // Exactly at buttonVisibleThresholdPx (160px) → still hidden.
+        val m = ChatAutoScrollModel(nearBottomThresholdPx = 80f)
+            .onUserDragged()
+            .onBottomProximityChanged(160f)
         assertFalse(m.showScrollToBottomButton)
         assertEquals(0f, m.scrollToBottomButtonAlpha, 0.001f)
     }
 
     @Test fun buttonShowsWhenScrolledUpMeaningfully() {
+        // 400px is well past buttonVisibleThresholdPx (160px) → full alpha.
         val m = ChatAutoScrollModel(nearBottomThresholdPx = 80f)
             .onUserDragged()
             .onBottomProximityChanged(400f)
@@ -124,11 +141,13 @@ class ChatAutoScrollModelTest {
         assertEquals("fully ramped past a band's worth", 1f, m.scrollToBottomButtonAlpha, 0.001f)
     }
 
-    @Test fun alphaRampsBetweenThresholdAndFullBand() {
-        // Half a band past the threshold → ~0.5 alpha.
+    @Test fun alphaRampsBetweenVisibleThresholdAndFullBand() {
+        // Half a band past buttonVisibleThresholdPx → ~0.5 alpha.
+        // With near=80, visible=160, ramp band=80: at 200px:
+        //   over = 200 - 160 = 40; ramp = 80; alpha = 40/80 = 0.5
         val m = ChatAutoScrollModel(nearBottomThresholdPx = 80f)
             .onUserDragged()
-            .onBottomProximityChanged(120f) // 40px over threshold, band=80
+            .onBottomProximityChanged(200f)
         assertTrue(m.showScrollToBottomButton)
         assertEquals(0.5f, m.scrollToBottomButtonAlpha, 0.001f)
     }
@@ -138,5 +157,13 @@ class ChatAutoScrollModelTest {
             .onBottomProximityChanged(-50f) // clamped to 0
         assertFalse(m.showScrollToBottomButton)
         assertEquals(0f, m.scrollToBottomButtonAlpha, 0.001f)
+    }
+
+    @Test fun customButtonVisibleThresholdIsHonoured() {
+        // Explicit buttonVisibleThresholdPx overrides the 2× default.
+        val m = ChatAutoScrollModel(nearBottomThresholdPx = 80f, buttonVisibleThresholdPx = 50f)
+            .onUserDragged()
+            .onBottomProximityChanged(100f)
+        assertTrue(m.showScrollToBottomButton)
     }
 }

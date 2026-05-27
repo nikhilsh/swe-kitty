@@ -148,4 +148,16 @@ struct ChatAutoScrollControllerTests {
         #expect(near15)
         #expect(!c.userScrolledUp)
     }
+
+    /// With the corrected scroll-distance formula (no double-counted
+    /// `contentInsets.bottom`), the resting distance at the genuine bottom
+    /// is ≤ 0. Verify the button stays hidden at zero and at small negative
+    /// distances that arise from rubber-band overscroll (#251 follow-up).
+    @Test func buttonHiddenAtNearZeroRestingDistance() {
+        var c = ChatAutoScrollController(nearBottomThreshold: 80, buttonVisibleThreshold: 160)
+        _ = c.bottomProximityChanged(0)
+        #expect(!c.showScrollToBottomButton)
+        _ = c.bottomProximityChanged(-10) // overscroll → clamped to 0
+        #expect(!c.showScrollToBottomButton)
+    }
 }
