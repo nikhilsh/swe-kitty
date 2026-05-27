@@ -382,15 +382,23 @@ enum LitterMarkdownPiece: Equatable {
     /// rows (the `---|---` separator row is dropped). Rendered as
     /// stacked "header: value" records, robust on a narrow phone.
     case table(headers: [String], rows: [[String]])
+    /// A fenced code block. For SETTLED messages fences are split out
+    /// upstream by `ConversationRenderer.blocks`, so `parse` never sees
+    /// one — but the STREAMING path feeds the live buffer straight in, so
+    /// `parse` handles an opening ``` (even still-unclosed mid-stream) and
+    /// emits this instead of leaking the raw fence markers as prose
+    /// (device feedback v0.0.50 #6).
+    case code(language: String?, content: String)
 }
 
 enum LitterMarkdownStructure {
 
-    /// Split a markdown string (already free of fenced code — that's
-    /// handled upstream by `ConversationRenderer.blocks`) into typed
-    /// pieces on block boundaries. The output never concatenates two
-    /// logical blocks: headings, paragraphs, lists and tables each
-    /// become their own piece so the renderer can space them.
+    /// Split a markdown string into typed pieces on block boundaries. The
+    /// output never concatenates two logical blocks: headings, paragraphs,
+    /// lists, tables and fenced code each become their own piece so the
+    /// renderer can space them. Settled messages arrive code-free (fences
+    /// pre-split by `ConversationRenderer.blocks`); the streaming path
+    /// passes the live buffer in raw, so fences are handled here too.
     static func parse(_ markdown: String) -> [LitterMarkdownPiece] {
         let lines = markdown.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
         var pieces: [LitterMarkdownPiece] = []
@@ -411,6 +419,29 @@ enum LitterMarkdownStructure {
             if trimmed.isEmpty {
                 flushParagraph()
                 i += 1
+                continue
+            }
+
+            // Fenced code block (streaming path only — settled messages
+            // arrive pre-split). Consume the body up to the closing ```;
+            // if the fence is still open (mid-stream), consume to the end
+            // and emit what we have so far as a code block rather than
+            // leaking the raw ``` marker + reflowed code as prose.
+            if trimmed.hasPrefix("```") {
+                flushParagraph()
+                let lang = String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespaces)
+                var code: [String] = []
+                i += 1
+                while i < lines.count {
+                    if lines[i].trimmingCharacters(in: .whitespaces).hasPrefix("```") {
+                        i += 1 // consume the closing fence
+                        break
+                    }
+                    code.append(lines[i])
+                    i += 1
+                }
+                pieces.append(.code(language: lang.isEmpty ? nil : lang,
+                                    content: code.joined(separator: "\n")))
                 continue
             }
 

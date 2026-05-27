@@ -304,6 +304,42 @@ struct LitterMarkdownStructureTests {
         if case .table = pieces[3] {} else { Issue.record("3 not table: \(pieces[3])") }
     }
 
+    @Test func fencedCodeBecomesACodePieceNotRawProse() {
+        // Streaming path: the live buffer is passed in raw (not pre-split
+        // by ConversationRenderer.blocks), so parse must turn a fence into
+        // a .code piece rather than leaking the ``` markers as prose.
+        let pieces = LitterMarkdownStructure.parse("""
+        Here:
+
+        ```swift
+        let x = 1
+        ```
+
+        done
+        """)
+        #expect(pieces.count == 3)
+        guard case .code(let lang, let body) = pieces[1] else {
+            Issue.record("middle piece not code: \(pieces[1])"); return
+        }
+        #expect(lang == "swift")
+        #expect(body == "let x = 1")
+    }
+
+    @Test func unclosedFenceMidStreamStillRendersAsCode() {
+        // The common streaming case: the closing ``` hasn't arrived yet.
+        // We must still render the body as code (no raw ``` flash).
+        let pieces = LitterMarkdownStructure.parse("""
+        ```js
+        const a =
+        """)
+        #expect(pieces.count == 1)
+        guard case .code(let lang, let body) = pieces[0] else {
+            Issue.record("unclosed fence not code: \(pieces[0])"); return
+        }
+        #expect(lang == "js")
+        #expect(body == "const a =")
+    }
+
     @Test func emptyInputProducesOneEmptyParagraph() {
         let pieces = LitterMarkdownStructure.parse("")
         #expect(pieces.count == 1)
