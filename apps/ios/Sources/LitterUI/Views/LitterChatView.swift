@@ -869,6 +869,13 @@ private struct LitterStructuredMarkdownView: View {
             listView(ordered: ordered, items: items)
         case .table(let headers, let rows):
             tableView(headers: headers, rows: rows)
+        case .code(let language, let content):
+            // Streaming-path fenced code (device feedback v0.0.50 #6):
+            // render the same styled block the settled message uses, so a
+            // mid-stream ``` shows as code rather than raw markers. The
+            // turn-end re-render (via `ConversationRenderer.blocks`) lands
+            // on the identical view, so there's no raw→pretty flash.
+            LitterCodeBlock(language: language, content: content)
         }
     }
 
