@@ -186,10 +186,16 @@ extension LitterUI {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 14) {
-                        ForEach(Array(events.enumerated()), id: \.offset) { _, event in
-                            LitterEventRow(event: event, onQuickReply: { reply in
-                                store.sendChat(sessionID: session.id, message: reply)
-                            })
+                        ForEach(Array(events.enumerated()), id: \.offset) { idx, event in
+                            let previousRole = idx > 0 ? events[idx - 1].role : nil
+                            let isContinuation = previousRole?.lowercased() == event.role.lowercased()
+                            LitterEventRow(
+                                event: event,
+                                isContinuation: isContinuation,
+                                onQuickReply: { reply in
+                                    store.sendChat(sessionID: session.id, message: reply)
+                                }
+                            )
                             .id(event.id)
                             .padding(.horizontal, 16)
                         }
@@ -264,9 +270,18 @@ extension LitterUI {
                 // bottom of the visible viewport; subtracting from content
                 // height gives the remaining scroll distance.
                 .onScrollGeometryChange(for: CGFloat.self) { geo in
+                    // Distance from the true bottom. When the user is pinned
+                    // at the bottom, `contentOffset.y + bounds.height` equals
+                    // `contentSize.height + contentInsets.bottom` (the scroll
+                    // view scrolls past the content end to expose the inset
+                    // band for the composer), yielding ≤ 0 at rest. The prior
+                    // version added `contentInsets.bottom` a second time,
+                    // making the resting distance equal the composer height
+                    // (~200 pt) — keeping the scroll-to-bottom button visible
+                    // even when the latest message was fully on screen (#251
+                    // follow-up fix).
                     geo.contentSize.height
                         - (geo.contentOffset.y + geo.bounds.height)
-                        + geo.contentInsets.bottom
                 } action: { _, distance in
                     autoScroll.bottomProximityChanged(distance)
                 }
@@ -617,6 +632,9 @@ extension LitterUI {
 
 private struct LitterEventRow: View {
     let event: ConversationItem
+    /// True when the immediately preceding event had the same role —
+    /// used to suppress the redundant sender label on grouped runs.
+    var isContinuation: Bool = false
     let onQuickReply: (String) -> Void
 
     var body: some View {
@@ -629,7 +647,7 @@ private struct LitterEventRow: View {
         } else if event.role.lowercased() == "tool" {
             LitterToolCard(event: event)
         } else {
-            LitterChatMessageRow(event: event)
+            LitterChatMessageRow(event: event, isContinuation: isContinuation)
         }
     }
 }
@@ -651,6 +669,9 @@ private enum LitterRole {
 
 private struct LitterChatMessageRow: View {
     let event: ConversationItem
+    /// When true, the role header is hidden and top spacing is tightened
+    /// to visually group consecutive same-sender messages.
+    var isContinuation: Bool = false
     @Environment(AppearanceStore.self) private var appearance
 
     private var role: LitterRole { LitterRole(event.role) }
@@ -658,10 +679,12 @@ private struct LitterChatMessageRow: View {
     var body: some View {
         let alignment: HorizontalAlignment = role == .user ? .trailing : .leading
         VStack(alignment: alignment, spacing: 4) {
-            Text(roleLabel)
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .foregroundStyle(roleColor)
-                .textCase(.uppercase)
+            if !isContinuation {
+                Text(roleLabel)
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundStyle(roleColor)
+                    .textCase(.uppercase)
+            }
             LitterBlockStack(
                 blocks: ConversationRenderer.blocks(for: event.content),
                 role: role,
@@ -672,6 +695,9 @@ private struct LitterChatMessageRow: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: role == .user ? .trailing : .leading)
+        // Continuation rows get tighter top spacing: the LazyVStack's 14pt
+        // gap minus 10pt offset makes grouped messages sit closer together.
+        .padding(.top, isContinuation ? -10 : 0)
     }
 
     private var roleLabel: String {

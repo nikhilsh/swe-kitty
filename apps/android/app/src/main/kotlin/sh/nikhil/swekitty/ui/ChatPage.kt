@@ -192,6 +192,10 @@ private object ConversationRenderer {
                         currentStream = null
                         return@forEach
                     }
+                    // Drop single-line echo lines that duplicate the COMMAND
+                    // block (e.g. "Bash: ls -la" when the card already shows
+                    // COMMAND: ls -la). Only the echo is suppressed.
+                    if (command != null && isCommandEcho(block.text, command)) return@forEach
                     if (looksLikeDiff(block.text)) sections += ToolSection.Diff(block.text)
                     else sections += ToolSection.Text(block.text)
                 }
@@ -205,6 +209,25 @@ private object ConversationRenderer {
             }
         }
         return sections
+    }
+
+    /**
+     * Returns true when [text] is a single-line command-echo that
+     * duplicates the COMMAND card (e.g. "Bash: ls -la" when the card
+     * already shows COMMAND: ls -la). Case-insensitive; only suppresses
+     * single-line blocks so multi-line output is never dropped.
+     */
+    fun isCommandEcho(text: String, command: String): Boolean {
+        val lines = text.trim().lines().filter { it.isNotBlank() }
+        if (lines.size != 1) return false
+        val line = lines[0].trim()
+        val normalCmd = command.trim().lowercase()
+        val colonIdx = line.indexOf(": ")
+        if (colonIdx >= 0) {
+            val suffix = line.substring(colonIdx + 2).trim().lowercase()
+            if (suffix == normalCmd) return true
+        }
+        return false
     }
 
     private fun formatDuration(ms: ULong): String {
@@ -477,7 +500,12 @@ fun ChatPage(store: SessionStore, session: ProjectSession, readOnly: Boolean = f
                     item { EmptyConversationCard(assistant = session.assistant) }
                 } else {
                     items(events.size) { index ->
-                        ConversationEventRow(events[index], agentAccent) { reply ->
+                        val previousRole = if (index > 0) events[index - 1].role else null
+                        ConversationEventRow(
+                            ev = events[index],
+                            agentAccent = agentAccent,
+                            isContinuation = previousRole?.lowercase() == events[index].role.lowercase(),
+                        ) { reply ->
                             draft = if (draft.trim().isEmpty()) reply else "$draft\n$reply"
                         }
                     }
@@ -747,6 +775,8 @@ private fun EmptyConversationCard(assistant: String) {
 private fun ConversationEventRow(
     ev: ConversationItem,
     agentAccent: Color,
+    /** True when the immediately preceding event had the same role. */
+    isContinuation: Boolean = false,
     onQuickReply: (String) -> Unit,
 ) {
     if (ev.kind == "pending_input") {
@@ -763,9 +793,9 @@ private fun ConversationEventRow(
     }
     when (ConversationRole.from(ev.role)) {
         ConversationRole.User ->
-            ConversationBubble(ev, ConversationRole.User, agentAccent, Modifier, alignEnd = true)
+            ConversationBubble(ev, ConversationRole.User, agentAccent, Modifier, alignEnd = true, isContinuation = isContinuation)
         ConversationRole.Assistant ->
-            ConversationBubble(ev, ConversationRole.Assistant, agentAccent, Modifier, alignEnd = false)
+            ConversationBubble(ev, ConversationRole.Assistant, agentAccent, Modifier, alignEnd = false, isContinuation = isContinuation)
         ConversationRole.Tool -> ConversationToolCard(ev)
         ConversationRole.System -> Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
@@ -937,6 +967,9 @@ private fun ConversationBubble(
     agentAccent: Color,
     modifier: Modifier,
     alignEnd: Boolean,
+    /** True when the immediately preceding event had the same role —
+     *  hides the role label and tightens top spacing to group messages. */
+    isContinuation: Boolean = false,
 ) {
     // Mirror of iOS `LitterChatMessageRow`: a monospaced uppercase role
     // label ("YOU" in the brand accent, "ASSISTANT" in secondary) above
@@ -954,18 +987,24 @@ private fun ConversationBubble(
         ConversationRole.User -> agentAccent
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
+    // Continuation rows sit closer to the previous message: the
+    // LazyColumn's 12dp item spacing minus 8dp offset = 4dp effective gap.
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (isContinuation) Modifier.offset(y = (-8).dp) else Modifier),
         horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(
-            roleLabel,
-            style = MaterialTheme.typography.labelSmall,
-            fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Bold,
-            color = labelColor,
-        )
+        if (!isContinuation) {
+            Text(
+                roleLabel,
+                style = MaterialTheme.typography.labelSmall,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold,
+                color = labelColor,
+            )
+        }
         if (role == ConversationRole.User) {
             // Right-aligned, content-sized surface. `fillMaxWidth(0.82f)`
             // caps long turns at ~82% so they don't span edge-to-edge;
