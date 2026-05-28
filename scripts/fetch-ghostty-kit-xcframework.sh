@@ -32,21 +32,23 @@ OUT_DIR="$REPO_ROOT/apps/ios/GhosttyVT"
 ZIP_PATH="$OUT_DIR/GhosttyKit.xcframework.zip"
 XCFW_PATH="$OUT_DIR/GhosttyKit.xcframework"
 
-# Pin: Lakr233's `storage.1.2.1` release tag. Checksum = sha256 of the
-# .zip artifact, verified by `curl -fsSL "$ASSET_URL" | sha256sum` on
-# 2026-05-27.
+# Pin: Lakr233's `storage.1.2.2` release tag. Checksum = sha256 of the
+# .zip artifact, verified by `curl -fsSL "$ASSET_URL" | shasum -a 256`
+# on 2026-05-28.
 #
-# NOTE these `storage.*` tags are NOT immutable — upstream DELETED
-# `storage.1.1.5` (asset + tag → 404 on 2026-05-27), which broke every
-# iOS build at SPM dependency resolution. So the pin must track whatever
-# the publisher currently hosts, not a tag we assume is permanent.
+# NOTE these `storage.*` tags are NOT immutable — upstream renamed the
+# `GhosttyKit.xcframework.zip` asset under `storage.1.2.1` on 2026-05-28
+# (URL-encoded blob name), so the canonical download URL 404s exactly
+# the way `storage.1.1.5` did when its release was deleted on 2026-05-27.
+# So the pin must track whatever the publisher currently hosts under the
+# regular asset name, not a tag we assume is permanent.
 #
 # When bumping: pull the new sha from the release notes or
 # `https://raw.githubusercontent.com/Lakr233/libghostty-spm/main/Package.swift`
 # and update BOTH this script and apps/ios/GhosttyVT/Package.swift in
 # the same commit.
-ASSET_URL="https://github.com/Lakr233/libghostty-spm/releases/download/storage.1.2.1/GhosttyKit.xcframework.zip"
-EXPECTED_SHA256="8333a035ae372ef39f7dff26affaa1f3dac4129a52251aa3264828700b784071"
+ASSET_URL="https://github.com/Lakr233/libghostty-spm/releases/download/storage.1.2.2/GhosttyKit.xcframework.zip"
+EXPECTED_SHA256="7f712b8df5943ba02070c468de7d785abedebf207d3a3ded6515c7467309e902"
 
 MODE="${1:-fetch}"
 
