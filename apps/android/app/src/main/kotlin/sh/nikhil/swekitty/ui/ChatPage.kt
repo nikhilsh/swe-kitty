@@ -290,7 +290,18 @@ private object ConversationRenderer {
 }
 
 @Composable
-fun ChatPage(store: SessionStore, session: ProjectSession, readOnly: Boolean = false) {
+fun ChatPage(
+    store: SessionStore,
+    session: ProjectSession,
+    readOnly: Boolean = false,
+    /**
+     * When non-null, skip [SessionStore.conversationLog] / [SessionStore.chatLog]
+     * and render exactly these items. Used by [SavedTranscriptScreen] to
+     * replay a fetched archived transcript without polluting the live
+     * log maps. Mirror of iOS `LitterUI.ChatView(session, readOnlyItems:)`.
+     */
+    readOnlyItems: List<sh.nikhil.swekitty.ConversationItem>? = null,
+) {
     val agentAccent = SweKittyTheme.accent(forAgent = session.assistant)
     val typedLog by store.conversationLog.collectAsState()
     val fallbackLog by store.chatLog.collectAsState()
@@ -304,11 +315,19 @@ fun ChatPage(store: SessionStore, session: ProjectSession, readOnly: Boolean = f
     // sank every user message to the bottom. `mergedConversation` dedupes
     // by role+content and sorts by `ts`, interleaving user and assistant
     // turns correctly. Mirror of iOS `LitterUI.ChatViewModel.mergedEvents`.
-    val events = remember(typedLog, fallbackLog, session.id) {
-        mergedConversation(
-            conversation = typedLog[session.id] ?: emptyList(),
-            chatLog = fallbackLog[session.id] ?: emptyList(),
-        )
+    val events = remember(typedLog, fallbackLog, session.id, readOnlyItems) {
+        // Read-only history opens hand us a pre-fetched transcript;
+        // bypass the live log maps so the saved render doesn't see
+        // stale entries from a recently-attached live session of the
+        // same id, and so the live maps don't accumulate archived rows.
+        if (readOnlyItems != null) {
+            readOnlyItems
+        } else {
+            mergedConversation(
+                conversation = typedLog[session.id] ?: emptyList(),
+                chatLog = fallbackLog[session.id] ?: emptyList(),
+            )
+        }
     }
     var draft by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
