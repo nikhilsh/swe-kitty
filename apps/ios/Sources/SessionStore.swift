@@ -413,15 +413,27 @@ final class SessionStore {
     }
 
     private func installNetworkAndLifecycleHooks() {
+        // Three notification observers all want to call the
+        // MainActor-isolated [nudgeNetworkChange]. We pass `queue: .main`
+        // so the closures actually run on the main thread at runtime,
+        // but the closure's static type is `@Sendable` nonisolated —
+        // Swift can't prove the actor match from `queue:` alone, so we
+        // tell it explicitly with `MainActor.assumeIsolated`. This is
+        // safe by construction: the `OperationQueue.main` dispatch is
+        // what makes the assumption true.
+        let nudge: @Sendable () -> Void = { [weak self] in
+            MainActor.assumeIsolated {
+                self?.nudgeNetworkChange()
+            }
+        }
+
         // App returns to foreground after a long suspend — sockets may
         // be silently dead even though our state thinks they're live.
         foregroundObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.willEnterForegroundNotification,
             object: nil,
             queue: .main
-        ) { [weak self] _ in
-            self?.nudgeNetworkChange()
-        }
+        ) { _ in nudge() }
 
         // Path-level reachability is owned by NetworkReachabilityObserver
         // (instantiated at app launch by SweKittyApp). We just listen for
@@ -433,16 +445,12 @@ final class SessionStore {
             forName: .networkBecameReachable,
             object: nil,
             queue: .main
-        ) { [weak self] _ in
-            self?.nudgeNetworkChange()
-        }
+        ) { _ in nudge() }
         networkInterfaceObserver = NotificationCenter.default.addObserver(
             forName: .networkInterfaceChanged,
             object: nil,
             queue: .main
-        ) { [weak self] _ in
-            self?.nudgeNetworkChange()
-        }
+        ) { _ in nudge() }
     }
 
     // MARK: - Convenience derived state

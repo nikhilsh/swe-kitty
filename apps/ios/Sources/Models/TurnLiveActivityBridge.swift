@@ -200,13 +200,19 @@ public final class TurnLiveActivityBridge {
     // types are internal). Constructors at the SweKittyApp call site
     // live in the same module, so the access drop is invisible
     // outside tests.
+    /// `controller` defaults to the shared singleton, but Swift 6's
+    /// nonisolated-default-values rule rejects `controller: TurnLiveActivityController = .shared`
+    /// at the parameter list (default values evaluate in a nonisolated
+    /// context, and `.shared` is MainActor-isolated). Passing `nil` and
+    /// resolving inside the body works because the body itself is
+    /// MainActor (the class is `@MainActor`).
     init(
         store: SessionStore,
-        controller: TurnLiveActivityController = .shared,
+        controller: TurnLiveActivityController? = nil,
         idleTimeout: TimeInterval = TurnLiveActivityBridgeCore.defaultIdleTimeout
     ) {
         self.store = store
-        self.controller = controller
+        self.controller = controller ?? TurnLiveActivityController.shared
         self.core = TurnLiveActivityBridgeCore(idleTimeout: idleTimeout)
     }
 
