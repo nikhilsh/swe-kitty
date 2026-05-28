@@ -93,6 +93,7 @@ extension LitterUI {
             }
             .presentationDetents([.medium, .large])
             .tint(LitterUI.Palette.brand.color)
+            .appearanceColorScheme()
         }
 
         // MARK: - Subviews

@@ -88,6 +88,11 @@ extension LitterUI {
                     Text("Drops the saved pairing for \(target.name). Sessions already running on this server keep running until you delete them.")
                 }
             }
+            // Re-bind \.colorScheme to the AppearanceStore so a runtime
+            // theme swap from Settings → Appearance updates THIS sheet
+            // live, not just the underlying RootView (see
+            // `AppearanceColorScheme.swift`).
+            .appearanceColorScheme()
         }
 
         // MARK: Sections

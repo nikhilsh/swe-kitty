@@ -1,20 +1,32 @@
 package sh.nikhil.swekitty.ui
 
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 
 /**
+ * Effective dark-mode flag for the rendered tree. Provided by the
+ * activity once it has resolved `AppearanceStore.themeMode` against
+ * the system theme (System → follow OS, Light/Dark → force). All
+ * palette lookups read this rather than `isSystemInDarkTheme()` so a
+ * user-forced Light/Dark stays consistent across surfaces — including
+ * sheets, dialogs, and any other window that inherits the parent
+ * composition. Without this we ended up half-dark when the user
+ * override disagreed with the OS theme.
+ */
+val LocalUseDarkTheme = compositionLocalOf { false }
+
+/**
  * Compose mirror of `apps/ios/Sources/Theme/Palette.swift` +
  * `Theme.swift`. Same hex values, same semantic tokens. The composables
- * here resolve to light/dark via `isSystemInDarkTheme()` so call sites
+ * here resolve to light/dark via [LocalUseDarkTheme] so call sites
  * read like `SweKittyTheme.accentStrong()` rather than threading a
  * `ColorScheme` parameter.
  */
 internal data class AdaptiveColor(val light: Long, val dark: Long) {
     @Composable @ReadOnlyComposable
-    fun color(): Color = if (isSystemInDarkTheme()) Color(dark) else Color(light)
+    fun color(): Color = if (LocalUseDarkTheme.current) Color(dark) else Color(light)
 }
 
 internal object SweKittyPalette {

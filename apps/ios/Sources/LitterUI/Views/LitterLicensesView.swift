@@ -88,6 +88,7 @@ extension LitterUI {
             .navigationTitle("Licenses")
             .navigationBarTitleDisplayMode(.inline)
             .tint(LitterUI.Palette.brand.color)
+            .appearanceColorScheme()
         }
 
         @ViewBuilder
