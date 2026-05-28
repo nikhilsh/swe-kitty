@@ -353,12 +353,36 @@ final class GhosttyRenderView: UIView, UIKeyInput {
         super.init(frame: frame)
         configure()
         recomputeTypography()
+        registerTraitObservation()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         configure()
         recomputeTypography()
+        registerTraitObservation()
+    }
+
+    /// iOS 17+ trait change registration. Replaces the deprecated
+    /// `traitCollectionDidChange(_:)` override — that callback was
+    /// dropped in iOS 17 with no current `@available` annotation, but
+    /// new code is expected to subscribe through `registerForTraitChanges`.
+    private func registerTraitObservation() {
+        registerForTraitChanges(
+            [UITraitPreferredContentSizeCategory.self, UITraitUserInterfaceStyle.self]
+        ) { (self: GhosttyRenderView, previousTraits: UITraitCollection) in
+            if previousTraits.preferredContentSizeCategory
+                != self.traitCollection.preferredContentSizeCategory
+            {
+                self.recomputeTypography()
+                self.recomputeGridFromBounds()
+            }
+            if previousTraits.userInterfaceStyle
+                != self.traitCollection.userInterfaceStyle
+            {
+                self.setNeedsDisplay()
+            }
+        }
     }
 
     // MARK: - Appearance plumbing
@@ -487,26 +511,9 @@ final class GhosttyRenderView: UIView, UIKeyInput {
         cellHeight = font.lineHeight
     }
 
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-        // Repaint when the system flips appearance under us — `.system`
-        // mode reads the live trait collection at draw time, so a
-        // light↔dark toggle should change colours immediately. Also
-        // catches Dynamic Type changes: if the user bumps Larger Text
-        // while the app is running, the cell font grows on the next
-        // layout.
-        if previousTraitCollection?.preferredContentSizeCategory
-            != traitCollection.preferredContentSizeCategory
-        {
-            recomputeTypography()
-            recomputeGridFromBounds()
-        }
-        if previousTraitCollection?.userInterfaceStyle
-            != traitCollection.userInterfaceStyle
-        {
-            setNeedsDisplay()
-        }
-    }
+    // Trait change handling moved to `registerTraitObservation()` (the
+    // iOS 17+ `registerForTraitChanges` API). The old
+    // `traitCollectionDidChange(_:)` override was deprecated in 17.0.
 
     // MARK: - First responder / accessory bar
 
@@ -616,7 +623,7 @@ final class GhosttyRenderView: UIView, UIKeyInput {
         backgroundColor = .black
         layer.isOpaque = true
         layer.backgroundColor = UIColor.black.cgColor
-        layer.contentsScale = UIScreen.main.scale
+        layer.contentsScale = traitCollection.displayScale
         CATransaction.commit()
 
         // libghostty's iOS renderer reads the host view's bounds + scale at
@@ -668,6 +675,14 @@ final class GhosttyRenderView: UIView, UIKeyInput {
         pan.require(toFail: longPress)
         addGestureRecognizer(pan)
 
+        // iOS 16+ edit-menu surface. UIMenuController was deprecated in
+        // 16 and is the only way to summon copy/paste on a custom view
+        // here; `UIEditMenuInteraction` is the replacement. The
+        // interaction routes through `canPerformAction` so the menu
+        // still only shows Copy when there's a selection and Paste
+        // when the pasteboard has a string.
+        addInteraction(editMenuInteraction)
+
         #if canImport(GhosttyVT)
         // Faithful init: with `GhosttyApp.shared` booted (real
         // wakeup/action callbacks), instantiate the surface WITH this
@@ -692,7 +707,7 @@ final class GhosttyRenderView: UIView, UIKeyInput {
             // `view.contentScaleFactor` as `scale_factor`); it's the backing
             // scale UIKit will actually render at and matches what libghostty
             // reads off the view at attach time.
-            let scale = contentScaleFactor > 0 ? contentScaleFactor : UIScreen.main.scale
+            let scale = contentScaleFactor > 0 ? contentScaleFactor : traitCollection.displayScale
             term.attach(
                 hostView: self,
                 pixelWidth: UInt32(bounds.width * scale),
@@ -1000,26 +1015,22 @@ final class GhosttyRenderView: UIView, UIKeyInput {
         showEditMenu(at: point)
     }
 
+    /// iOS 16+ `UIEditMenuInteraction` replaces the deprecated
+    /// `UIMenuController` API. Lazy so it's only constructed once; the
+    /// view installs it in `configure()` via `addInteraction(_:)`.
+    /// `canPerformAction` still controls which actions appear.
+    private lazy var editMenuInteraction: UIEditMenuInteraction = {
+        UIEditMenuInteraction(delegate: self)
+    }()
+
     private func showEditMenu(at point: CGPoint) {
-        // UIEditMenuInteraction is the iOS 16+ shape, but the simpler
-        // UIMenuController API still works and matches what we'd want
-        // pre-iOS-26 if we ever back-ported. The menu's `targetRect`
-        // anchors at the tap point's row so it doesn't cover the
-        // selection itself.
-        let menu = UIMenuController.shared
-        guard !menu.isMenuVisible else { return }
-        let row = max(0, Int(floor(point.y / cellHeight)))
-        let anchor = CGRect(
-            x: point.x,
-            y: CGFloat(row) * cellHeight,
-            width: 1,
-            height: cellHeight
-        )
-        menu.showMenu(from: self, rect: anchor)
+        let cfg = UIEditMenuConfiguration(identifier: "terminal.edit-menu" as NSString,
+                                           sourcePoint: point)
+        editMenuInteraction.presentEditMenu(with: cfg)
     }
 
     private func hideEditMenu() {
-        UIMenuController.shared.hideMenu()
+        editMenuInteraction.dismissMenu()
     }
 
     // MARK: - Edit menu (copy / paste)
@@ -1126,7 +1137,7 @@ final class GhosttyRenderView: UIView, UIKeyInput {
         #if canImport(GhosttyVT)
         GhosttyDiagnostics.shared.setBounds(w: Int(bounds.width), h: Int(bounds.height))
         #endif
-        let scale = contentScaleFactor > 0 ? contentScaleFactor : UIScreen.main.scale
+        let scale = contentScaleFactor > 0 ? contentScaleFactor : traitCollection.displayScale
         // No implicit animation on the resize — terminals must snap.
         CATransaction.begin()
         CATransaction.setDisableActions(true)
@@ -1173,7 +1184,7 @@ final class GhosttyRenderView: UIView, UIKeyInput {
         // Keep the local gesture grid + cell metrics in sync so tap→cell
         // mapping (selection) lands on the same cells libghostty paints.
         if grid.cellWidthPx > 0, grid.cellHeightPx > 0 {
-            let scale = contentScaleFactor > 0 ? contentScaleFactor : UIScreen.main.scale
+            let scale = contentScaleFactor > 0 ? contentScaleFactor : traitCollection.displayScale
             cellWidth = CGFloat(grid.cellWidthPx) / scale
             cellHeight = CGFloat(grid.cellHeightPx) / scale
         }
@@ -1308,7 +1319,7 @@ final class GhosttyRenderView: UIView, UIKeyInput {
                 theme: Self.mapTheme(ghosttyTheme)
             )
             term.onReceiveInput = { [weak self] inBytes in self?.onInput(inBytes) }
-            let scale = contentScaleFactor > 0 ? contentScaleFactor : UIScreen.main.scale
+            let scale = contentScaleFactor > 0 ? contentScaleFactor : traitCollection.displayScale
             term.attach(
                 hostView: self,
                 pixelWidth: UInt32(bounds.width * scale),
@@ -1375,6 +1386,21 @@ final class GhosttyRenderView: UIView, UIKeyInput {
     // builds, so it's removed. `cachedSnapshot` / `selectionRange` are still
     // maintained for the copy/selection text path (`copy(_:)` reads the
     // snapshot); they just aren't repainted here.
+}
+
+extension GhosttyRenderView: UIEditMenuInteractionDelegate {
+    /// Return nil so iOS composes the default menu from
+    /// `canPerformAction(_:withSender:)` — that's where we filter
+    /// down to just Copy + Paste. The interaction's "suggested
+    /// actions" already include the standard responder actions, so
+    /// no custom UIMenu is needed.
+    func editMenuInteraction(
+        _ interaction: UIEditMenuInteraction,
+        menuFor configuration: UIEditMenuConfiguration,
+        suggestedActions: [UIMenuElement]
+    ) -> UIMenu? {
+        UIMenu(children: suggestedActions)
+    }
 }
 
 /// Pure-Swift mirror of `TerminalSnapshot` shaped for the renderer's
