@@ -1,8 +1,11 @@
 package sh.nikhil.swekitty.ui
 
+import android.annotation.SuppressLint
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -15,6 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -47,6 +53,7 @@ fun AgentAvatar(
 ) {
     val fill = SweKittyTheme.accentStrong(forAgent = assistant)
     val onAccent = SweKittyTheme.textOnAccent()
+    val logoRes = agentLogoRes(assistant)
     val glyph = agentGlyph(assistant)
     val monogram = monogramFor(assistant)
     val label = assistant.replaceFirstChar { it.uppercaseChar() }
@@ -55,22 +62,29 @@ fun AgentAvatar(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(fill)
+            // A real brand logo brings its own background; only the
+            // glyph/monogram fallbacks sit on the accent disc.
+            .then(if (logoRes == null) Modifier.background(fill) else Modifier)
             .border(0.5.dp, onAccent.copy(alpha = 0.15f), CircleShape)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
-        if (glyph != null) {
-            // Claude / Codex get a distinctive brand glyph; other agents
-            // keep the monogram.
-            Icon(
+        when {
+            logoRes != null -> Image(
+                painter = painterResource(logoRes),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+            glyph != null -> Icon(
+                // Claude / Codex get a distinctive brand glyph; other
+                // agents keep the monogram.
                 imageVector = glyph,
                 contentDescription = null,
                 tint = onAccent,
                 modifier = Modifier.size(size * 0.5f),
             )
-        } else {
-            Text(
+            else -> Text(
                 text = monogram,
                 color = onAccent,
                 style = TextStyle(
@@ -81,6 +95,26 @@ fun AgentAvatar(
             )
         }
     }
+}
+
+/**
+ * Resolves the bundled brand-logo drawable for an agent, if the app owner
+ * has supplied the official artwork (`claude_mark` / `codex_mark`). Looked
+ * up by name at runtime so a missing drawable degrades to [agentGlyph] /
+ * [monogramFor] rather than failing the build — we don't bundle the
+ * artwork here; it's added under the trademark attribution in the
+ * Licenses screen. Returns null when absent or for agents without a logo.
+ */
+@SuppressLint("DiscouragedApi")
+@Composable
+private fun agentLogoRes(assistant: String): Int? {
+    val name = when (assistant.lowercase()) {
+        "claude" -> "claude_mark"
+        "codex" -> "codex_mark"
+        else -> return null
+    }
+    val ctx = LocalContext.current
+    return ctx.resources.getIdentifier(name, "drawable", ctx.packageName).takeIf { it != 0 }
 }
 
 /**

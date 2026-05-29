@@ -48,12 +48,12 @@ extension LitterUI {
                             agentRow(
                                 kind: "claude",
                                 label: "Claude",
-                                subtitle: "Anthropic — copper accent"
+                                subtitle: "Powered by Anthropic"
                             )
                             agentRow(
                                 kind: "codex",
                                 label: "Codex",
-                                subtitle: "OpenAI — codex"
+                                subtitle: "Powered by OpenAI"
                             )
                             if !store.harness.canIssueCommands {
                                 Text("Connect to a server first — open Settings to pair.")
