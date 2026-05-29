@@ -355,6 +355,29 @@ struct NeonTheme {
         )
     }
 
+    /// Resolve the token set from an `AppearanceStore` + the live
+    /// `\.colorScheme`. Single source of truth for the (palette, dark,
+    /// glow) inputs so the app-root `NeonThemeInjector` and the per-sheet
+    /// `AppearanceColorSchemeModifier` resolve identically:
+    ///   - palette = appearance.neonPalette.neonPalette
+    ///   - glow    = appearance.neonGlow
+    ///   - dark    = themeMode == .dark  ? true
+    ///               themeMode == .light ? false
+    ///               (.system)           : colorScheme == .dark
+    static func resolve(appearance: AppearanceStore, colorScheme: ColorScheme) -> NeonTheme {
+        let dark: Bool
+        switch appearance.themeMode {
+        case .system: dark = colorScheme == .dark
+        case .light:  dark = false
+        case .dark:   dark = true
+        }
+        return resolve(
+            palette: appearance.neonPalette.neonPalette,
+            dark: dark,
+            glow: appearance.neonGlow
+        )
+    }
+
     // MARK: Type intent (README §3.4)
     //
     // sans = Space Grotesk → falls back to the system sans (SF Pro).

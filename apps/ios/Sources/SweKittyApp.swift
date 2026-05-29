@@ -120,17 +120,10 @@ struct SweKittyApp: App {
         @Environment(\.colorScheme) private var systemScheme
 
         func body(content: Content) -> some View {
-            let dark: Bool
-            switch appearance.themeMode {
-            case .system: dark = systemScheme == .dark
-            case .light:  dark = false
-            case .dark:   dark = true
-            }
-            let theme = NeonTheme.resolve(
-                palette: appearance.neonPalette.neonPalette,
-                dark: dark,
-                glow: appearance.neonGlow
-            )
+            // Shared resolve rule (see `NeonTheme.resolve(appearance:
+            // colorScheme:)`) so the app root and the per-sheet
+            // `AppearanceColorSchemeModifier` stay in lockstep.
+            let theme = NeonTheme.resolve(appearance: appearance, colorScheme: systemScheme)
             return content.neonTheme(theme)
         }
     }

@@ -67,6 +67,12 @@ extension LitterUI {
                     )
                 }
             }
+            // This screen is itself presented as a sheet (own
+            // UIHostingController), so re-bind \.colorScheme + re-resolve
+            // \.neonTheme here too — otherwise a Dark↔Light swap made
+            // from the Appearance sub-sheet leaves this screen half-stale
+            // until it's closed + reopened (device bug, Neon UI).
+            .appearanceColorScheme()
         }
 
         private var snapshot: SessionInfoSnapshot {
@@ -191,56 +197,58 @@ extension LitterUI {
         // Per-session token/cost usage + a context-window gauge, sourced
         // from the live SessionStatus (broker-accumulated). Cost + the
         // context bar are claude-only (codex reports neither); the card
-        // hides entirely until a turn has reported usage.
+        // hides entirely until a turn has reported usage. Neon-styled to
+        // match the surrounding stats / details cards.
         @ViewBuilder private var usageCard: some View {
             let status = store.statusBySession[session.id]
             let input = status?.totalInputTokens ?? 0
             let output = status?.totalOutputTokens ?? 0
             let cached = status?.totalCachedTokens ?? 0
             if input > 0 || output > 0 {
-                LitterUI.Card {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Usage & Context")
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                            .foregroundStyle(LitterUI.Palette.textSecondary.color)
-                            .textCase(.uppercase)
-                            .padding(.bottom, 8)
-                        usageRow("Input", Self.formatTokens(input))
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Usage & Context")
+                        .font(neon.mono(11).weight(.bold))
+                        .foregroundStyle(neon.textDim)
+                        .textCase(.uppercase)
+                        .padding(.bottom, 8)
+                    usageRow("Input", Self.formatTokens(input))
+                    usageDivider
+                    usageRow("Output", Self.formatTokens(output))
+                    if cached > 0 {
                         usageDivider
-                        usageRow("Output", Self.formatTokens(output))
-                        if cached > 0 {
-                            usageDivider
-                            usageRow("Cached", Self.formatTokens(cached))
-                        }
-                        if let cost = status?.totalCostUsd, cost > 0 {
-                            usageDivider
-                            usageRow("Cost", String(format: "$%.4f", cost))
-                        }
-                        if let used = status?.contextUsedTokens,
-                           let window = status?.contextWindowTokens, window > 0 {
-                            usageDivider
-                            contextGauge(used: used, window: window)
-                        }
+                        usageRow("Cached", Self.formatTokens(cached))
+                    }
+                    if let cost = status?.totalCostUsd, cost > 0 {
+                        usageDivider
+                        usageRow("Cost", String(format: "$%.4f", cost))
+                    }
+                    if let used = status?.contextUsedTokens,
+                       let window = status?.contextWindowTokens, window > 0 {
+                        usageDivider
+                        contextGauge(used: used, window: window)
                     }
                 }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .neonCardSurface(neon, fill: neon.surface, cornerRadius: 14)
             }
         }
 
         private var usageDivider: some View {
             Divider()
-                .background(LitterUI.Palette.separator.color)
+                .background(neon.border)
                 .padding(.vertical, 8)
         }
 
         private func usageRow(_ label: String, _ value: String) -> some View {
             HStack(spacing: 8) {
                 Text(label)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(LitterUI.Palette.textSecondary.color)
+                    .font(neon.sans(13).weight(.semibold))
+                    .foregroundStyle(neon.textDim)
                 Spacer(minLength: 12)
                 Text(value)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(LitterUI.Palette.textPrimary.color)
+                    .font(neon.sans(13).weight(.semibold))
+                    .foregroundStyle(neon.text)
             }
         }
 
@@ -249,18 +257,19 @@ extension LitterUI {
             return VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
                     Text("Context")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(LitterUI.Palette.textSecondary.color)
+                        .font(neon.sans(13).weight(.semibold))
+                        .foregroundStyle(neon.textDim)
                     Spacer(minLength: 12)
                     Text("\(Self.formatTokens(used)) / \(Self.formatTokens(window)) · \(Int(pct * 100))%")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(LitterUI.Palette.textPrimary.color)
+                        .font(neon.sans(12).weight(.semibold))
+                        .foregroundStyle(neon.text)
                 }
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(LitterUI.Palette.separator.color)
-                        Capsule().fill(LitterUI.Palette.brand.color)
+                        Capsule().fill(neon.border)
+                        Capsule().fill(neon.accent)
                             .frame(width: max(2, geo.size.width * pct))
+                            .neonGlowBox(neon.glow ? neon.glowBox : nil)
                     }
                 }
                 .frame(height: 6)
