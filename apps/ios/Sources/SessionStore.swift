@@ -1140,6 +1140,8 @@ final class SessionStore {
         // Lands in a follow-up with on-device verification.
         case "loop":
             postSystemMessage(sessionID, "“/loop” is recognised; the repeat-a-prompt loop ships in a follow-up update.")
+        case "usage", "context":
+            postSystemMessage(sessionID, "“/\(match.command.name)” is a Claude Code terminal-only panel — it isn’t available in chat yet.")
         default:
             return false
         }

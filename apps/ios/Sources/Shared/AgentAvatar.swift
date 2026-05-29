@@ -21,11 +21,15 @@ struct AgentAvatar: View {
     var body: some View {
         ZStack {
             if let asset = AgentAvatar.logoAsset(forAgent: assistant) {
-                // Real brand logo: a bundled, app-owner-supplied asset.
-                // Fills the disc and is clipped to the circle below.
+                // Real brand logo on a white disc: the marks are designed
+                // for a light background, so without this the black Codex
+                // knot is invisible on the dark sheet (device feedback).
+                // Padding keeps the mark off the rim.
+                Circle().fill(Color.white)
                 Image(asset)
                     .resizable()
-                    .scaledToFill()
+                    .scaledToFit()
+                    .padding(size * 0.16)
             } else {
                 Circle()
                     .fill(SweKittyTheme.accentStrong(forAgent: assistant))

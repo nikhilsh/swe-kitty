@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -17,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -62,9 +64,11 @@ fun AgentAvatar(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            // A real brand logo brings its own background; only the
-            // glyph/monogram fallbacks sit on the accent disc.
-            .then(if (logoRes == null) Modifier.background(fill) else Modifier)
+            // Brand logos sit on a white disc (they're designed for a
+            // light background — otherwise the black Codex knot is
+            // invisible on the dark sheet); glyph/monogram fallbacks sit
+            // on the accent disc.
+            .then(if (logoRes == null) Modifier.background(fill) else Modifier.background(Color.White))
             .border(0.5.dp, onAccent.copy(alpha = 0.15f), CircleShape)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
@@ -73,8 +77,8 @@ fun AgentAvatar(
             logoRes != null -> Image(
                 painter = painterResource(logoRes),
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize().padding(size * 0.16f),
             )
             glyph != null -> Icon(
                 // Claude / Codex get a distinctive brand glyph; other

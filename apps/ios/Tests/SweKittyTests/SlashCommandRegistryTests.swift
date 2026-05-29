@@ -34,6 +34,15 @@ struct SlashCommandRegistryTests {
         #expect(SlashCommandRegistry.classify("/stats", agent: "claude")?.command.name == "usage")
     }
 
+    @Test func usageAndContextAreAppHandled() {
+        // Terminal-only display panels: app-handled (show a note), NOT
+        // pass-through — passing them to the agent yields a vague reply.
+        #expect(SlashCommandRegistry.classify("/usage", agent: "claude")?.command.clazz == .appHandled)
+        #expect(SlashCommandRegistry.classify("/context", agent: "claude")?.command.clazz == .appHandled)
+        // …while /compact stays a real pass-through.
+        #expect(SlashCommandRegistry.classify("/compact", agent: "claude")?.command.clazz == .passThrough)
+    }
+
     @Test func argsArePreservedAndTrimmed() {
         let m = SlashCommandRegistry.classify("/model   opus  ", agent: "claude")
         #expect(m?.command.name == "model")

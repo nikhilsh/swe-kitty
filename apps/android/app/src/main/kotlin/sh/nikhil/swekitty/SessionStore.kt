@@ -1504,6 +1504,7 @@ class SessionStore : ViewModel(), SweKittyDelegate {
             // an untested auto-sender hammering the agent is a bad blind ship.
             // Lands in a follow-up with on-device verification.
             "loop" -> postSystemMessage(sessionId, "“/loop” is recognised; the repeat-a-prompt loop ships in a follow-up update.")
+            "usage", "context" -> postSystemMessage(sessionId, "“/${match.command.name}” is a Claude Code terminal-only panel — it isn’t available in chat yet.")
             else -> return false
         }
         return true
