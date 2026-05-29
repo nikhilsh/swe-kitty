@@ -121,7 +121,7 @@ private fun AgentStep(
         AgentTile(
             assistant = "claude",
             label = "Claude",
-            subtitle = "Anthropic — copper accent, headstrong",
+            subtitle = "Powered by Anthropic",
             tint = SweKittyTheme.claudeAccent(),
             enabled = canIssue,
             onTap = { onPick("claude") },
@@ -129,7 +129,7 @@ private fun AgentStep(
         AgentTile(
             assistant = "codex",
             label = "Codex",
-            subtitle = "OpenAI — codex",
+            subtitle = "Powered by OpenAI",
             tint = SweKittyTheme.codexAccent(),
             enabled = canIssue,
             onTap = { onPick("codex") },
