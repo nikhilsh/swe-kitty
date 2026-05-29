@@ -67,6 +67,19 @@ struct AgentAccentTests {
         expectRGB(SweKittyTheme.accentStrong(forAgent: "???"), hex: "#4A4A4A")
     }
 
+    // MARK: - Per-agent brand glyph
+
+    @Test func claudeAndCodexHaveBrandGlyphs() {
+        // Claude and Codex render a distinctive SF Symbol in the avatar;
+        // every other agent (and unknown) falls back to the monogram
+        // (nil glyph). Guards against a refactor that drops the per-agent
+        // imagery or accidentally gives every agent the same mark.
+        #expect(AgentAvatar.symbol(forAgent: "claude") == "sparkle")
+        #expect(AgentAvatar.symbol(forAgent: "Codex") == "chevron.left.forwardslash.chevron.right")
+        #expect(AgentAvatar.symbol(forAgent: "hermes") == nil)
+        #expect(AgentAvatar.symbol(forAgent: "totally-fake") == nil)
+    }
+
     // MARK: - Helpers
 
     /// Resolves the SwiftUI `Color` in a fixed light trait collection so
