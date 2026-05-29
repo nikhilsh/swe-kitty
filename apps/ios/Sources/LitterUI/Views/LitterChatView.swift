@@ -1578,8 +1578,12 @@ private struct LitterNeonCommandCard: View {
     // gracefully when absent.
     @ViewBuilder
     private var metaStrip: some View {
-        let cwd = event.cwd?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let host = event.host?.trimmingCharacters(in: .whitespacesAndNewlines)
+        // `cwd` / `host` are not surfaced on ConversationItem over UniFFI
+        // (core's classifier doesn't emit them). Kept as nil so the meta
+        // strip degrades to duration-only until core adds the fields;
+        // wiring stays ready for that. See README §4.1.
+        let cwd: String? = nil
+        let host: String? = nil
         let duration = ConversationRenderer.extractMetadata(from: event).duration
         let hasAny = (cwd?.isEmpty == false) || (host?.isEmpty == false) || (duration?.isEmpty == false)
         if hasAny {
@@ -2037,9 +2041,35 @@ private struct LitterHandoffCard: View {
         return neon.accent
     }
 
-    private var target: String { event.targetAgent ?? "" }
-    private var source: String { event.sourceAgent ?? "" }
-    private var done: Bool { event.phase?.lowercased() == "done" || event.status.lowercased() == "done" }
+    // ConversationItem (UniFFI) doesn't carry structured handoff fields
+    // (sourceAgent/targetAgent/phase/taskText/…); the classifier only
+    // marks kind=="handoff" and puts the detail in `content`. Derive the
+    // from→to names from `content` where possible, else fall back to the
+    // generic "agent"/"subagent" labels in `titleRow`. Status drives
+    // working/done. See README §4.2.
+    private var target: String { Self.agentName(in: event.content, role: .target) }
+    private var source: String { Self.agentName(in: event.content, role: .source) }
+    private var done: Bool { event.status.lowercased() == "done" }
+
+    private enum HandoffRole { case source, target }
+
+    /// Best-effort parse of "… to Y" handoff phrasing from the raw
+    /// content: `target` is the first word after " to ", `source` is the
+    /// first word of the message. Returns "" when not derivable so
+    /// `titleRow` shows its generic fallback rather than wrong data.
+    private static func agentName(in content: String, role: HandoffRole) -> String {
+        func firstWord(_ s: Substring) -> String {
+            String(s.drop { !($0.isLetter || $0.isNumber) }
+                .prefix { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" })
+        }
+        switch role {
+        case .target:
+            guard let r = content.lowercased().range(of: " to ") else { return "" }
+            return firstWord(content[r.upperBound...])
+        case .source:
+            return firstWord(content[...])
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -2058,41 +2088,14 @@ private struct LitterHandoffCard: View {
                         .foregroundStyle(neon.textFaint)
                 }
             }
-            // Task block (dark inset).
-            if let task = event.taskText, !task.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("TASK")
-                        .font(neon.mono(9).weight(.bold))
-                        .tracking(0.8)
-                        .foregroundStyle(neon.textFaint)
-                    Text(task)
-                        .font(neon.sans(13))
-                        .foregroundStyle(neon.codeText)
-                }
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(neon.codeBg))
-            }
-            // Nested progress strip.
-            if let progress = event.progress, !progress.isEmpty {
-                Text(progress)
-                    .font(neon.mono(11))
-                    .foregroundStyle(neon.textDim)
-            }
-            // Body content (markdown) when present.
+            // The §4.2 spec's TASK / nested-progress / result sub-blocks
+            // need structured handoff fields the core classifier doesn't
+            // surface over UniFFI (only kind=="handoff" + the detail in
+            // `content`). Render the delegated detail as the body markdown;
+            // the richer sub-blocks stay ready to wire if core adds the
+            // fields. See README §4.2 + the gap note in the report.
             if !event.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 LitterMarkdownBlock(text: event.content, role: .system)
-            }
-            // Result block (top-bordered, faint green wash) when present.
-            if let result = event.resultSummary, !result.isEmpty {
-                Text(result)
-                    .font(neon.sans(13))
-                    .foregroundStyle(neon.text)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 8)
-                    .padding(10)
-                    .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(neon.green.opacity(0.10)))
-                    .overlay(alignment: .top) { Rectangle().fill(neon.green.opacity(0.3)).frame(height: 1) }
             }
         }
         .padding(14)
