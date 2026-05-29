@@ -41,6 +41,15 @@ class SlashCommandRegistryTest {
         assertEquals("usage", SlashCommandRegistry.classify("/stats", "claude")!!.command.name)
     }
 
+    @Test fun usageAndContextAreAppHandled() {
+        // Terminal-only display panels: app-handled (show a note), NOT
+        // pass-through — passing them to the agent yields a vague reply.
+        assertEquals(SlashCommandClass.APP_HANDLED, SlashCommandRegistry.classify("/usage", "claude")!!.command.clazz)
+        assertEquals(SlashCommandClass.APP_HANDLED, SlashCommandRegistry.classify("/context", "claude")!!.command.clazz)
+        // …while /compact stays a real pass-through.
+        assertEquals(SlashCommandClass.PASS_THROUGH, SlashCommandRegistry.classify("/compact", "claude")!!.command.clazz)
+    }
+
     @Test fun argsArePreservedAndTrimmed() {
         val m = SlashCommandRegistry.classify("/model   opus  ", "claude")!!
         assertEquals("model", m.command.name)

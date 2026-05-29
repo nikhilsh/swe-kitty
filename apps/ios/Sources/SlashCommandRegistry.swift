@@ -39,8 +39,11 @@ enum SlashCommandRegistry {
     static let commands: [SlashCommand] = [
         SlashCommand(name: "compact", clazz: .passThrough, description: "Summarize the conversation to free up context", claudeOnly: true),
         SlashCommand(name: "clear", clazz: .passThrough, description: "Start a fresh context", claudeOnly: true),
-        SlashCommand(name: "context", clazz: .passThrough, description: "Show context-window usage", claudeOnly: true),
-        SlashCommand(name: "usage", clazz: .passThrough, description: "Show token usage and cost", aliases: ["cost", "stats"], claudeOnly: true),
+        // Terminal-only display panels — no stream-json equivalent, so
+        // passing them through just makes the agent free-text a vague
+        // answer (device feedback). App-handled with an explanatory note.
+        SlashCommand(name: "context", clazz: .appHandled, description: "Context-window usage (terminal only)"),
+        SlashCommand(name: "usage", clazz: .appHandled, description: "Plan usage & cost (terminal only)", aliases: ["cost", "stats"]),
         SlashCommand(name: "model", clazz: .appHandled, description: "Fork the session onto a different model"),
         SlashCommand(name: "effort", clazz: .appHandled, description: "Fork with a different reasoning effort"),
         SlashCommand(name: "loop", clazz: .appHandled, description: "Repeat a prompt on a loop"),

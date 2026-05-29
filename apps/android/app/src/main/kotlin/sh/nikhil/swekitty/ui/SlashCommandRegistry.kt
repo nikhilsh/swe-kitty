@@ -43,8 +43,11 @@ object SlashCommandRegistry {
     val commands: List<SlashCommand> = listOf(
         SlashCommand("compact", SlashCommandClass.PASS_THROUGH, "Summarize the conversation to free up context", claudeOnly = true),
         SlashCommand("clear", SlashCommandClass.PASS_THROUGH, "Start a fresh context", claudeOnly = true),
-        SlashCommand("context", SlashCommandClass.PASS_THROUGH, "Show context-window usage", claudeOnly = true),
-        SlashCommand("usage", SlashCommandClass.PASS_THROUGH, "Show token usage and cost", aliases = listOf("cost", "stats"), claudeOnly = true),
+        // Terminal-only display panels — no stream-json equivalent, so
+        // passing them through just makes the agent free-text a vague
+        // answer (device feedback). App-handled with an explanatory note.
+        SlashCommand("context", SlashCommandClass.APP_HANDLED, "Context-window usage (terminal only)"),
+        SlashCommand("usage", SlashCommandClass.APP_HANDLED, "Plan usage & cost (terminal only)", aliases = listOf("cost", "stats")),
         SlashCommand("model", SlashCommandClass.APP_HANDLED, "Fork the session onto a different model"),
         SlashCommand("effort", SlashCommandClass.APP_HANDLED, "Fork with a different reasoning effort"),
         SlashCommand("loop", SlashCommandClass.APP_HANDLED, "Repeat a prompt on a loop"),
