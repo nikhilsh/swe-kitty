@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Small circular avatar for an agent (claude, codex, hermes, pi,
 /// opencode). Used in any place that lists or picks agents — the
@@ -19,28 +20,53 @@ struct AgentAvatar: View {
 
     var body: some View {
         ZStack {
-            Circle()
-                .fill(SweKittyTheme.accentStrong(forAgent: assistant))
-            if let symbol = AgentAvatar.symbol(forAgent: assistant) {
-                // Claude / Codex get a distinctive brand glyph; other
-                // agents keep the monogram.
-                Image(systemName: symbol)
-                    .font(.system(size: size * 0.46, weight: .bold))
-                    .foregroundStyle(SweKittyTheme.textOnAccent)
-                    .accessibilityHidden(true)
+            if let asset = AgentAvatar.logoAsset(forAgent: assistant) {
+                // Real brand logo: a bundled, app-owner-supplied asset.
+                // Fills the disc and is clipped to the circle below.
+                Image(asset)
+                    .resizable()
+                    .scaledToFill()
             } else {
-                Text(monogram)
-                    .font(.system(size: size * 0.5, weight: .heavy, design: .rounded))
-                    .foregroundStyle(SweKittyTheme.textOnAccent)
-                    .accessibilityHidden(true)
+                Circle()
+                    .fill(SweKittyTheme.accentStrong(forAgent: assistant))
+                if let symbol = AgentAvatar.symbol(forAgent: assistant) {
+                    // Claude / Codex get a distinctive brand glyph; other
+                    // agents keep the monogram.
+                    Image(systemName: symbol)
+                        .font(.system(size: size * 0.46, weight: .bold))
+                        .foregroundStyle(SweKittyTheme.textOnAccent)
+                        .accessibilityHidden(true)
+                } else {
+                    Text(monogram)
+                        .font(.system(size: size * 0.5, weight: .heavy, design: .rounded))
+                        .foregroundStyle(SweKittyTheme.textOnAccent)
+                        .accessibilityHidden(true)
+                }
             }
         }
         .frame(width: size, height: size)
+        .clipShape(Circle())
         .overlay(
             Circle()
                 .strokeBorder(SweKittyTheme.textOnAccent.opacity(0.15), lineWidth: 0.5)
         )
         .accessibilityLabel(Text(assistant.capitalized))
+    }
+
+    /// Real brand-logo asset name for an agent, if the app owner has
+    /// bundled the official artwork. Returns nil when no asset is present
+    /// in the catalog (looked up at runtime) — the avatar then degrades to
+    /// [symbol] / [monogram], so a missing asset never breaks the build.
+    /// The artwork itself is supplied by the app owner under the trademark
+    /// attribution shipped in the Licenses screen — we don't bundle it here.
+    static func logoAsset(forAgent assistant: String) -> String? {
+        let name: String
+        switch assistant.lowercased() {
+        case "claude": name = "ClaudeMark"
+        case "codex":  name = "CodexMark"
+        default:       return nil
+        }
+        return UIImage(named: name) != nil ? name : nil
     }
 
     /// Per-agent brand glyph as an SF Symbol name. Claude → a sparkle,
