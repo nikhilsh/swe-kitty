@@ -3,16 +3,23 @@ import SwiftUI
 // MARK: - LitterAppearanceSheet
 //
 // Focused appearance editor presented as a sheet (e.g. from Session
-// Info's "Appearance" action). Reuses the exact Theme / Font / Font Size
-// controls from `LitterSettingsView`, scoped to just appearance so the
-// Session Info entry point lands on the relevant controls instead of the
-// full Settings screen. All edits are AppearanceStore-backed and persist
-// to UserDefaults via the store's `didSet` observers.
+// Info's "Appearance" action). Reuses the exact Theme / Neon / Font /
+// Font Size controls from `LitterSettingsView`, scoped to just
+// appearance so the Session Info entry point lands on the relevant
+// controls instead of the full Settings screen. All edits are
+// AppearanceStore-backed and persist to UserDefaults via the store's
+// `didSet` observers.
+//
+// Styling follows the Neon Terminal idiom (matches `LitterSettingsView`):
+// `@Environment(\.neonTheme)`, `.neonCardSurface(neon, ...)` section
+// cards, mono uppercase section labels in `neon.textDim`, and accent-
+// tinted SF Symbols / checkmarks / controls.
 
 extension LitterUI {
 
     struct AppearanceSheet: View {
         @Environment(AppearanceStore.self) private var appearance
+        @Environment(\.neonTheme) private var neon
         @Environment(\.dismiss) private var dismiss
 
         var body: some View {
@@ -20,7 +27,7 @@ extension LitterUI {
 
             NavigationStack {
                 ZStack {
-                    LitterUI.Palette.surface.color.ignoresSafeArea()
+                    GlassAppBackground()
 
                     ScrollView {
                         VStack(spacing: 18) {
@@ -36,17 +43,17 @@ extension LitterUI {
                 }
                 .navigationTitle("Appearance")
                 .navigationBarTitleDisplayMode(.inline)
-                .tint(LitterUI.Palette.brand.color)
+                .tint(neon.accent)
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { dismiss() }
                     }
                 }
             }
-            // Re-binds the SwiftUI \.colorScheme environment to the
-            // AppearanceStore so picking Light / Dark INSIDE this sheet
-            // updates the sheet itself live, not just the underlying
-            // root view tree.
+            // Re-binds the SwiftUI \.colorScheme environment AND re-resolves
+            // \.neonTheme from the AppearanceStore so picking Light / Dark
+            // (or a palette / glow) INSIDE this sheet updates the sheet
+            // itself live, not just the underlying root view tree.
             .appearanceColorScheme()
         }
 
@@ -64,12 +71,13 @@ extension LitterUI {
                                 icon: themeIcon(for: mode),
                                 title: mode.label,
                                 subtitle: nil,
-                                iconTint: LitterUI.Palette.brand.color
+                                iconTint: neon.accent
                             ) {
                                 if appearance.themeMode == mode {
                                     Image(systemName: "checkmark")
                                         .font(.footnote.weight(.bold))
-                                        .foregroundStyle(LitterUI.Palette.brand.color)
+                                        .foregroundStyle(neon.accent)
+                                        .neonTextGlow(neon.textGlow)
                                 }
                             }
                         }
@@ -90,7 +98,8 @@ extension LitterUI {
 
         /// Neon Terminal theme controls — palette picker + glow toggle.
         /// Mode is already handled by `themeSection` above (Neon reuses
-        /// `themeMode` for its light/dark resolution).
+        /// `themeMode` for its light/dark resolution). Mirrors the
+        /// section in `LitterSettingsView`.
         private var neonSection: some View {
             @Bindable var appearance = appearance
             return sectionCard(title: "Neon Terminal") {
@@ -103,18 +112,19 @@ extension LitterUI {
                                 icon: "paintbrush.pointed.fill",
                                 title: palette.label,
                                 subtitle: nil,
-                                iconTint: LitterUI.Palette.brand.color
+                                iconTint: paletteSwatch(palette)
                             ) {
                                 if appearance.neonPalette == palette {
                                     Image(systemName: "checkmark")
                                         .font(.footnote.weight(.bold))
-                                        .foregroundStyle(LitterUI.Palette.brand.color)
+                                        .foregroundStyle(neon.accent)
+                                        .neonTextGlow(neon.textGlow)
                                 }
                             }
                         }
                         .buttonStyle(.plain)
                         Divider()
-                            .background(LitterUI.Palette.separator.color)
+                            .background(neon.border)
                             .padding(.leading, 46)
                     }
                     LitterUI.toggleRow(
@@ -125,6 +135,18 @@ extension LitterUI {
                     )
                 }
             }
+        }
+
+        /// Preview tint for a palette row's leading icon — resolves each
+        /// palette's accent against the active dark/light mode so the
+        /// swatch reads as that palette's colour, not the current one.
+        private func paletteSwatch(_ palette: AppearanceStore.NeonPaletteChoice) -> Color {
+            let resolved = NeonTheme.resolve(
+                palette: palette.neonPalette,
+                dark: neon.dark,
+                glow: neon.glow
+            )
+            return resolved.accent
         }
 
         private var fontSection: some View {
@@ -139,12 +161,13 @@ extension LitterUI {
                                 icon: fontIcon(for: family),
                                 title: family.label,
                                 subtitle: "The quick brown fox",
-                                iconTint: LitterUI.Palette.brand.color
+                                iconTint: neon.accent
                             ) {
                                 if appearance.fontFamily == family {
                                     Image(systemName: "checkmark")
                                         .font(.footnote.weight(.bold))
-                                        .foregroundStyle(LitterUI.Palette.brand.color)
+                                        .foregroundStyle(neon.accent)
+                                        .neonTextGlow(neon.textGlow)
                                 }
                             }
                         }
@@ -171,24 +194,24 @@ extension LitterUI {
                         Image(systemName: "textformat.size")
                             .font(.body)
                             .frame(width: 20)
-                            .foregroundStyle(LitterUI.Palette.brand.color)
+                            .foregroundStyle(neon.accent)
                         Text("Body")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(LitterUI.Palette.textPrimary.color)
+                            .foregroundStyle(neon.text)
                         Spacer(minLength: 6)
                         Text("\(Int(appearance.bodyPointSize))pt")
                             .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(LitterUI.Palette.textMuted.color)
+                            .foregroundStyle(neon.textFaint)
                     }
                     Slider(
                         value: $appearance.bodyPointSize,
                         in: AppearanceStore.bodyPointSizeRange,
                         step: 1
                     )
-                    .tint(LitterUI.Palette.brand.color)
+                    .tint(neon.accent)
                     Text("The quick brown fox jumps over the lazy dog.")
                         .font(SweKittyTypography.body(appearance))
-                        .foregroundStyle(LitterUI.Palette.textSecondary.color)
+                        .foregroundStyle(neon.textDim)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding(.horizontal, 14)
@@ -202,12 +225,14 @@ extension LitterUI {
         private func sectionCard<C: View>(title: String, @ViewBuilder content: () -> C) -> some View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(title)
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(LitterUI.Palette.textSecondary.color)
+                    .font(neon.mono(11).weight(.bold))
+                    .foregroundStyle(neon.textDim)
                     .textCase(.uppercase)
                     .padding(.horizontal, 4)
+                // Neon section surface: hairline border + glow (or light-
+                // mode elevation) via the shared card-surface rule.
                 content()
-                    .litterGlassRoundedRect(config: .card)
+                    .neonCardSurface(neon, fill: neon.surface, cornerRadius: 14)
             }
         }
 
@@ -215,7 +240,7 @@ extension LitterUI {
         private func rowDivider<T: Equatable>(after element: T, in collection: [T]) -> some View {
             if let idx = collection.firstIndex(of: element), idx < collection.count - 1 {
                 Divider()
-                    .background(LitterUI.Palette.separator.color)
+                    .background(neon.border)
                     .padding(.leading, 46)
             }
         }

@@ -78,6 +78,10 @@ extension LitterUI {
                 }
             }
             .tint(neon.accent)
+            // Presented as a sheet (own UIHostingController) — re-bind
+            // \.colorScheme + re-resolve \.neonTheme so a runtime theme
+            // swap follows this screen live (Bug 1, Neon UI).
+            .appearanceColorScheme()
         }
 
         private var header: some View {

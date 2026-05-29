@@ -36,9 +36,23 @@ import SwiftUI
 
 struct AppearanceColorSchemeModifier: ViewModifier {
     @Environment(AppearanceStore.self) private var appearance
+    // The live OS appearance — needed so `themeMode == .system` resolves
+    // the neon tokens against the device setting, exactly like the
+    // app-root `NeonThemeInjector`.
+    @Environment(\.colorScheme) private var systemScheme
 
     func body(content: Content) -> some View {
-        content.preferredColorScheme(appearance.themeMode.colorScheme)
+        // Re-resolve the NeonTheme too (not just `.preferredColorScheme`):
+        // a sheet is its own UIHostingController and keeps the stale
+        // `\.neonTheme` injected at the app root, so a runtime Dark↔Light
+        // swap left the resolved neon tokens stale on the open sheet. The
+        // resolution rule is shared with `NeonThemeInjector` via
+        // `NeonTheme.resolve(appearance:colorScheme:)` so it lives in one
+        // place.
+        let neon = NeonTheme.resolve(appearance: appearance, colorScheme: systemScheme)
+        return content
+            .environment(\.neonTheme, neon)
+            .preferredColorScheme(appearance.themeMode.colorScheme)
     }
 }
 

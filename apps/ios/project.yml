@@ -14,6 +14,13 @@ settings:
     ENABLE_USER_SCRIPT_SANDBOXING: NO
     MARKETING_VERSION: "0.0.1"
     CURRENT_PROJECT_VERSION: "13"
+    # Always emit a dSYM bundle (not just inline DWARF) so release
+    # archives carry symbol files Sentry can use to symbolicate crashes.
+    # Xcode defaults Release to dwarf-with-dsym, but pin it explicitly so
+    # the archive's dSYMs/ dir is guaranteed — an EXC_BAD_ACCESS shipped
+    # with no symbols (Sentry issue 7514301521) traced back to missing
+    # debug-file upload, and this removes one variable from that chain.
+    DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
 
 packages:
   Sentry:

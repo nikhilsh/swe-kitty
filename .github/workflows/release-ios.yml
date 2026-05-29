@@ -192,6 +192,25 @@ jobs:
             -exportPath "$EXPORT_PATH" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
 
+      # Loud warning when the Sentry dSYM upload can't run because a
+      # secret is missing. Previously the upload step was silently
+      # `if:`-gated off — a build with SENTRY_ORG / SENTRY_PROJECT_IOS /
+      # SENTRY_AUTH_TOKEN unset still "succeeded" but shipped crashes
+      # with no symbols (Sentry issue 7514301521 came back as the
+      # garbled `object.Object.getProperty__anon_493571`, no line
+      # numbers). Surface the gap instead of hiding it.
+      - name: Check Sentry dSYM upload prerequisites
+        run: |
+          missing=""
+          [ -z "$SENTRY_AUTH_TOKEN" ] && missing="$missing SENTRY_AUTH_TOKEN"
+          [ -z "$SENTRY_ORG" ] && missing="$missing SENTRY_ORG"
+          [ -z "$SENTRY_PROJECT_IOS" ] && missing="$missing SENTRY_PROJECT_IOS"
+          if [ -n "$missing" ]; then
+            echo "::warning title=Sentry dSYM upload skipped::Missing secret(s):$missing — release crashes will NOT symbolicate. Set these repo secrets."
+          else
+            echo "Sentry dSYM upload prerequisites present."
+          fi
+
       - name: Install sentry-cli
         if: ${{ env.SENTRY_AUTH_TOKEN != '' && env.SENTRY_ORG != '' && env.SENTRY_PROJECT_IOS != '' }}
         run: |
@@ -200,7 +219,13 @@ jobs:
       - name: Upload dSYMs to Sentry
         if: ${{ env.SENTRY_AUTH_TOKEN != '' && env.SENTRY_ORG != '' && env.SENTRY_PROJECT_IOS != '' }}
         run: |
-          test -d "$ARCHIVE_PATH/dSYMs"
+          # Fail loudly if the archive somehow has no dSYMs dir (the
+          # project pins DEBUG_INFORMATION_FORMAT=dwarf-with-dsym so this
+          # should always exist for a Release archive).
+          if [ ! -d "$ARCHIVE_PATH/dSYMs" ]; then
+            echo "::error title=No dSYMs in archive::Expected $ARCHIVE_PATH/dSYMs — check DEBUG_INFORMATION_FORMAT."
+            exit 1
+          fi
           sentry-cli debug-files upload \
             --auth-token "$SENTRY_AUTH_TOKEN" \
             --org "$SENTRY_ORG" \
