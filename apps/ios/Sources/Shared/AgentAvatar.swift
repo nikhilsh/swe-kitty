@@ -21,10 +21,19 @@ struct AgentAvatar: View {
         ZStack {
             Circle()
                 .fill(SweKittyTheme.accentStrong(forAgent: assistant))
-            Text(monogram)
-                .font(.system(size: size * 0.5, weight: .heavy, design: .rounded))
-                .foregroundStyle(SweKittyTheme.textOnAccent)
-                .accessibilityHidden(true)
+            if let symbol = AgentAvatar.symbol(forAgent: assistant) {
+                // Claude / Codex get a distinctive brand glyph; other
+                // agents keep the monogram.
+                Image(systemName: symbol)
+                    .font(.system(size: size * 0.46, weight: .bold))
+                    .foregroundStyle(SweKittyTheme.textOnAccent)
+                    .accessibilityHidden(true)
+            } else {
+                Text(monogram)
+                    .font(.system(size: size * 0.5, weight: .heavy, design: .rounded))
+                    .foregroundStyle(SweKittyTheme.textOnAccent)
+                    .accessibilityHidden(true)
+            }
         }
         .frame(width: size, height: size)
         .overlay(
@@ -32,6 +41,19 @@ struct AgentAvatar: View {
                 .strokeBorder(SweKittyTheme.textOnAccent.opacity(0.15), lineWidth: 0.5)
         )
         .accessibilityLabel(Text(assistant.capitalized))
+    }
+
+    /// Per-agent brand glyph as an SF Symbol name. Claude → a sparkle,
+    /// Codex → the code-brackets mark. Returns nil for agents we don't
+    /// have a glyph for (they fall back to [monogram]). We use neutral
+    /// system symbols rather than shipping Anthropic / OpenAI logo
+    /// artwork in the bundle.
+    static func symbol(forAgent assistant: String) -> String? {
+        switch assistant.lowercased() {
+        case "claude": return "sparkle"
+        case "codex":  return "chevron.left.forwardslash.chevron.right"
+        default:       return nil
+        }
     }
 
     /// Per-agent monogram. Codex breaks the "first letter" pattern —

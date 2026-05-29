@@ -1,6 +1,7 @@
 package sh.nikhil.swekitty.ui
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -85,5 +86,17 @@ class AgentAccentTest {
         assertEquals("O", agentAvatarMonogram("opencode"))
         // Unknown agent — first letter, uppercased.
         assertEquals("Z", agentAvatarMonogram("zeta"))
+    }
+
+    // --- Avatar brand glyph ---
+
+    @Test fun agentGlyph_perAgent() {
+        // Claude + Codex render a distinctive Material glyph in the
+        // avatar; every other agent (and unknown) falls back to the
+        // monogram (null glyph key).
+        assertEquals("sparkle", agentGlyphKey("claude"))
+        assertEquals("code", agentGlyphKey("Codex"))
+        assertNull(agentGlyphKey("hermes"))
+        assertNull(agentGlyphKey("zeta"))
     }
 }

@@ -5,11 +5,16 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -42,6 +47,7 @@ fun AgentAvatar(
 ) {
     val fill = SweKittyTheme.accentStrong(forAgent = assistant)
     val onAccent = SweKittyTheme.textOnAccent()
+    val glyph = agentGlyph(assistant)
     val monogram = monogramFor(assistant)
     val label = assistant.replaceFirstChar { it.uppercaseChar() }
 
@@ -54,16 +60,46 @@ fun AgentAvatar(
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = monogram,
-            color = onAccent,
-            style = TextStyle(
-                fontFamily = FontFamily.SansSerif,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = (size.value * 0.5f).sp,
-            ),
-        )
+        if (glyph != null) {
+            // Claude / Codex get a distinctive brand glyph; other agents
+            // keep the monogram.
+            Icon(
+                imageVector = glyph,
+                contentDescription = null,
+                tint = onAccent,
+                modifier = Modifier.size(size * 0.5f),
+            )
+        } else {
+            Text(
+                text = monogram,
+                color = onAccent,
+                style = TextStyle(
+                    fontFamily = FontFamily.SansSerif,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = (size.value * 0.5f).sp,
+                ),
+            )
+        }
     }
+}
+
+/**
+ * Per-agent brand glyph. Claude → a sparkle, Codex → the code-brackets
+ * mark. Returns null for agents we don't have a glyph for (they fall
+ * back to [monogramFor]). Neutral Material symbols rather than shipping
+ * Anthropic / OpenAI logo artwork in the APK. The string key is exposed
+ * via [agentGlyphKey] for plain-JVM unit tests.
+ */
+private fun agentGlyph(assistant: String): ImageVector? = when (agentGlyphKey(assistant)) {
+    "sparkle" -> Icons.Filled.AutoAwesome
+    "code"    -> Icons.Filled.Code
+    else      -> null
+}
+
+internal fun agentGlyphKey(assistant: String): String? = when (assistant.lowercase()) {
+    "claude" -> "sparkle"
+    "codex"  -> "code"
+    else     -> null
 }
 
 /**
