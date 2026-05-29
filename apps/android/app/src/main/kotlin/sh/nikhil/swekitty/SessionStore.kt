@@ -598,7 +598,7 @@ class SessionStore : ViewModel(), SweKittyDelegate {
         viewModelScope.launch {
             try {
                 val newId = withContext(Dispatchers.IO) {
-                    c.createSession(original.assistant, original.branch, reasoningEffort, model)
+                    c.createSession(original.assistant, original.branch, reasoningEffort, model, null)
                 }
                 val seed = "Forked from ${original.name} (id $sessionId). Pick up where the previous session left off."
                 runCatching { withContext(Dispatchers.IO) { c.sendChat(newId, seed) } }
@@ -1178,12 +1178,14 @@ class SessionStore : ViewModel(), SweKittyDelegate {
         updateLifecycle { it + (pendingId to SessionLifecycle.Creating) }
         viewModelScope.launch {
             try {
-                val id = withContext(Dispatchers.IO) { c.createSession(assistant, branch, null, null) }
-                startupCwd?.trim()?.takeIf { it.isNotEmpty() }?.let { cwd ->
-                    val cmd = "cd ${shellQuoted(cwd)} && pwd\n"
-                    runCatching { withContext(Dispatchers.IO) { c.sendInput(id, cmd.toByteArray()) } }
-                    rememberRecentDirectory(cwd)
-                }
+                // Pass the selected folder as the agent's cwd so the broker
+                // spawns the agent *in* it. (Previously this cd'd the PTY
+                // shell as a workaround, which only moved the Terminal tab —
+                // the headless agent still started in the broker's default
+                // .swe-kitty work dir.)
+                val startup = startupCwd?.trim()?.takeIf { it.isNotEmpty() }
+                val id = withContext(Dispatchers.IO) { c.createSession(assistant, branch, null, null, startup) }
+                startup?.let { rememberRecentDirectory(it) }
                 initialPrompt?.trim()?.takeIf { it.isNotEmpty() }?.let { prompt ->
                     runCatching { withContext(Dispatchers.IO) { c.sendChat(id, prompt) } }
                 }
@@ -2163,11 +2165,6 @@ class SessionStore : ViewModel(), SweKittyDelegate {
             delay(100)
         }
         return false
-    }
-
-    private fun shellQuoted(raw: String): String {
-        val escaped = raw.replace("'", "'\"'\"'")
-        return "'$escaped'"
     }
 }
 

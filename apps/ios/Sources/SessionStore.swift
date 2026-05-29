@@ -850,14 +850,16 @@ final class SessionStore {
         }
         Task {
             do {
-                let id = try await client.createSession(assistant: assistant, branch: branch, reasoningEffort: nil, model: nil)
-                if let startupCwd {
-                    let trimmed = startupCwd.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !trimmed.isEmpty {
-                        let cmd = "cd \(Self.shellQuoted(trimmed)) && pwd\n"
-                        try? await client.sendInput(sessionId: id, data: Data(cmd.utf8))
-                        self.rememberRecentDirectory(trimmed)
-                    }
+                // Pass the selected folder as the agent's cwd so the broker
+                // spawns the agent *in* it. (Previously this cd'd the PTY
+                // shell as a workaround, which only moved the Terminal tab —
+                // the headless agent still started in the broker's default
+                // .swe-kitty work dir.)
+                let trimmedCwd = startupCwd?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let startup = (trimmedCwd?.isEmpty == false) ? trimmedCwd : nil
+                let id = try await client.createSession(assistant: assistant, branch: branch, reasoningEffort: nil, model: nil, cwd: startup)
+                if let startup {
+                    self.rememberRecentDirectory(startup)
                 }
                 if let initialPrompt {
                     let trimmed = initialPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -2057,7 +2059,8 @@ final class SessionStore {
                     assistant: original.assistant,
                     branch: original.branch,
                     reasoningEffort: reasoningEffort,
-                    model: model
+                    model: model,
+                    cwd: nil
                 )
                 let seed = "Forked from \(original.name) (id \(sessionID)). Pick up where the previous session left off."
                 try? await client.sendChat(sessionId: newID, msg: seed)
@@ -2231,11 +2234,6 @@ final class SessionStore {
 
 private extension SessionStore {
     static let recentDirectoriesByServerKey = "swekitty.recentDirectoriesByServer"
-
-    static func shellQuoted(_ raw: String) -> String {
-        let escaped = raw.replacingOccurrences(of: "'", with: "'\"'\"'")
-        return "'\(escaped)'"
-    }
 
     static func describe(_ error: Error) -> String {
         if isAuth(error) {
