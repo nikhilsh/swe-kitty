@@ -273,7 +273,12 @@ func newSession(id string, adapter agents.Adapter, opts sessionOptions) (*Sessio
 	// and let the agent prompt for login on its own — that's a clean
 	// "please /login" UX, far better than the silent refresh-token race.
 	provider := providerForAssistant(adapter.Name)
-	ephemeral := filepath.Join(s.workspaceDir, ".swe-kitty", "agent-home", s.ID)
+	// Keep the ephemeral HOME in the broker's per-session storage, NOT under
+	// s.workspaceDir — workspaceDir is now the user's selected project folder
+	// (cwd), and dropping a .swe-kitty/agent-home dir full of copied OAuth
+	// credentials into their repo would both pollute the working tree and
+	// risk committing secrets.
+	ephemeral := filepath.Join(s.sessionDir, "agent-home")
 	if err := os.MkdirAll(ephemeral, 0o700); err != nil {
 		fmt.Fprintf(os.Stderr, "session %s: agent-home mkdir: %v (agent will inherit broker $HOME)\n", s.ID, err)
 	} else {

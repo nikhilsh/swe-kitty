@@ -192,6 +192,7 @@ impl SweKittyClient {
         branch: Option<String>,
         reasoning_effort: Option<String>,
         model: Option<String>,
+        cwd: Option<String>,
     ) -> Result<String, SweKittyError> {
         let inner = Arc::clone(&self.inner);
         run_on_core(async move {
@@ -203,6 +204,7 @@ impl SweKittyClient {
                     branch,
                     reasoning_effort,
                     model,
+                    cwd,
                 )
                 .await?;
             Ok(session_id)
@@ -221,6 +223,7 @@ impl SweKittyClient {
                 .open_session(
                     session_id,
                     assistant.unwrap_or_else(|| "claude".to_string()),
+                    None,
                     None,
                     None,
                     None,
@@ -458,6 +461,7 @@ impl Inner {
         branch: Option<String>,
         reasoning_effort: Option<String>,
         model: Option<String>,
+        cwd: Option<String>,
     ) -> Result<(), SweKittyError> {
         let delegate = self
             .delegate
@@ -469,9 +473,10 @@ impl Inner {
         }
 
         // Normalize empty strings to None so a blank override never leaks
-        // into the WS query string as `reasoning_effort=`.
+        // into the WS query string as `reasoning_effort=` / `cwd=`.
         let reasoning_effort = reasoning_effort.filter(|s| !s.trim().is_empty());
         let model = model.filter(|s| !s.trim().is_empty());
+        let cwd = cwd.filter(|s| !s.trim().is_empty());
 
         self.sessions.lock().insert(
             session_id.clone(),
@@ -485,7 +490,9 @@ impl Inner {
                 // fork's effort immediately; the broker's status frame
                 // confirms / corrects it once the agent spawns.
                 reasoning_effort: reasoning_effort.clone(),
-                cwd: None,
+                // Seed the chosen cwd so the session row shows the project
+                // folder immediately; the broker's status frame confirms it.
+                cwd: cwd.clone(),
                 started_at: None,
                 last_activity_at: None,
                 display_name: None,
@@ -500,6 +507,7 @@ impl Inner {
             transport::SpawnOverride {
                 reasoning_effort,
                 model,
+                cwd,
             },
             Arc::new(ClientDelegate {
                 sessions: Arc::clone(&self.sessions),

@@ -184,6 +184,11 @@ type WsStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 pub struct SpawnOverride {
     pub reasoning_effort: Option<String>,
     pub model: Option<String>,
+    /// Absolute working directory the agent should spawn in (the
+    /// user-selected project folder). Rides to the broker as `cwd=` on the
+    /// WS connect; the broker spawns the agent process there. None / empty
+    /// = the broker's default per-session work dir.
+    pub cwd: Option<String>,
 }
 
 /// Open a WebSocket session against the harness and spawn a worker that
@@ -588,6 +593,12 @@ fn build_initial_ws_url(
         if !model.is_empty() {
             raw.push_str("&model=");
             raw.push_str(&urlencode(model));
+        }
+    }
+    if let Some(cwd) = override_.cwd.as_deref() {
+        if !cwd.is_empty() {
+            raw.push_str("&cwd=");
+            raw.push_str(&urlencode(cwd));
         }
     }
     Url::parse(&raw).map_err(|e| SweKittyError::Connection(e.to_string()))
@@ -1130,18 +1141,23 @@ mod tests {
             &SpawnOverride {
                 reasoning_effort: Some("high".into()),
                 model: Some("claude-sonnet-4-6".into()),
+                cwd: Some("/home/me/proj".into()),
             },
         )
         .unwrap();
         assert!(with_both.as_str().contains("reasoning_effort=high"));
         assert!(with_both.as_str().contains("model=claude-sonnet-4-6"));
+        // cwd rides as a url-encoded query param.
+        assert!(with_both.as_str().contains("cwd="));
+        assert!(!with_both.as_str().contains("cwd=/home"));
 
         // No override: query is the plain assistant+token shape (no
-        // empty reasoning_effort=/model= leaks).
+        // empty reasoning_effort=/model=/cwd= leaks).
         let plain =
             build_initial_ws_url(&base, "s1", "claude", "tok", &SpawnOverride::default()).unwrap();
         assert!(!plain.as_str().contains("reasoning_effort"));
         assert!(!plain.as_str().contains("model="));
+        assert!(!plain.as_str().contains("cwd="));
 
         // Empty-string fields behave like None.
         let empties = build_initial_ws_url(
@@ -1152,11 +1168,13 @@ mod tests {
             &SpawnOverride {
                 reasoning_effort: Some(String::new()),
                 model: Some(String::new()),
+                cwd: Some(String::new()),
             },
         )
         .unwrap();
         assert!(!empties.as_str().contains("reasoning_effort"));
         assert!(!empties.as_str().contains("model="));
+        assert!(!empties.as_str().contains("cwd="));
     }
 
     #[test]
