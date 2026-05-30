@@ -168,7 +168,7 @@ struct SessionSearchView: View {
     /// the snippet (e.g. the match came from session-name only).
     private func highlightedSnippet(_ snippet: String, needle: String) -> some View {
         Group {
-            if let attributed = SessionSearchIndex.attributedSnippet(snippet: snippet, needle: needle) {
+            if let attributed = SessionSearchIndex.attributedSnippet(snippet: snippet, needle: needle, tint: neon.accent) {
                 Text(attributed)
                     .font(.caption)
                     .foregroundStyle(SweKittyTheme.textMuted)
@@ -367,7 +367,7 @@ struct SessionSearchIndex: Equatable {
     /// accent-tinted using `AttributedString`. Returns nil when the
     /// needle isn't found in the snippet (caller falls back to a
     /// plain `Text`).
-    static func attributedSnippet(snippet: String, needle: String) -> AttributedString? {
+    static func attributedSnippet(snippet: String, needle: String, tint: Color) -> AttributedString? {
         guard !needle.isEmpty else { return nil }
         let lower = snippet.lowercased()
         guard let range = lower.range(of: needle) else { return nil }
@@ -378,7 +378,7 @@ struct SessionSearchIndex: Equatable {
         let nsEnd = lower.distance(from: lower.startIndex, to: range.upperBound)
         let start = attributed.index(attributed.startIndex, offsetByCharacters: nsStart)
         let end = attributed.index(attributed.startIndex, offsetByCharacters: nsEnd)
-        attributed[start..<end].foregroundColor = neon.accent
+        attributed[start..<end].foregroundColor = tint
         attributed[start..<end].font = .caption.weight(.semibold)
         return attributed
     }
