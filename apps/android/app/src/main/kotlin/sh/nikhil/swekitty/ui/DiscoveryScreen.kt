@@ -74,6 +74,8 @@ fun DiscoveryScreen(
     onDismiss: () -> Unit,
     onScanQR: () -> Unit = {},
     onManualAdd: () -> Unit = {},
+    // Inline tablet section pane (no bottom-sheet shell) when true.
+    embedded: Boolean = false,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val ctx = LocalContext.current
@@ -182,12 +184,7 @@ fun DiscoveryScreen(
     }
 
     val neon = LocalNeonTheme.current
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = neon.surfaceSolid,
-        shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
-    ) {
+    val content: @Composable () -> Unit = {
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
@@ -240,6 +237,19 @@ fun DiscoveryScreen(
             }
 
             item { Spacer(Modifier.height(8.dp)) }
+        }
+    }
+
+    if (embedded) {
+        content()
+    } else {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = sheetState,
+            containerColor = neon.surfaceSolid,
+            shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
+        ) {
+            content()
         }
     }
 }

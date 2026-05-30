@@ -75,10 +75,8 @@ fun AppRoot(store: SessionStore) {
                 Row(modifier = Modifier.fillMaxSize()) {
                     NeonTabletActivityBar(section = tabletSection) { picked ->
                         when (picked) {
-                            TabletSection.Home, TabletSection.Sessions -> tabletSection = picked
+                            TabletSection.Home, TabletSection.Sessions, TabletSection.Settings, TabletSection.Boxes -> tabletSection = picked
                             TabletSection.History -> showHistory = true
-                            TabletSection.Boxes -> showAddServer = true
-                            TabletSection.Settings -> showSettings = true
                         }
                     }
                     VerticalDivider(color = neon.border)
@@ -88,6 +86,21 @@ fun AppRoot(store: SessionStore) {
                                 store.select(id)
                                 tabletSection = TabletSection.Sessions
                             }
+                        } else if (tabletSection == TabletSection.Settings) {
+                            SettingsScreen(
+                                store = store,
+                                onDismiss = { tabletSection = TabletSection.Sessions },
+                                onOpenLicenses = { showLicenses = true },
+                                embedded = true,
+                            )
+                        } else if (tabletSection == TabletSection.Boxes) {
+                            DiscoveryScreen(
+                                store = store,
+                                onDismiss = { tabletSection = TabletSection.Sessions },
+                                onScanQR = { showAddServer = true },
+                                onManualAdd = { showAddServer = true },
+                                embedded = true,
+                            )
                         } else {
                             Row(modifier = Modifier.fillMaxSize()) {
                                 Box(modifier = Modifier.width(300.dp).fillMaxHeight()) {
