@@ -82,6 +82,9 @@ fun SettingsScreen(
     store: SessionStore,
     onDismiss: () -> Unit,
     onOpenLicenses: () -> Unit = {},
+    // When true, render inline as a tablet section pane (no bottom-sheet
+    // shell) — mirrors iOS LitterUI.SettingsView(embedded:).
+    embedded: Boolean = false,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val appearance = LocalAppearanceStore.current
@@ -108,12 +111,7 @@ fun SettingsScreen(
     var pendingForget by remember { mutableStateOf<SavedServer?>(null) }
 
     val neon = LocalNeonTheme.current
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = neon.surfaceSolid,
-        shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
-    ) {
+    val content: @Composable () -> Unit = {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -427,6 +425,19 @@ fun SettingsScreen(
             }
 
             Spacer(Modifier.height(12.dp))
+        }
+    }
+
+    if (embedded) {
+        content()
+    } else {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = sheetState,
+            containerColor = neon.surfaceSolid,
+            shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
+        ) {
+            content()
         }
     }
 
