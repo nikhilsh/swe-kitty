@@ -1125,7 +1125,20 @@ final class GhosttyRenderView: UIView, UIKeyInput {
         }
         ghosttySublayer = sublayer
         layer.addSublayer(sublayer)
-        sizeGhosttyLayer()
+        // Defer sizing to the NEXT runloop. `addSublayer:` is invoked
+        // SYNCHRONOUSLY from inside `term.attach()` — libghostty parents
+        // its IOSurfaceLayer while still constructing the surface, before
+        // `terminal` has even been assigned (see configure(): `terminal =
+        // term` runs only after `attach` returns). `sizeGhosttyLayer()`
+        // runs a synchronous `CATransaction.commit()`, which flushes
+        // CoreAnimation mid-construction: CA drives the freshly-parented
+        // layer's display, which calls into the half-initialized surface's
+        // mailbox (`apprt.surface.Mailbox.push`) and dereferences a null
+        // base → EXC_BAD_ACCESS on opening the Terminal tab (Sentry
+        // APPLE-IOS-S, KERN_INVALID_ADDRESS). Deferring lets `attach()`
+        // finish and `terminal` get assigned before any commit; the layer
+        // is sized on the next runloop (and again on every layout).
+        DispatchQueue.main.async { [weak self] in self?.sizeGhosttyLayer() }
     }
 
     /// Keep libghostty's render target sized to our bounds at the real
