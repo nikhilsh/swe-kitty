@@ -13,6 +13,7 @@ struct SessionSearchView: View {
     @Environment(SessionStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.neonTheme) private var neon
 
     @State private var query: String = ""
 
@@ -148,7 +149,7 @@ struct SessionSearchView: View {
     private func serverChip(for result: SessionSearchResult) -> some View {
         HStack(spacing: 4) {
             Circle()
-                .fill(SweKittyTheme.accentStrong.opacity(0.65))
+                .fill(neon.accent.opacity(0.65))
                 .frame(width: 6, height: 6)
             Text(result.serverName)
                 .font(.caption2.weight(.semibold))
@@ -157,7 +158,7 @@ struct SessionSearchView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
-        .glassCapsule(tint: SweKittyTheme.accentStrong.opacity(0.18))
+        .glassCapsule(tint: neon.accent.opacity(0.18))
         .accessibilityLabel("Server \(result.serverName)")
     }
 
@@ -377,7 +378,7 @@ struct SessionSearchIndex: Equatable {
         let nsEnd = lower.distance(from: lower.startIndex, to: range.upperBound)
         let start = attributed.index(attributed.startIndex, offsetByCharacters: nsStart)
         let end = attributed.index(attributed.startIndex, offsetByCharacters: nsEnd)
-        attributed[start..<end].foregroundColor = SweKittyTheme.accentStrong
+        attributed[start..<end].foregroundColor = neon.accent
         attributed[start..<end].font = .caption.weight(.semibold)
         return attributed
     }
