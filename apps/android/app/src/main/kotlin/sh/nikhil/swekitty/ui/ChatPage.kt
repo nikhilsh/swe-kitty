@@ -1370,7 +1370,7 @@ private fun ConversationBubble(
         ConversationRole.System -> "SYSTEM"
     }
     val labelColor = when (role) {
-        ConversationRole.User -> neon.accent
+        ConversationRole.User -> neon.accent2
         else -> neon.textDim
     }
     // Continuation rows sit closer to the previous message: the
@@ -1395,7 +1395,7 @@ private fun ConversationBubble(
                     .fillMaxWidth(0.82f)
                     .wrapContentWidth(Alignment.End)
                     .clip(RoundedCornerShape(18.dp))
-                    .background(neon.accent),
+                    .background(neon.accent2),
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
