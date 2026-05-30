@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import sh.nikhil.swekitty.HarnessState
+import sh.nikhil.swekitty.SessionNaming
 import sh.nikhil.swekitty.SessionStore
 import sh.nikhil.swekitty.firstUserMessageOf
 import sh.nikhil.swekitty.latestActivityPreviewOf
