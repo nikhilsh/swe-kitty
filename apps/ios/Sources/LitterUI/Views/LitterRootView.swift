@@ -29,7 +29,7 @@ extension LitterUI {
                 LitterUI.Palette.surface.color
                     .ignoresSafeArea()
                 if horizontalSizeClass == .regular {
-                    SplitView()
+                    TabletShell()
                 } else {
                     LitterUI.HomeView()
                 }
@@ -37,15 +37,56 @@ extension LitterUI {
         }
     }
 
-    // MARK: - SplitView (iPad / regular size class)
+    // MARK: - TabletShell (iPad / regular size class)
+    //
+    // The design's tablet IDE chrome: a far-left activity bar +
+    // section content. Home / Sessions render inline; History / Boxes /
+    // Settings present as sheets (reusing the existing sheet views)
+    // until they get dedicated tablet layouts. Section choice persists
+    // under `nk_tab_section` (matches the prototype key).
 
-    fileprivate struct SplitView: View {
+    fileprivate struct TabletShell: View {
         @Environment(SessionStore.self) private var store
+        @Environment(\.neonTheme) private var neon
+        @AppStorage("nk_tab_section") private var sectionRaw =
+            LitterUI.TabletSection.sessions.rawValue
+
+        @State private var showHistory = false
+        @State private var showBoxes = false
+        @State private var showSettings = false
+
+        private var section: LitterUI.TabletSection {
+            LitterUI.TabletSection(rawValue: sectionRaw) ?? .sessions
+        }
 
         var body: some View {
-            @Bindable var store = store
+            HStack(spacing: 0) {
+                LitterUI.TabletActivityBar(section: section) { picked in
+                    switch picked {
+                    case .home, .sessions: sectionRaw = picked.rawValue
+                    case .history:         showHistory = true
+                    case .boxes:           showBoxes = true
+                    case .settings:        showSettings = true
+                    }
+                }
+                sectionContent
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .sheet(isPresented: $showHistory) { SessionSearchView() }
+            .sheet(isPresented: $showBoxes) { LitterUI.DiscoveryView() }
+            .sheet(isPresented: $showSettings) { LitterUI.SettingsView() }
+        }
 
-            NavigationSplitView {
+        @ViewBuilder private var sectionContent: some View {
+            switch section {
+            case .home: LitterUI.HomeView()
+            default:    sessionsSplit
+            }
+        }
+
+        private var sessionsSplit: some View {
+            @Bindable var store = store
+            return NavigationSplitView {
                 LitterUI.SessionsRail()
                     .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 360)
                     .toolbar(.hidden, for: .navigationBar)
