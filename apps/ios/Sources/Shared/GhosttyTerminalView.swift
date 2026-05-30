@@ -1399,7 +1399,16 @@ extension GhosttyRenderView: UIEditMenuInteractionDelegate {
         menuFor configuration: UIEditMenuConfiguration,
         suggestedActions: [UIMenuElement]
     ) -> UIMenu? {
-        UIMenu(children: suggestedActions)
+        // Return nil so UIKit composes (and owns) the default menu, which
+        // `canPerformAction(_:withSender:)` already filters down to Copy +
+        // Paste. Re-wrapping `suggestedActions` in a fresh UIMenu and handing
+        // it back forces UIEditMenuInteraction to re-resolve its own
+        // deferred/grouped elements inside _generateMenuElementsForConfiguration,
+        // which sends `bounds` to a freed element reused as an NSNumber →
+        // `-[__NSCFNumber bounds]: unrecognized selector` crash on tapping the
+        // Terminal tab (Sentry APPLE-IOS-Q / -P). nil matches this method's
+        // own doc comment and preserves the Copy/Paste filtering.
+        nil
     }
 }
 
