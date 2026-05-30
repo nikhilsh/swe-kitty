@@ -120,7 +120,7 @@ fun AppRoot(store: SessionStore) {
                                 Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                                     val selected = sessions.firstOrNull { it.id == selectedId }
                                     if (selected != null) {
-                                        ProjectScreen(store = store, session = selected, onOpenDrawer = {})
+                                        ProjectScreen(store = store, session = selected, onOpenDrawer = {}, chatOnly = true)
                                     } else {
                                         HomeScreen(
                                             store = store,
@@ -136,13 +136,8 @@ fun AppRoot(store: SessionStore) {
                                 }
                                 sessions.firstOrNull { it.id == selectedId }?.let { sel ->
                                     VerticalDivider(color = neon.border)
-                                    Box(modifier = Modifier.width(360.dp).fillMaxHeight()) {
-                                        SessionInfoScreen(
-                                            store = store,
-                                            session = sel,
-                                            onDismiss = {},
-                                            embedded = true,
-                                        )
+                                    Box(modifier = Modifier.width(392.dp).fillMaxHeight()) {
+                                        NeonTabletRightPane(store = store, session = sel)
                                     }
                                 }
                             }

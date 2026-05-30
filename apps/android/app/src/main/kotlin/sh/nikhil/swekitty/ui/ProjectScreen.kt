@@ -58,6 +58,9 @@ fun ProjectScreen(
     store: SessionStore,
     session: ProjectSession,
     onOpenDrawer: () -> Unit,
+    // Tablet 3-pane centre: chat only (no tab strip); Terminal/Browser/
+    // Info live in the sibling NeonTabletRightPane. Phone/default = tabs.
+    chatOnly: Boolean = false,
 ) {
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { ProjectTab.entries.size })
     val statuses by store.statusBySession.collectAsState()
@@ -101,7 +104,7 @@ fun ProjectScreen(
     val experimentalNativeTerminal by appearance.experimentalNativeTerminal.collectAsState()
     // Map the active tab → InSessionContext so the dock knows whether
     // the centre mic FAB should route to voice or surface a toast.
-    val activeContext = InSessionContext.fromTab(ProjectTab.entries[pagerState.currentPage])
+    val activeContext = if (chatOnly) InSessionContext.Chat else InSessionContext.fromTab(ProjectTab.entries[pagerState.currentPage])
 
     // Device feedback v0.0.49 #3 (Android parity): clear focus + hide the
     // soft keyboard on every tab change. Without this, swiping/tapping
@@ -148,7 +151,7 @@ fun ProjectScreen(
 
             PathRow(model = headerModel)
 
-            if (!isReadOnly) {
+            if (!isReadOnly && !chatOnly) {
                 TabPickerRow(
                     selected = pagerState.currentPage,
                     onSelect = { i -> scope.launch { pagerState.animateScrollToPage(i) } },
@@ -168,6 +171,8 @@ fun ProjectScreen(
                 // Read-only: skip the pager (no tab strip to drive it) and
                 // render the chat log alone, composer suppressed.
                 ChatPage(store, session, readOnly = true)
+            } else if (chatOnly) {
+                ChatPage(store, session)
             } else {
                 HorizontalPager(
                     state = pagerState,
