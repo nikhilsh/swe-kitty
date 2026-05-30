@@ -1,17 +1,25 @@
 package sh.nikhil.swekitty.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import sh.nikhil.swekitty.HarnessState
 import sh.nikhil.swekitty.SessionStore
@@ -47,42 +55,107 @@ fun AppRoot(store: SessionStore) {
         else if (harness is HarnessState.Disconnected) store.connect()
     }
 
+    var tabletSection by rememberSaveable { mutableStateOf(TabletSection.Sessions) }
+    val onNewSession: () -> Unit = {
+        if (harness is HarnessState.Live || harness is HarnessState.Linked) {
+            showAgentPicker = true
+        } else {
+            showAddServer = true
+        }
+    }
+
     Box(modifier = Modifier) {
         GlassAppBackground()
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            drawerContent = {
-                ProjectListScreen(
-                    store = store,
-                    onOpenSettings = { showSettings = true },
-                    onCloseDrawer = { scope.launch { drawerState.close() } },
-                )
-            },
-        ) {
-            val selected = sessions.firstOrNull { it.id == selectedId }
-            if (selected != null) {
-                ProjectScreen(
-                    store = store,
-                    session = selected,
-                    onOpenDrawer = { scope.launch { drawerState.open() } },
-                )
-            } else {
-                HomeScreen(
-                    store = store,
-                    onOpenSettings = { showSettings = true },
-                    onOpenDrawer = { scope.launch { drawerState.open() } },
-                    onOpenHistory = { showHistory = true },
-                    onAddServer = { showAddServer = true },
-                    onNewSession = {
-                        if (harness is HarnessState.Live || harness is HarnessState.Linked) {
-                            showAgentPicker = true
-                        } else {
-                            showAddServer = true
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            // iPad / wide screen: a permanent activity-bar rail + section
+            // content (Sessions = ProjectList rail + ProjectScreen). Phone
+            // keeps the ModalNavigationDrawer. Mirrors iOS LitterUI.TabletShell.
+            if (maxWidth >= 840.dp) {
+                val neon = LocalNeonTheme.current
+                Row(modifier = Modifier.fillMaxSize()) {
+                    NeonTabletActivityBar(section = tabletSection) { picked ->
+                        when (picked) {
+                            TabletSection.Home, TabletSection.Sessions -> tabletSection = picked
+                            TabletSection.History -> showHistory = true
+                            TabletSection.Boxes -> showAddServer = true
+                            TabletSection.Settings -> showSettings = true
                         }
+                    }
+                    VerticalDivider(color = neon.border)
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        if (tabletSection == TabletSection.Home) {
+                            HomeScreen(
+                                store = store,
+                                onOpenSettings = { showSettings = true },
+                                onOpenDrawer = {},
+                                onOpenHistory = { showHistory = true },
+                                onAddServer = { showAddServer = true },
+                                onNewSession = onNewSession,
+                                onSearch = { showSearch = true },
+                                onVoice = { showVoice = true },
+                            )
+                        } else {
+                            Row(modifier = Modifier.fillMaxSize()) {
+                                Box(modifier = Modifier.width(300.dp).fillMaxHeight()) {
+                                    ProjectListScreen(
+                                        store = store,
+                                        onOpenSettings = { showSettings = true },
+                                        onCloseDrawer = {},
+                                    )
+                                }
+                                VerticalDivider(color = neon.border)
+                                Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                                    val selected = sessions.firstOrNull { it.id == selectedId }
+                                    if (selected != null) {
+                                        ProjectScreen(store = store, session = selected, onOpenDrawer = {})
+                                    } else {
+                                        HomeScreen(
+                                            store = store,
+                                            onOpenSettings = { showSettings = true },
+                                            onOpenDrawer = {},
+                                            onOpenHistory = { showHistory = true },
+                                            onAddServer = { showAddServer = true },
+                                            onNewSession = onNewSession,
+                                            onSearch = { showSearch = true },
+                                            onVoice = { showVoice = true },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                ModalNavigationDrawer(
+                    drawerState = drawerState,
+                    drawerContent = {
+                        ProjectListScreen(
+                            store = store,
+                            onOpenSettings = { showSettings = true },
+                            onCloseDrawer = { scope.launch { drawerState.close() } },
+                        )
                     },
-                    onSearch = { showSearch = true },
-                    onVoice = { showVoice = true },
-                )
+                ) {
+                    val selected = sessions.firstOrNull { it.id == selectedId }
+                    if (selected != null) {
+                        ProjectScreen(
+                            store = store,
+                            session = selected,
+                            onOpenDrawer = { scope.launch { drawerState.open() } },
+                        )
+                    } else {
+                        HomeScreen(
+                            store = store,
+                            onOpenSettings = { showSettings = true },
+                            onOpenDrawer = { scope.launch { drawerState.open() } },
+                            onOpenHistory = { showHistory = true },
+                            onAddServer = { showAddServer = true },
+                            onNewSession = onNewSession,
+                            onSearch = { showSearch = true },
+                            onVoice = { showVoice = true },
+                        )
+                    }
+                }
             }
         }
     }
