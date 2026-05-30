@@ -415,13 +415,12 @@ func (c *client) sendStatus(assistant string, created bool) error {
 	if !st.LastOutput.IsZero() {
 		payload["last_activity_at"] = st.LastOutput.Format(time.RFC3339Nano)
 	}
-	// Per-agent reasoning effort comes from the adapter toml. Fall
-	// back to "medium" when the toml didn't specify one, so the iOS
-	// pill stays stable regardless of which agents are installed.
+	// Per-agent reasoning effort. Only emitted when explicitly set
+	// (a fork/override or an adapter toml that declares one). claude
+	// (Claude Code) has no real effort knob, so omitting the key lets
+	// the UI show just the agent name instead of a fabricated label.
 	if effort := c.sess.ReasoningEffort(); effort != "" {
 		payload["reasoning_effort"] = effort
-	} else {
-		payload["reasoning_effort"] = "medium"
 	}
 	// Human-readable label set by `rename_session` (protocol §3.3).
 	// Emitted as both `session_name` (top-level mirror) and
@@ -934,8 +933,6 @@ func (c *client) broadcastRenameStatus() {
 	}
 	if effort := c.sess.ReasoningEffort(); effort != "" {
 		statusPayload["reasoning_effort"] = effort
-	} else {
-		statusPayload["reasoning_effort"] = "medium"
 	}
 	if displayName != "" {
 		statusPayload["session_name"] = displayName

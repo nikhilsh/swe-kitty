@@ -92,7 +92,16 @@ extension LitterUI {
                 }
                 .sheet(isPresented: $showSearch) {
                     // Search is a legacy view for now.
-                    SessionSearchView().environment(store)
+                    // Drive navigation through the same local
+                    // `selectedSessionID` a home-row tap uses; setting
+                    // only `store.selectedSessionID` races the sheet
+                    // dismissal and the push never fires on iPhone.
+                    SessionSearchView(onSelect: { id in
+                        showSearch = false
+                        store.selectedSessionID = id
+                        selectedSessionID = id
+                    })
+                    .environment(store)
                 }
                 .alert(
                     "Archive session?",
@@ -376,7 +385,7 @@ extension LitterUI {
             // outlined plus was over-built relative to litter.
             HStack(spacing: 14) {
                 LitterUI.GlassMorphContainer(spacing: 14) {
-                    LitterUI.PillButton(systemImage: "mic.fill", size: 44) {
+                    LitterUI.PillButton(systemImage: "mic.fill", size: 44, tint: neon.accent) {
                         showVoiceDictation = true
                     }
                 }
@@ -397,7 +406,7 @@ extension LitterUI {
                 }
                 Spacer()
                 LitterUI.GlassMorphContainer(spacing: 14) {
-                    LitterUI.PillButton(systemImage: "magnifyingglass", size: 44) {
+                    LitterUI.PillButton(systemImage: "magnifyingglass", size: 44, tint: neon.accent) {
                         showSearch = true
                     }
                 }

@@ -16,6 +16,13 @@ struct SessionSearchView: View {
 
     @State private var query: String = ""
 
+    /// Optional navigation hook. When set, a result tap delegates
+    /// selection to the presenter (which can drive its local
+    /// navigation state) instead of calling `store.switchTo` +
+    /// `dismiss` directly, which races sheet dismissal on iPhone and
+    /// drops the push.
+    var onSelect: ((String) -> Void)? = nil
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -98,8 +105,12 @@ struct SessionSearchView: View {
 
     private func resultRow(_ result: SessionSearchResult) -> some View {
         Button {
-            store.switchTo(sessionID: result.sessionID)
-            dismiss()
+            if let onSelect {
+                onSelect(result.sessionID)
+            } else {
+                store.switchTo(sessionID: result.sessionID)
+                dismiss()
+            }
         } label: {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
