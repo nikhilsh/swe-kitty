@@ -49,7 +49,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.border
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import sh.nikhil.conduit.HarnessState
 import sh.nikhil.conduit.SessionStore
 import sh.nikhil.conduit.SessionLifecycle
@@ -107,24 +112,27 @@ fun HomeScreen(
         ) {
             CircleIconButton(Icons.Default.Settings, "Settings", onClick = onOpenSettings)
             Spacer(Modifier.weight(1f))
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.combinedClickable(
                     onClick = {},
                     onLongClick = onOpenSettings,
                 ),
             ) {
-                // Brand mark (was a "Conduit" text wordmark) — now the
-                // real KittyMark with a subtle breathe, matching iOS.
-                AnimatedBrandMark(size = 32.dp)
-                Spacer(Modifier.height(2.dp))
+                // Brand lockup: daemon mark + `>conduit` wordmark (mono 700,
+                // `>` tinted with the accent), matching iOS + the
+                // design-reference home header.
+                AnimatedBrandMark(size = 26.dp)
                 Text(
-                    if (endpoint.isComplete) endpoint.displayHost else "no server",
-                    style = MaterialTheme.typography.labelSmall,
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(color = if (neon.glow) neon.accent else neon.textDim)) { append(">") }
+                        withStyle(SpanStyle(color = neon.text)) { append("conduit") }
+                    },
                     fontFamily = neon.mono,
-                    color = neon.textDim,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    letterSpacing = 1.sp,
                 )
             }
             Spacer(Modifier.weight(1f))
@@ -317,17 +325,28 @@ fun HomeScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(11.dp),
                             ) {
-                                // Status dot: copper accent when live/running,
-                                // muted when exited/idle/offline. Aligned to the
-                                // title line, inside the card.
-                                Box(
-                                    modifier = Modifier
-                                        .size(ConduitHomeRowMetrics.indicatorSize.dp)
-                                        .background(
-                                            color = if (isRunning) neon.green else neon.textFaint,
-                                            shape = CircleShape,
-                                        ),
-                                )
+                                // Daemon avatar: ConduitMark tinted with the
+                                // agent color in a soft tinted rounded-square,
+                                // with a small bottom-end run-state dot. Mirrors
+                                // iOS + the design-reference SessionRow.
+                                Box(modifier = Modifier.size(38.dp)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .background(agentTint.copy(alpha = 0.14f), RoundedCornerShape(9.dp))
+                                            .border(1.dp, agentTint.copy(alpha = 0.35f), RoundedCornerShape(9.dp)),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        ConduitMark(size = 24.dp, color = agentTint)
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomEnd)
+                                            .size(8.dp)
+                                            .background(if (isRunning) neon.green else neon.textFaint, CircleShape)
+                                            .border(1.5.dp, neon.surface, CircleShape),
+                                    )
+                                }
                                 Column(
                                     modifier = Modifier.weight(1f),
                                     verticalArrangement = Arrangement.spacedBy(4.dp),
