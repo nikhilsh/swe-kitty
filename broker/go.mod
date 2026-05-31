@@ -1,4 +1,4 @@
-module github.com/nikhilsh/swe-kitty/broker
+module github.com/nikhilsh/conduit/broker
 
 go 1.22
 

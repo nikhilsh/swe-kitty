@@ -54,7 +54,7 @@ jobs:
               -keyalg RSA \
               -keysize 2048 \
               -validity 10000 \
-              -dname "CN=SweKitty Debug,O=SweKitty,C=US"
+              -dname "CN=Conduit Debug,O=Conduit,C=US"
             echo "generated ephemeral Android test keystore"
           }
 

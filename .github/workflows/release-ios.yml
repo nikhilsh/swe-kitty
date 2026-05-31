@@ -18,13 +18,13 @@ jobs:
     permissions:
       contents: write
     env:
-      APP_NAME: SweKitty
-      SCHEME: SweKitty
+      APP_NAME: Conduit
+      SCHEME: Conduit
       CONFIGURATION: Release
-      BUNDLE_ID: sh.nikhil.swekitty
+      BUNDLE_ID: sh.nikhil.conduit
       TEAM_ID: EHW7L3679R
-      PROJECT_PATH: apps/ios/SweKitty.xcodeproj
-      ARCHIVE_PATH: ${{ github.workspace }}/apps/ios/build/SweKitty.xcarchive
+      PROJECT_PATH: apps/ios/Conduit.xcodeproj
+      ARCHIVE_PATH: ${{ github.workspace }}/apps/ios/build/Conduit.xcarchive
       EXPORT_PATH: ${{ github.workspace }}/apps/ios/build/export
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
@@ -142,7 +142,7 @@ jobs:
 
       # Stamp the marketing version + build number so each release is a
       # DISTINCT Sentry release. Both were hardcoded ("0.0.1" / "13"), so
-      # every shipped IPA reported as `sh.nikhil.swekitty@0.0.1+13` and crash
+      # every shipped IPA reported as `sh.nikhil.conduit@0.0.1+13` and crash
       # reports could not be attributed to a release — we couldn't tell
       # whether a terminal crash came from a pre- or post-fix build. The tag
       # drives CFBundleShortVersionString; github.run_number is a monotonic
@@ -284,8 +284,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SweKitty-ipa-${{ inputs.release_tag }}
-          path: ${{ env.EXPORT_PATH }}/SweKitty.ipa
+          name: Conduit-ipa-${{ inputs.release_tag }}
+          path: ${{ env.EXPORT_PATH }}/Conduit.ipa
 
       - name: Upload to GitHub Release
         env:
@@ -293,4 +293,4 @@ jobs:
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           gh release upload "${RELEASE_TAG}" \
-            "$EXPORT_PATH/SweKitty.ipa" --clobber
+            "$EXPORT_PATH/Conduit.ipa" --clobber

@@ -35,9 +35,9 @@ The TDD loop we want, in one paragraph: write a test that captures the *contract
 - **swift-snapshot-testing** (Point-Free, BSD-3) for visual regression. De facto standard; used by many large iOS codebases.
 
 **Setup (~half day):**
-- New target `SweKittyTests` in `apps/ios/project.yml`. Same code-signing as the app target but no entitlements needed.
-- Add to CI: `xcodebuild test -scheme SweKitty -destination 'platform=iOS Simulator,name=iPhone 16'` in `release-ios` cycle and `ci.yml`.
-- First test file: `apps/ios/Tests/SweKittyTests/ConversationRendererTests.swift` — table-driven against the `ConversationRenderer.blocks` parser from PR #15, written in **Swift Testing** style (`@Test func collapsesConsecutiveBashLines() { ... }`). Pure function, no UIKit; perfect first test.
+- New target `ConduitTests` in `apps/ios/project.yml`. Same code-signing as the app target but no entitlements needed.
+- Add to CI: `xcodebuild test -scheme Conduit -destination 'platform=iOS Simulator,name=iPhone 16'` in `release-ios` cycle and `ci.yml`.
+- First test file: `apps/ios/Tests/ConduitTests/ConversationRendererTests.swift` — table-driven against the `ConversationRenderer.blocks` parser from PR #15, written in **Swift Testing** style (`@Test func collapsesConsecutiveBashLines() { ... }`). Pure function, no UIKit; perfect first test.
 
 **What to test first (priority order):**
 1. **`ConversationRenderer.blocks(for:)`** — assert that a fenced code block separates from prose; assert that consecutive `$ cmd` lines collapse into a `.toolSummary` with the right count; assert that "Reading the docs..." stays in markdown (the length-guard edge case I built but only eyeballed).
@@ -60,7 +60,7 @@ The TDD loop we want, in one paragraph: write a test that captures the *contract
 - **Roborazzi** (Apache-2.0) for Compose snapshot testing on the JVM — the Compose-snapshot equivalent of swift-snapshot-testing for Android. **Updated from the original Paparazzi pick** because Roborazzi tracks AGP/Kotlin versions faster (Paparazzi has historically blocked AGP 8.5 / Kotlin 2.0 upgrades), and it integrates with Robolectric which we already have in the test classpath. Same value: visual regressions become explicit snapshot diffs in PRs.
 
 **Setup (~half day):**
-- New source set `apps/android/app/src/test/java/sh/nikhil/swekitty/`.
+- New source set `apps/android/app/src/test/java/sh/nikhil/conduit/`.
 - Add JUnit 4 + MockK + Robolectric to `build.gradle`. CI: `./gradlew :app:testDebugUnitTest` added next to the existing `assembleDebug`.
 - First test file: `TerminalBridgeTest.kt` against the JSON-parse path in `WebTerminal.kt` from PR #17 — the int-vs-double resize-event coercion is exactly the kind of thing nobody catches without a test.
 
@@ -96,7 +96,7 @@ Required-to-merge: all four. No `[skip ci]` for client changes. No "I'll add the
 
 ## What this enables
 
-- **Refactoring without dread.** The Litter-style rewrite, the Tier 1.5 chat refresh, the Claude-style typography change — all of those would have been lower-risk with a snapshot suite. We have done several visual rewrites blindly; the next one shouldn't be.
+- **Refactoring without dread.** The Conduit-style rewrite, the Tier 1.5 chat refresh, the Claude-style typography change — all of those would have been lower-risk with a snapshot suite. We have done several visual rewrites blindly; the next one shouldn't be.
 - **Catching protocol drift early.** The reason the chat tab was silent for two weeks (PRs #12, #13) was that the wire format had a gap nobody noticed. An e2e test that asserted "user-sent chat round-trips to an assistant reply within N ms" would have caught this on PR #12.
 - **Confidence to delete code.** Legacy `TerminalTab.swift` (the SwiftTerm leftover) and `AnsiTerminal.kt` were both removed only after the user confirmed in production. With tests, we delete them when the test says the replacement passes.
 

@@ -21,7 +21,7 @@ import Network
 ///   provider's redirect lives in the same browser-app sandbox as the
 ///   user; only a same-device adversary could even attempt to race
 ///   the listener, and on iOS that's effectively the user themselves.
-/// - 600 s timeout matches litter's `callbackTimeout` and the codex
+/// - 600 s timeout matches upstream's `callbackTimeout` and the codex
 ///   CLI's own patience window on the broker side.
 /// - One-shot semantics: the first valid `GET /<path>?...` resolves
 ///   the listener and stops it. A second hit (browser retried) is
@@ -68,7 +68,7 @@ final class AgentLoginLoopbackServer: @unchecked Sendable {
     /// gets a 404.
     let path: String
 
-    private let queue = DispatchQueue(label: "sh.nikhil.swekitty.agent-login-loopback")
+    private let queue = DispatchQueue(label: "sh.nikhil.conduit.agent-login-loopback")
     private var listener: NWListener?
     private let lock = NSLock()
     private var didDeliver = false
@@ -159,7 +159,7 @@ final class AgentLoginLoopbackServer: @unchecked Sendable {
         }
         Self.respond(connection: connection,
                      statusLine: "HTTP/1.1 200 OK",
-                     body: "<html><body><h3>Sign-in complete</h3><p>You can return to the SweKitty app.</p></body></html>")
+                     body: "<html><body><h3>Sign-in complete</h3><p>You can return to the Conduit app.</p></body></html>")
         fireOnce(.success(result), onCallback: onCallback)
     }
 

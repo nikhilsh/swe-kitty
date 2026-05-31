@@ -23,7 +23,7 @@ func TestInitCheckpointRenderAndShow(t *testing.T) {
 			CurrentAgent:   "codex",
 			CreatedAt:      now,
 			CheckpointAt:   now,
-			TaskBriefPath:  ".swe-kitty/tasks/005-memory-checkpoint.md",
+			TaskBriefPath:  ".conduit/tasks/005-memory-checkpoint.md",
 			TaskSummary:    "Implement the memory package.",
 			LastCompleted:  "Scaffolded the session memory file",
 			CurrentlyDoing: "Updating the validator",
@@ -79,7 +79,7 @@ func TestHandoffMergesOutgoingSection(t *testing.T) {
 			CurrentAgent:  "claude",
 			CreatedAt:     now,
 			CheckpointAt:  now,
-			TaskBriefPath: ".swe-kitty/tasks/005-memory-checkpoint.md",
+			TaskBriefPath: ".conduit/tasks/005-memory-checkpoint.md",
 			TaskSummary:   "Prepare swap",
 		},
 	})
@@ -94,10 +94,10 @@ func TestHandoffMergesOutgoingSection(t *testing.T) {
 	handoffDoc = strings.Replace(handoffDoc, "{{AGENT_NAME}}", "claude", 1)
 	handoffDoc = strings.ReplaceAll(handoffDoc, "{{CREATED_ISO}}", now.Format(time.RFC3339))
 	handoffDoc = strings.ReplaceAll(handoffDoc, "{{CHECKPOINT_ISO}}", now.Format(time.RFC3339))
-	handoffDoc = strings.Replace(handoffDoc, "{{TASK_BRIEF_PATH}}", ".swe-kitty/tasks/005-memory-checkpoint.md", 1)
+	handoffDoc = strings.Replace(handoffDoc, "{{TASK_BRIEF_PATH}}", ".conduit/tasks/005-memory-checkpoint.md", 1)
 	handoffDoc = strings.Replace(handoffDoc, "{{TASK_SUMMARY}}", "Prepare swap", 1)
 	handoffDoc = replaceSection(handoffDoc, "handoff", buildHandoffSection("claude", "codex", "swap requested", "<p>Wire the CLI next.</p>", false))
-	path := filepath.Join(root, ".swe-kitty", "HANDOFF-OUT.html")
+	path := filepath.Join(root, ".conduit", "HANDOFF-OUT.html")
 	if err := atomicWrite(path, []byte(handoffDoc)); err != nil {
 		t.Fatalf("atomicWrite(handoff): %v", err)
 	}
@@ -133,7 +133,7 @@ func TestPromoteCopiesDecisionIntoProjectMemory(t *testing.T) {
 			CurrentAgent:  "codex",
 			CreatedAt:     now,
 			CheckpointAt:  now,
-			TaskBriefPath: ".swe-kitty/tasks/005-memory-checkpoint.md",
+			TaskBriefPath: ".conduit/tasks/005-memory-checkpoint.md",
 			TaskSummary:   "Implement promote",
 		},
 	})

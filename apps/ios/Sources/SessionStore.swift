@@ -267,7 +267,7 @@ final class SessionStore {
     /// SSH-bootstrap progress. Observed by the SSH login sheet.
     var sshBootstrapState: SshBootstrapState = .idle
 
-    /// Active TOFU prompt. SweKittyApp observes this and presents a sheet.
+    /// Active TOFU prompt. ConduitApp observes this and presents a sheet.
     var pendingHostKey: HostKeyPrompt?
 
     /// Resolver for the active TOFU prompt. Wired up by the bridge; consumed
@@ -348,7 +348,7 @@ final class SessionStore {
         didSet { SessionStore.persistBrokerTitles(brokerTitles) }
     }
 
-    private var client: SweKittyClient?
+    private var client: ConduitClient?
     private var delegate: StoreDelegate?
     private var foregroundObserver: NSObjectProtocol?
     private var networkReachableObserver: NSObjectProtocol?
@@ -365,7 +365,7 @@ final class SessionStore {
     private let useRustStore = true
     let rustStore = SessionStoreCore()
 
-    /// View-layer coordinator wired in by `SweKittyApp` so `ingestChat`
+    /// View-layer coordinator wired in by `ConduitApp` so `ingestChat`
     /// can hand each terminal-shaped chat event to the streaming
     /// renderer. Optional because tests instantiate `SessionStore`
     /// without a SwiftUI host — the coordinator is then `nil` and the
@@ -376,7 +376,7 @@ final class SessionStore {
     var streamingCoordinator: StreamingRendererCoordinator?
 
     /// Active per-user agent OAuth v2 coordinator. Set by the
-    /// `LitterAgentLoginSheet` when the user taps "Login with …";
+    /// `ConduitAgentLoginSheet` when the user taps "Login with …";
     /// inbound `agent_login_url` / `agent_login_complete` /
     /// `agent_login_failed` view_events are routed here so the
     /// coordinator's state machine can advance regardless of which
@@ -398,7 +398,7 @@ final class SessionStore {
     }
 
     // No deinit cleanup: SessionStore lives for the app's lifetime
-    // (owned by SweKittyApp's @State), so the NotificationCenter
+    // (owned by ConduitApp's @State), so the NotificationCenter
     // observers are released only at process exit — and Swift 6 actor
     // isolation forbids touching MainActor state from a nonisolated
     // deinit anyway. The path monitor itself now lives on
@@ -436,7 +436,7 @@ final class SessionStore {
         ) { _ in nudge() }
 
         // Path-level reachability is owned by NetworkReachabilityObserver
-        // (instantiated at app launch by SweKittyApp). We just listen for
+        // (instantiated at app launch by ConduitApp). We just listen for
         // the coarse `unsatisfied→satisfied` and `interface-changed`
         // edges and nudge the Rust core into immediate reconnect. The
         // old inline `NWPathMonitor` lived here; A.9 hoisted it so the
@@ -474,7 +474,7 @@ final class SessionStore {
             return
         }
         harness = .connecting
-        let newClient = SweKittyClient(endpoint: endpoint.url, bearerToken: endpoint.token)
+        let newClient = ConduitClient(endpoint: endpoint.url, bearerToken: endpoint.token)
         let newDelegate = StoreDelegate(store: self)
         self.client = newClient
         self.delegate = newDelegate
@@ -788,7 +788,7 @@ final class SessionStore {
         Self.persistSavedServers(savedServers)
         // Bug #1: tapping the active server pill used to call
         // `disconnect()`+`connect()` unconditionally. That tore down
-        // the live `SweKittyClient` and the subsequent `refreshSessions`
+        // the live `ConduitClient` and the subsequent `refreshSessions`
         // observed an empty `list_sessions()` (the fresh Rust client
         // has no `SessionStatus` deltas yet), wiping the visible
         // session list until status frames trickled back in. If the
@@ -859,7 +859,7 @@ final class SessionStore {
                 // spawns the agent *in* it. (Previously this cd'd the PTY
                 // shell as a workaround, which only moved the Terminal tab —
                 // the headless agent still started in the broker's default
-                // .swe-kitty work dir.)
+                // .conduit work dir.)
                 let trimmedCwd = startupCwd?.trimmingCharacters(in: .whitespacesAndNewlines)
                 let startup = (trimmedCwd?.isEmpty == false) ? trimmedCwd : nil
                 let id = try await client.createSession(assistant: assistant, branch: branch, reasoningEffort: nil, model: nil, cwd: startup)
@@ -1069,14 +1069,14 @@ final class SessionStore {
 
     /// Upload a composer attachment to the session's
     /// `<workspace>/uploads/<sessionID>/<filename>` via the core 0x01
-    /// binary frame (`SweKittyClient.sendFile`). Awaited by the chat
+    /// binary frame (`ConduitClient.sendFile`). Awaited by the chat
     /// composer BEFORE the outgoing message is sent, so the bytes have
     /// landed by the time the agent reads the referenced upload path.
     /// Throws when there's no live transport or the WS write fails, so
     /// the caller can surface "upload failed" instead of sending a
     /// message that references a file the broker never received.
     func sendFile(sessionID: String, filename: String, mime: String, bytes: Data) async throws {
-        guard let client else { throw SweKittyError.NotConnected(message: "no session transport") }
+        guard let client else { throw ConduitError.NotConnected(message: "no session transport") }
         try await client.sendFile(
             sessionId: sessionID,
             filename: filename,
@@ -1260,13 +1260,13 @@ final class SessionStore {
     /// staying byte-for-byte aligned with what the agent CLI writes to
     /// disk means the broker can pass it through without translation.
     ///
-    /// Throws `SweKittyError.NotConnected` if no session is live; the
+    /// Throws `ConduitError.NotConnected` if no session is live; the
     /// caller is expected to keep the Keychain copy and surface a
     /// retry affordance (the Settings → Agent accounts "Sync to broker"
     /// row, or wait for the next `createSession` to fire the resend).
     func sendAgentCredentials(provider: OAuthProvider, credential: OAuthCredential) async throws {
         guard let client else {
-            throw SweKittyError.NotConnected(message: "no active swe-kitty client")
+            throw ConduitError.NotConnected(message: "no active conduit client")
         }
         let json = try Self.encodeCredentialAsJSONString(credential)
         try await client.setAgentCredentials(
@@ -1282,26 +1282,26 @@ final class SessionStore {
     // scoped, so the core carries each frame over any live session WS;
     // broker handlers are live (PR #114) and progress returns as
     // `agent_login_*` view-events routed by `routeAgentLoginViewEvent`.
-    // Throws `SweKittyError.NotConnected` if no session is live — the
+    // Throws `ConduitError.NotConnected` if no session is live — the
     // coordinator surfaces it to the sheet as `.failed`.
 
     func sendAgentLoginStart(provider: String) async throws {
         guard let client else {
-            throw SweKittyError.NotConnected(message: "no active swe-kitty client")
+            throw ConduitError.NotConnected(message: "no active conduit client")
         }
         try await client.startAgentLogin(provider: provider)
     }
 
     func sendAgentLoginCallback(sessionToken: String, queryString: String) async throws {
         guard let client else {
-            throw SweKittyError.NotConnected(message: "no active swe-kitty client")
+            throw ConduitError.NotConnected(message: "no active conduit client")
         }
         try await client.agentLoginCallback(sessionToken: sessionToken, queryString: queryString)
     }
 
     func sendAgentLoginCancel(sessionToken: String) async throws {
         guard let client else {
-            throw SweKittyError.NotConnected(message: "no active swe-kitty client")
+            throw ConduitError.NotConnected(message: "no active conduit client")
         }
         try await client.cancelAgentLogin(sessionToken: sessionToken)
     }
@@ -1336,7 +1336,7 @@ final class SessionStore {
         return string
     }
 
-    // MARK: - Agent OAuth v2 (litter pattern) transport
+    // MARK: - Agent OAuth v2 (upstream pattern) transport
     //
     // The v2 flow (docs/PLAN-AGENT-OAUTH.md "Approach v2") drives the
     // OAuth dance broker-side: the iOS app sends a `start_agent_login`
@@ -1348,8 +1348,8 @@ final class SessionStore {
     // tokens and emits `agent_login_complete`.
     //
     // The send-side wiring requires UDL surface
-    // (`SweKittyClient.start_agent_login` etc.) that hasn't shipped in
-    // the SweKittyCore xcframework yet — the broker (PR #114) is live
+    // (`ConduitClient.start_agent_login` etc.) that hasn't shipped in
+    // the ConduitCore xcframework yet — the broker (PR #114) is live
     // but the Rust→Swift bridge is the missing link. Until that lands,
     // the transport methods throw a typed "not yet bridged" error so
     // the coordinator's state machine resolves to `.failed(...)` with
@@ -1498,7 +1498,7 @@ final class SessionStore {
         }
     }
 
-    // `internal` access (not `fileprivate`) so SweKittyTests can drive
+    // `internal` access (not `fileprivate`) so ConduitTests can drive
     // the parity tests in SessionStoreRustParityTests. Same rationale
     // as `ingestChat` / `ingestStatus`.
     func ingestPtyData(_ sessionID: String, _ bytes: Data) {
@@ -1516,7 +1516,7 @@ final class SessionStore {
         }
     }
 
-    // `internal` (not `fileprivate`) so SweKittyTests can drive this
+    // `internal` (not `fileprivate`) so ConduitTests can drive this
     // path directly. The fileprivate access was originally to lock
     // down "only the transport delegate can ingest"; that constraint
     // is fine to relax for tests because the type guards (ChatEvent)
@@ -1585,7 +1585,7 @@ final class SessionStore {
         }
     }
 
-    // `internal` (not `fileprivate`) so SweKittyTests can drive this
+    // `internal` (not `fileprivate`) so ConduitTests can drive this
     // path directly — same rationale as `ingestChat` above. The status
     // frame carries `reasoningEffort` / `cwd` / `startedAt` etc. and
     // a test confirms `statusBySession` reflects those fields end-to-end.
@@ -1845,10 +1845,10 @@ final class SessionStore {
 
     // MARK: - Persistence
 
-    private static let endpointKey = "swekitty.endpoint.url"
-    private static let tokenKey = "swekitty.endpoint.token"
-    private static let savedServersKey = "swekitty.saved_servers.json"
-    private static let legacyEndpointDefaultsKey = "swekitty.endpoint.url"
+    private static let endpointKey = "conduit.endpoint.url"
+    private static let tokenKey = "conduit.endpoint.token"
+    private static let savedServersKey = "conduit.saved_servers.json"
+    private static let legacyEndpointDefaultsKey = "conduit.endpoint.url"
 
     private static func loadPersisted() -> StoredEndpoint {
         let token = Keychain.get(tokenKey) ?? ""
@@ -1889,7 +1889,7 @@ final class SessionStore {
         Keychain.set(raw, for: savedServersKey)
     }
 
-    private static let displayNamesKey = "swekitty.session.displayNames"
+    private static let displayNamesKey = "conduit.session.displayNames"
 
     static func loadDisplayNames() -> [String: String] {
         guard let raw = UserDefaults.standard.data(forKey: displayNamesKey),
@@ -1909,7 +1909,7 @@ final class SessionStore {
         }
     }
 
-    private static let brokerTitlesKey = "swekitty.session.brokerTitles"
+    private static let brokerTitlesKey = "conduit.session.brokerTitles"
 
     static func loadBrokerTitles() -> [String: String] {
         guard let raw = UserDefaults.standard.data(forKey: brokerTitlesKey),
@@ -2073,7 +2073,7 @@ final class SessionStore {
     ///
     /// Lives here (not on a coordinator) so the multi-thread switcher
     /// in `ThreadSwitcherSheet` and any future "jump to thread" deep
-    /// link have one place to call. Mirrors litter's
+    /// link have one place to call. Mirrors upstream's
     /// `ConversationThreadSwitcher` semantics. PR H owns the reducer
     /// path; this is the navigation-level setter only.
     func switchTo(sessionID: String) {
@@ -2382,7 +2382,7 @@ final class SessionStore {
 }
 
 private extension SessionStore {
-    static let recentDirectoriesByServerKey = "swekitty.recentDirectoriesByServer"
+    static let recentDirectoriesByServerKey = "conduit.recentDirectoriesByServer"
 
     static func describe(_ error: Error) -> String {
         if isAuth(error) {
@@ -2556,7 +2556,7 @@ final class SessionStoreAgentLoginTransport: AgentLoginTransport, @unchecked Sen
 }
 
 /// Bridges Rust-side callbacks (arbitrary thread) onto the MainActor store.
-private final class StoreDelegate: SweKittyDelegate {
+private final class StoreDelegate: ConduitDelegate {
     private weak var store: SessionStore?
     init(store: SessionStore) { self.store = store }
 

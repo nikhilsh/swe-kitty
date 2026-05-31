@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/nikhilsh/swe-kitty/broker/internal/session"
+	"github.com/nikhilsh/conduit/broker/internal/session"
 )
 
 // frameCollector wraps a websocket.Conn in a background drain

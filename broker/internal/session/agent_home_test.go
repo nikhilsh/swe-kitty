@@ -13,7 +13,7 @@ import (
 // `~/.claude.json` into the per-session ephemeral HOME with mode 0600.
 func TestMirrorHostCredentials_AnthropicCopiesBothFiles(t *testing.T) {
 	hostHome := t.TempDir()
-	t.Setenv("SWE_KITTY_HOST_HOME", hostHome)
+	t.Setenv("CONDUIT_HOST_HOME", hostHome)
 
 	if err := os.MkdirAll(filepath.Join(hostHome, ".claude"), 0o700); err != nil {
 		t.Fatalf("mkdir .claude: %v", err)
@@ -60,7 +60,7 @@ func TestMirrorHostCredentials_AnthropicCopiesBothFiles(t *testing.T) {
 // callers must log + skip so the agent prompts for /login.
 func TestMirrorHostCredentials_NoSourceFiles(t *testing.T) {
 	hostHome := t.TempDir()
-	t.Setenv("SWE_KITTY_HOST_HOME", hostHome)
+	t.Setenv("CONDUIT_HOST_HOME", hostHome)
 	ephemeral := t.TempDir()
 
 	err := mirrorHostCredentials("anthropic", ephemeral)
@@ -82,7 +82,7 @@ func TestConcurrentSessionsGetIsolatedHomes(t *testing.T) {
 	root := testRoot(t)
 
 	hostHome := t.TempDir()
-	t.Setenv("SWE_KITTY_HOST_HOME", hostHome)
+	t.Setenv("CONDUIT_HOST_HOME", hostHome)
 	if err := os.MkdirAll(filepath.Join(hostHome, ".claude"), 0o700); err != nil {
 		t.Fatalf("mkdir host .claude: %v", err)
 	}
@@ -125,7 +125,7 @@ func TestConcurrentSessionsGetIsolatedHomes(t *testing.T) {
 	}
 
 	// Each session has its own agent-home directory under its
-	// workspaceDir/.swe-kitty/agent-home/<id>/, populated from the
+	// workspaceDir/.conduit/agent-home/<id>/, populated from the
 	// host-mirror copy.
 	for _, s := range sessions {
 		if s.agentHomeDir == "" {
@@ -182,7 +182,7 @@ func TestConcurrentSessionsGetIsolatedHomes(t *testing.T) {
 func TestSessionCloseRemovesAgentHome(t *testing.T) {
 	root := testRoot(t)
 	hostHome := t.TempDir()
-	t.Setenv("SWE_KITTY_HOST_HOME", hostHome)
+	t.Setenv("CONDUIT_HOST_HOME", hostHome)
 	if err := os.MkdirAll(filepath.Join(hostHome, ".claude"), 0o700); err != nil {
 		t.Fatalf("mkdir host .claude: %v", err)
 	}

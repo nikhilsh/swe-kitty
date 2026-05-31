@@ -3,7 +3,7 @@ import Foundation
 import AuthenticationServices
 #endif
 
-/// State-machine driver for the v2 agent-login flow (litter-faithful,
+/// State-machine driver for the v2 agent-login flow (upstream-faithful,
 /// docs/PLAN-AGENT-OAUTH.md "Approach v2"). Orchestrates:
 ///
 ///   1. Send `start_agent_login` over WS.
@@ -128,7 +128,7 @@ final class AgentLoginCoordinator {
             // in v2 — our callback lands on the loopback HTTP server,
             // not on a scheme intercept. Pass a placeholder; the
             // completionHandler will only fire on user cancel.
-            callbackURLScheme: "swekitty"
+            callbackURLScheme: "conduit"
         ) { [weak self] _, error in
             Task { @MainActor [weak self] in
                 guard let self else { return }

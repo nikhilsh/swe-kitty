@@ -1,6 +1,6 @@
 //! Public + crate-visible types for the SSH-bootstrap flow.
 //!
-//! Smaller than litter's equivalent because we drive a single remote
+//! Smaller than upstream's equivalent because we drive a single remote
 //! command (`scripts/remote-bootstrap.sh`) over a single transport
 //! (WebSocket on 1977 inside the docker container) — no shell detection,
 //! no app-server proxy / WebSocket-tunnel branching, no binary
@@ -43,7 +43,7 @@ pub struct SshBootstrapResult {
     /// endpoint the mobile WebSocket transport connects to).
     pub local_port: u16,
     /// Bearer token the harness accepts. Either the value the caller
-    /// passed in (via the `SWE_KITTY_TOKEN` env on the remote container)
+    /// passed in (via the `CONDUIT_TOKEN` env on the remote container)
     /// or — if we found an existing reusable container — the bearer
     /// that container was started with.
     pub token: String,
@@ -72,7 +72,7 @@ pub enum SshError {
     DockerMissing,
     #[error("remote user cannot run docker without sudo")]
     DockerPermission,
-    #[error("remote port {0} is already in use by a non-swe-kitty process")]
+    #[error("remote port {0} is already in use by a non-conduit process")]
     PortConflict(u16),
     #[error("harness container failed to become healthy within 30s")]
     HarnessStartTimeout,

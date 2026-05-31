@@ -181,7 +181,7 @@ const replayHTML = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>swe-kitty replay · __SESSION_ID__</title>
+<title>conduit replay · __SESSION_ID__</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
 <style>
   body { margin: 0; background: #0b0d12; color: #d6deeb; font: 14px/1.4 system-ui, sans-serif; }
@@ -202,7 +202,7 @@ const replayHTML = `<!doctype html>
 </head>
 <body>
 <header>
-  <h1>swe-kitty replay · <code>__SESSION_ID__</code></h1>
+  <h1>conduit replay · <code>__SESSION_ID__</code></h1>
   <span class="status" id="status">loading…</span>
   <button id="speed1" aria-pressed="true">1×</button>
   <button id="speed4">4×</button>

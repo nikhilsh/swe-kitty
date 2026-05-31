@@ -44,7 +44,7 @@ func TestGetRejectsUnknownAssistant(t *testing.T) {
 	dir := t.TempDir()
 	writeAdapter(t, dir, "claude.toml", `
 name = "claude"
-image = "swekitty/claude:latest"
+image = "conduit/claude:latest"
 command = ["sh"]
 workdir = "/workspace"
 `)

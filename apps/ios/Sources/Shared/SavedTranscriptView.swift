@@ -5,7 +5,7 @@ import SwiftUI
 /// Tapping an exited row in `SessionsScreen` (no live WS to attach to)
 /// fetches `conversation.jsonl` over HTTP via
 /// `SessionStore.fetchConversation` and replays it through the existing
-/// litter chat renderer (`LitterUI.ChatView` in read-only mode — the
+/// upstream chat renderer (`ConduitUI.ChatView` in read-only mode — the
 /// composer + quick-reply bar are suppressed).
 ///
 /// CAVEAT (broker PR #196): `conversation.jsonl` is only written for
@@ -42,7 +42,7 @@ struct SavedTranscriptView: View {
                 if items.isEmpty {
                     emptyTranscript
                 } else {
-                    LitterUI.ChatView(session: projectSession, readOnlyItems: items)
+                    ConduitUI.ChatView(session: projectSession, readOnlyItems: items)
                 }
             case .notFound:
                 noTranscript

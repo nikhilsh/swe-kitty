@@ -1,0 +1,336 @@
+// Namespace-level functions are declared in the SSH-bootstrap block
+// further down; this `namespace` declaration is intentionally absent
+// here to avoid two competing declarations.
+
+dictionary ViewEventFile {
+    string path;
+    string rev;
+};
+
+dictionary PreviewInfo {
+    u16 port;
+    string url;
+};
+
+dictionary SessionStatus {
+    string session;
+    string assistant;
+    string phase;
+    string health;
+    u16 rows;
+    u16 cols;
+    boolean yolo;
+    PreviewInfo? preview;
+    string? session_name;
+    u32? viewers;
+    string? reasoning_effort;
+    string? cwd;
+    string? started_at;
+    string? last_activity_at;
+    string? display_name;
+    u64? total_input_tokens = null;
+    u64? total_output_tokens = null;
+    u64? total_cached_tokens = null;
+    f64? total_cost_usd = null;
+    u64? context_used_tokens = null;
+    u64? context_window_tokens = null;
+    u32? lines_added = null;
+    u32? lines_removed = null;
+    u32? commits = null;
+    u32? pr_number = null;
+    string? pr_state = null;
+    f64? account_5h_pct = null;
+    string? account_5h_resets_at = null;
+    f64? account_7d_pct = null;
+    string? account_7d_resets_at = null;
+};
+
+dictionary ProjectSession {
+    string id;
+    string name;
+    string assistant;
+    string? branch;
+    PreviewInfo? preview;
+    string? reasoning_effort;
+    string? cwd;
+    string? started_at;
+    string? last_activity_at;
+    string? display_name;
+    u64? total_input_tokens = null;
+    u64? total_output_tokens = null;
+    u64? total_cached_tokens = null;
+    f64? total_cost_usd = null;
+    u64? context_used_tokens = null;
+    u64? context_window_tokens = null;
+    u32? lines_added = null;
+    u32? lines_removed = null;
+    u32? commits = null;
+    u32? pr_number = null;
+    string? pr_state = null;
+    f64? account_5h_pct = null;
+    string? account_5h_resets_at = null;
+    f64? account_7d_pct = null;
+    string? account_7d_resets_at = null;
+};
+
+dictionary ChatEvent {
+    string role;
+    string content;
+    string ts;
+    sequence<ViewEventFile> files;
+};
+
+dictionary PlanStep {
+    string text;
+    string state;
+};
+
+dictionary ConversationItem {
+    string id;
+    string role;
+    string kind;
+    string status;
+    string content;
+    string ts;
+    sequence<ViewEventFile> files;
+    string? tool_name;
+    string? command;
+    i32? exit_code;
+    u64? duration_ms;
+    string? diff_summary;
+    sequence<string> pending_options;
+    string? source_agent;
+    string? target_agent;
+    string? task_text;
+    string? result_summary;
+    sequence<PlanStep> plan_steps;
+};
+
+// -- SessionStoreCore reducer surface (see core/src/store/mod.rs) --
+//
+// Mirrors of the per-session view-state buckets the Rust reducer
+// folds events into. The apps' existing per-key Swift/Kotlin
+// dictionaries (terminalBuffer, chatLog, statusBySession, …)
+// stay as the read source of truth in this first PR; iOS will
+// `apply_*` the same event into the Rust store in parallel and
+// (debug builds) assert the two snapshots agree.
+
+dictionary TerminalViewState {
+    u16 rows;
+    u16 cols;
+    bytes scrollback;
+    boolean has_snapshot;
+};
+
+dictionary ChatViewState {
+    sequence<ChatEvent> events;
+    sequence<ConversationItem> conversation;
+};
+
+dictionary BrowserViewState {
+    PreviewInfo? preview;
+};
+
+dictionary ProjectSessionState {
+    ProjectSession session;
+    SessionStatus? status;
+    TerminalViewState terminal;
+    ChatViewState chat;
+    BrowserViewState browser;
+    boolean exited;
+    i32? exit_code;
+};
+
+[Enum]
+interface SessionLifecycleCore {
+    Creating();
+    Live();
+    Exited(i32 code);
+    FailedToStart(string reason);
+};
+
+interface SessionStoreCore {
+    constructor();
+
+    void register_session(ProjectSession session);
+    void forget_session(string session_id);
+
+    // Reducer entry points — one per existing Swift/Kotlin `ingest*`.
+    // Each returns the post-fold snapshot (or null if the session id
+    // was unknown and the event didn't synthesize one — only
+    // `apply_status` ever creates a placeholder).
+    ProjectSessionState? apply_chat(string session_id, ChatEvent event);
+    ProjectSessionState apply_status(SessionStatus status);
+    ProjectSessionState? apply_exit(string session_id, i32 code);
+    ProjectSessionState? apply_preview(string session_id, PreviewInfo preview);
+    ProjectSessionState? apply_snapshot(string session_id, bytes gunzipped);
+    ProjectSessionState? apply_pty_data(string session_id, bytes data);
+    void apply_lifecycle(string session_id, SessionLifecycleCore lifecycle);
+
+    // Read-only accessors.
+    ProjectSessionState? get(string session_id);
+    sequence<ProjectSession> sessions();
+    sequence<ConversationItem> conversation(string session_id);
+    SessionLifecycleCore? lifecycle(string session_id);
+    boolean contains(string session_id);
+};
+
+[Error]
+enum ConduitError {
+    "Connection",
+    "Auth",
+    "Protocol",
+    "Json",
+    "NotConnected",
+    "UnknownSession",
+};
+
+dictionary SshCredentials {
+    string host;
+    u16 port;
+    string username;
+    SshAuth auth;
+};
+
+[Enum]
+interface SshAuth {
+    Password(string password);
+    PrivateKey(string key_pem, string? passphrase);
+};
+
+dictionary SshBootstrapResult {
+    u16 remote_port;
+    u16 local_port;
+    string token;
+    string host_key_fingerprint;
+    boolean reused;
+};
+
+[Error]
+enum SshError {
+    "Dial",
+    "Handshake",
+    "HostKeyRejected",
+    "AuthFailed",
+    "DockerMissing",
+    "DockerPermission",
+    "PortConflict",
+    "HarnessStartTimeout",
+    "BootstrapExitCode",
+    "BootstrapParse",
+    "PortForward",
+    "Io",
+};
+
+callback interface SshHostKeyDelegate {
+    boolean accept_host_key(string fingerprint);
+};
+
+namespace conduit_core {
+    [Async, Throws=SshError]
+    SshBootstrapResult ssh_bootstrap(
+        SshCredentials credentials,
+        string pre_allocated_token,
+        string anthropic_api_key,
+        string openai_api_key,
+        string? image_ref,
+        SshHostKeyDelegate host_key_delegate
+    );
+};
+
+[Enum]
+interface ConnectionHealth {
+    Connected();
+    Connecting(u32 attempt, u32 max_attempts);
+    Disconnected(string reason, boolean auth);
+};
+
+callback interface ConduitDelegate {
+    void on_pty_data(string session_id, bytes data);
+    void on_chat_event(string session_id, ChatEvent event);
+    void on_preview_ready(string session_id, PreviewInfo preview);
+    void on_status(SessionStatus status);
+    void on_snapshot(string session_id, bytes gunzipped);
+    void on_exit(string session_id, i32 code);
+    void on_disconnected(string reason);
+    void on_connection_health(string session_id, ConnectionHealth health);
+    // Typed view_event the core doesn't model directly — currently the
+    // broker's view:"status" sub-events (agent_login_url/_complete/_failed).
+    // `kind` is the sub-event key; `payload` is its inner object flattened
+    // to string values. Platform routes by `kind`.
+    void on_view_event(string session_id, string kind, record<string, string> payload);
+};
+
+interface ConduitClient {
+    constructor(string endpoint, string bearer_token);
+
+    [Async, Throws=ConduitError]
+    void connect(ConduitDelegate delegate);
+
+    void disconnect();
+
+    void notify_network_change();
+
+    [Async, Throws=ConduitError]
+    string create_session(string assistant, string? branch, string? reasoning_effort, string? model, string? cwd);
+
+    [Async, Throws=ConduitError]
+    void join_session(string session_id, string? assistant);
+
+    [Async, Throws=ConduitError]
+    void send_input(string session_id, bytes data);
+
+    [Async, Throws=ConduitError]
+    void send_file(string session_id, string filename, string mime, bytes payload);
+
+    [Async, Throws=ConduitError]
+    void send_chat(string session_id, string msg);
+
+    [Async, Throws=ConduitError]
+    void refresh_account_usage(string session_id);
+
+    [Async, Throws=ConduitError]
+    void resize(string session_id, u16 rows, u16 cols);
+
+    [Async, Throws=ConduitError]
+    void switch_agent(string session_id, string assistant);
+
+    // Ship a per-user agent OAuth credential to the broker over the
+    // existing authenticated WS (docs/PLAN-AGENT-OAUTH.md §D.1, Stage 2).
+    // `credential_json` is the provider-native blob (verbatim
+    // `~/.codex/auth.json` for openai, `~/.claude/.credentials.json`
+    // for anthropic) — the broker stores it byte-for-byte and writes it
+    // into per-session agent homes when spawning the CLI.
+    //
+    // The broker's set_agent_credentials handler is keyed by the bearer
+    // token's identity, not per-session — but the WS itself is session-
+    // scoped, so this method picks any active session handle to carry
+    // the control frame. Returns `NotConnected` if no session is live.
+    [Async, Throws=ConduitError]
+    void set_agent_credentials(string provider, string credential_json);
+
+    // Agent OAuth login v2 (docs/PLAN-AGENT-OAUTH.md "Approach v2").
+    // Outbound control frames carried over any live session WS; the
+    // broker's matching handlers (start_agent_login / agent_login_callback
+    // / cancel_agent_login) are live, and progress comes back as
+    // `agent_login_*` view-events the delegate surfaces.
+    [Async, Throws=ConduitError]
+    void start_agent_login(string provider);
+
+    [Async, Throws=ConduitError]
+    void agent_login_callback(string session_token, string query_string);
+
+    [Async, Throws=ConduitError]
+    void cancel_agent_login(string session_token);
+
+    [Async, Throws=ConduitError]
+    void exit_session(string session_id);
+
+    [Throws=ConduitError]
+    ProjectSession get_session(string session_id);
+
+    sequence<ProjectSession> list_sessions();
+
+    [Throws=ConduitError]
+    sequence<ConversationItem> list_conversation_items(string session_id);
+};

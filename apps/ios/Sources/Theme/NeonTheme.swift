@@ -383,7 +383,7 @@ struct NeonTheme {
     // sans = Space Grotesk → falls back to the system sans (SF Pro).
     // mono = JetBrains Mono → falls back to SF Mono. No font assets are
     // bundled; these expose the design intent consistent with
-    // `SweKittyTypography`.
+    // `ConduitTypography`.
 
     /// Sans font at `size` (system sans fallback for Space Grotesk).
     func sans(_ size: CGFloat) -> Font { .system(size: size, design: .default) }

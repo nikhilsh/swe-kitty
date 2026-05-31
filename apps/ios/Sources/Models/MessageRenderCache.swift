@@ -1,7 +1,7 @@
 import Foundation
 
 /// LRU cache for rendered `AttributedString` instances keyed by
-/// `(itemID, revision)`. Backs the streaming-render path (litter
+/// `(itemID, revision)`. Backs the streaming-render path (upstream
 /// audit A.5): markdown → `AttributedString` conversion is the hot
 /// allocator in the chat list, and re-rendering every visible row on
 /// each chunk dominated a frame budget in Instruments traces.

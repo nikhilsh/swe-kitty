@@ -1,6 +1,6 @@
 //! Bidirectional TCP↔SSH-channel proxy.
 //!
-//! Inspired by litter's same-named file (the bidi-copy pattern is the
+//! Inspired by upstream's same-named file (the bidi-copy pattern is the
 //! same anywhere you tunnel a TCP socket through an SSH session). The
 //! mobile-side WebSocket transport connects to a local TCP listener on
 //! `127.0.0.1:<local_port>`; every accept is paired with a russh

@@ -31,7 +31,7 @@ import (
 //   - Best-effort: any error / timeout / malformed model output emits
 //     nothing — the apps simply show no chips, exactly as today when the
 //     heuristic found nothing.
-//   - Config-gated: SWE_KITTY_AI_QUICKREPLIES=0 disables it entirely
+//   - Config-gated: CONDUIT_AI_QUICKREPLIES=0 disables it entirely
 //     (default ON).
 //   - Credential-race safe: see aigen.go.
 
@@ -71,9 +71,9 @@ const maxQuickReplies = 4
 const quickReplyContextChars = 2000
 
 // quickRepliesEnabled reports whether AI quick-reply generation is on.
-// Default ON; SWE_KITTY_AI_QUICKREPLIES=0 (or "false"/"off") disables it.
+// Default ON; CONDUIT_AI_QUICKREPLIES=0 (or "false"/"off") disables it.
 func quickRepliesEnabled() bool {
-	return aiFeatureEnabled("SWE_KITTY_AI_QUICKREPLIES")
+	return aiFeatureEnabled("CONDUIT_AI_QUICKREPLIES")
 }
 
 // aiFeatureEnabled reports whether a boolean AI-feature env flag is on.

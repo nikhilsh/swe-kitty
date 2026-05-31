@@ -3,7 +3,7 @@
 //! `ProjectSessionState` (in `crate::session`) is the *live* session model
 //! the transport keeps in memory while the harness is paired. The moment
 //! the harness exits — or the user switches to a different server — that
-//! state is gone. The litter parity audit item **A.8** says we need a
+//! state is gone. The upstream parity audit item **A.8** says we need a
 //! separate, persistent "Sessions" screen: every thread we've ever seen
 //! across every server, including the ones that have already exited.
 //!
@@ -439,7 +439,7 @@ mod tests {
     #[test]
     fn load_from_missing_file_returns_empty() {
         let tmp = std::env::temp_dir().join(format!(
-            "swekitty-saved-missing-{}.json",
+            "conduit-saved-missing-{}.json",
             uuid::Uuid::new_v4()
         ));
         let store = SavedSessionStore::load_from(&tmp);
@@ -454,7 +454,7 @@ mod tests {
         store.upsert("server-a", &snapshot);
 
         let tmp = std::env::temp_dir().join(format!(
-            "swekitty-saved-rt-{}/saved-sessions.json",
+            "conduit-saved-rt-{}/saved-sessions.json",
             uuid::Uuid::new_v4()
         ));
         store.save_to(&tmp).expect("save_to");

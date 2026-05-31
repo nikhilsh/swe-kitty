@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Global "All sessions" overlay opened from the home top-right
 /// hamburger and from the bottom-bar magnifying-glass control. Empty
-/// query → full session list (matches Litter's "every thread"
+/// query → full session list (matches Conduit's "every thread"
 /// surface). Typed query → substring filter over server name,
 /// session name, assistant, branch, and conversation-content content.
 ///
@@ -30,7 +30,7 @@ struct SessionSearchView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                SweKittyTheme.backgroundGradient(for: colorScheme)
+                ConduitTheme.backgroundGradient(for: colorScheme)
                     .ignoresSafeArea()
 
                 VStack(spacing: 14) {
@@ -68,7 +68,7 @@ struct SessionSearchView: View {
     private var searchField: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(SweKittyTheme.textMuted)
+                .foregroundStyle(ConduitTheme.textMuted)
             TextField("Search sessions, transcripts, paths…", text: $query)
                 .textFieldStyle(.plain)
                 .submitLabel(.search)
@@ -79,7 +79,7 @@ struct SessionSearchView: View {
                     query = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(SweKittyTheme.textMuted)
+                        .foregroundStyle(ConduitTheme.textMuted)
                 }
                 .buttonStyle(.plain)
             }
@@ -94,15 +94,15 @@ struct SessionSearchView: View {
         VStack(spacing: 10) {
             Image(systemName: query.isEmpty ? "magnifyingglass" : "questionmark.circle")
                 .font(.system(size: 36, weight: .light))
-                .foregroundStyle(SweKittyTheme.textSecondary)
+                .foregroundStyle(ConduitTheme.textSecondary)
             Text(query.isEmpty ? "Search every session" : "No matches")
                 .font(.headline)
-                .foregroundStyle(SweKittyTheme.textPrimary)
+                .foregroundStyle(ConduitTheme.textPrimary)
             Text(query.isEmpty
                 ? "Type to scan conversation history across saved servers."
                 : "Try a different query — we search session names, agent, branch, and message content.")
                 .font(.footnote)
-                .foregroundStyle(SweKittyTheme.textMuted)
+                .foregroundStyle(ConduitTheme.textMuted)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
         }
@@ -124,7 +124,7 @@ struct SessionSearchView: View {
                         serverChip(for: result)
                         Text(result.title)
                             .font(.system(.subheadline, design: .monospaced).weight(.semibold))
-                            .foregroundStyle(SweKittyTheme.textPrimary)
+                            .foregroundStyle(ConduitTheme.textPrimary)
                             .lineLimit(1)
                     }
                     if let snippet = result.snippet {
@@ -132,14 +132,14 @@ struct SessionSearchView: View {
                     } else {
                         Text(result.subtitle)
                             .font(.caption)
-                            .foregroundStyle(SweKittyTheme.textMuted)
+                            .foregroundStyle(ConduitTheme.textMuted)
                             .lineLimit(2)
                     }
                 }
                 Spacer(minLength: 4)
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(SweKittyTheme.textMuted)
+                    .foregroundStyle(ConduitTheme.textMuted)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
@@ -158,7 +158,7 @@ struct SessionSearchView: View {
                 .frame(width: 6, height: 6)
             Text(result.serverName)
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(SweKittyTheme.textSecondary)
+                .foregroundStyle(ConduitTheme.textSecondary)
                 .lineLimit(1)
         }
         .padding(.horizontal, 8)
@@ -176,12 +176,12 @@ struct SessionSearchView: View {
             if let attributed = SessionSearchIndex.attributedSnippet(snippet: snippet, needle: needle, tint: neon.accent) {
                 Text(attributed)
                     .font(.caption)
-                    .foregroundStyle(SweKittyTheme.textMuted)
+                    .foregroundStyle(ConduitTheme.textMuted)
                     .lineLimit(2)
             } else {
                 Text(snippet)
                     .font(.caption)
-                    .foregroundStyle(SweKittyTheme.textMuted)
+                    .foregroundStyle(ConduitTheme.textMuted)
                     .lineLimit(2)
             }
         }

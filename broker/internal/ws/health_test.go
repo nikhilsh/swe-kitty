@@ -20,13 +20,13 @@ func TestHealthEndpointReturnsOK(t *testing.T) {
 }
 
 // /healthz is the strict probe — returns JSON with per-component
-// detail. Forces no-sidecar mode via SWE_KITTY_DISABLE_SIDECAR so the
+// detail. Forces no-sidecar mode via CONDUIT_DISABLE_SIDECAR so the
 // test is independent of whether node + @xterm/headless are installed
 // in the local dev / CI environment. In that mode the broker is
 // live, the sidecar is not expected, and the response is 200 + a
 // JSON body with all three fields.
 func TestHealthzReportsSidecarAbsent(t *testing.T) {
-	t.Setenv("SWE_KITTY_DISABLE_SIDECAR", "1")
+	t.Setenv("CONDUIT_DISABLE_SIDECAR", "1")
 	srv, _ := newTestServer(t)
 	resp, err := http.Get(srv.URL + "/healthz")
 	if err != nil {

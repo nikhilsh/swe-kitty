@@ -14,9 +14,9 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/nikhilsh/swe-kitty/broker/internal/agents"
-	"github.com/nikhilsh/swe-kitty/broker/internal/auth"
-	"github.com/nikhilsh/swe-kitty/broker/internal/session"
+	"github.com/nikhilsh/conduit/broker/internal/agents"
+	"github.com/nikhilsh/conduit/broker/internal/auth"
+	"github.com/nikhilsh/conduit/broker/internal/session"
 )
 
 func newTestServer(t *testing.T) (*httptest.Server, string) {
@@ -366,13 +366,13 @@ func newTestRegistry(t *testing.T) *agents.Registry {
 	dir := t.TempDir()
 	writeAdapter(t, dir, "claude.toml", `
 name = "claude"
-image = "swekitty/claude:latest"
+image = "conduit/claude:latest"
 command = ["cat"]
 workdir = "."
 `)
 	writeAdapter(t, dir, "codex.toml", `
 name = "codex"
-image = "swekitty/codex:latest"
+image = "conduit/codex:latest"
 command = ["cat"]
 workdir = "."
 `)

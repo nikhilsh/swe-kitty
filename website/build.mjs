@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// build.mjs — static-site generator for swe-kitty.
+// build.mjs — static-site generator for conduit.
 //
 // Replaces the prior Next.js setup. The site is one HTML page that's
 // just download links + current-release info; React/Next added 87KB
@@ -17,11 +17,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.join(__dirname, "out");
 const publicDir = path.join(__dirname, "public");
 
-const repo = process.env.GITHUB_REPO || "nikhilsh/swe-kitty";
-const siteOrigin = process.env.SITE_ORIGIN || "https://swekitty.kaopeh.com";
+const repo = process.env.GITHUB_REPO || "nikhilsh/conduit";
+const siteOrigin = process.env.SITE_ORIGIN || "https://conduit.kaopeh.com";
 
 const headers = {
-    "User-Agent": "swe-kitty-website-build",
+    "User-Agent": "conduit-website-build",
     Accept: "application/vnd.github+json",
 };
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
@@ -36,7 +36,7 @@ async function fetchLatestRelease() {
     releases.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
 
     const isPublished = (r) => !r.draft && !r.prerelease;
-    const hasIpa = (r) => (r.assets || []).some((a) => a.name === "SweKitty.ipa");
+    const hasIpa = (r) => (r.assets || []).some((a) => a.name === "Conduit.ipa");
     const r =
         releases.find((x) => isPublished(x) && hasIpa(x)) ||
         releases.find((x) => !x.draft && hasIpa(x)) ||
@@ -50,7 +50,7 @@ async function fetchLatestRelease() {
         releaseName: r.name,
         releaseUrl: r.html_url,
         publishedAt: r.published_at,
-        ipa: assets.find((a) => a.name === "SweKitty.ipa"),
+        ipa: assets.find((a) => a.name === "Conduit.ipa"),
         apk: assets.find((a) => a.name.endsWith(".apk")),
     };
 }
@@ -75,13 +75,13 @@ function manifestPlist(ipa, tag) {
       <key>metadata</key>
       <dict>
         <key>bundle-identifier</key>
-        <string>sh.nikhil.swekitty</string>
+        <string>sh.nikhil.conduit</string>
         <key>bundle-version</key>
         <string>${tag}</string>
         <key>kind</key>
         <string>software</string>
         <key>title</key>
-        <string>SweKitty</string>
+        <string>Conduit</string>
       </dict>
     </dict>
   </array>
@@ -101,9 +101,9 @@ function htmlPage({ tagName, publishedAt, releaseUrl, ipa, apk, manifestUrl, ota
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>SweKitty</title>
-<meta name="description" content="Mobile client for Claude Code and Codex sessions.">
-<meta name="theme-color" content="#0c0e12" media="(prefers-color-scheme: dark)">
+<title>Conduit — your coding agents, in your pocket</title>
+<meta name="description" content="Conduit is a mobile + tablet client for driving your coding agents — Claude and Codex — on your own dev box.">
+<meta name="theme-color" content="#04050a" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
@@ -339,10 +339,10 @@ function htmlPage({ tagName, publishedAt, releaseUrl, ipa, apk, manifestUrl, ota
     <div class="mark" aria-hidden="true">
       <img src="/icon-128.png" width="56" height="56" alt="">
     </div>
-    <h1>SweKitty</h1>
+    <h1>Conduit</h1>
   </header>
 
-  <p class="tagline">Mobile client for Claude Code and Codex.</p>
+  <p class="tagline">Your agents, in your pocket.</p>
 
   <div class="release" id="release" data-published="${publishedAt}">
     <span class="dot" aria-hidden="true"></span>

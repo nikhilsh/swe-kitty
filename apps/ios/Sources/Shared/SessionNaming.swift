@@ -147,7 +147,7 @@ enum SessionNaming {
 
     /// A meaningful, user-pickable cwd to surface in the UI, or nil for
     /// the ephemeral per-session scratch dir. The broker runs each
-    /// session in `…/.swe-kitty/sessions/<id>/work`, which is not a real
+    /// session in `…/.conduit/sessions/<id>/work`, which is not a real
     /// project directory — showing it as if it were is the bug. We hide
     /// any path that lives under a `…/sessions/<…>/work` (or bare
     /// `…/sessions/<…>`) segment so only a genuine repo cwd surfaces.
@@ -156,7 +156,7 @@ enum SessionNaming {
         let trimmed = cwd.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         let lower = trimmed.lowercased()
-        if lower.contains(".swe-kitty/sessions/") { return nil }
+        if lower.contains(".conduit/sessions/") { return nil }
         // Generic guard for the `/sessions/<id>/work` shape regardless of
         // the leading root.
         let normalized = lower.hasSuffix("/") ? String(lower.dropLast()) : lower

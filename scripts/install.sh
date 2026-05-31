@@ -1,26 +1,26 @@
 #!/usr/bin/env sh
-# install.sh — one-command installer for swe-kitty-broker (server).
+# install.sh — one-command installer for conduit-broker (server).
 #
 # Usage:
-#   curl -sSL https://github.com/nikhilsh/swe-kitty/releases/latest/download/install.sh | sh
-#   curl -sSL https://github.com/nikhilsh/swe-kitty/releases/latest/download/install.sh | sh -s -- --up [--local]
-#   curl -sSL https://github.com/nikhilsh/swe-kitty/releases/latest/download/install.sh | sudo sh -s -- --service [--addr :1977] [--local]
+#   curl -sSL https://github.com/nikhilsh/conduit/releases/latest/download/install.sh | sh
+#   curl -sSL https://github.com/nikhilsh/conduit/releases/latest/download/install.sh | sh -s -- --up [--local]
+#   curl -sSL https://github.com/nikhilsh/conduit/releases/latest/download/install.sh | sudo sh -s -- --service [--addr :1977] [--local]
 #
 # Flags:
 #   --version <vN.N.N>   pin a specific tag instead of `latest`
 #   --bin-dir <path>     install location (default: /usr/local/bin if writable, else ~/.local/bin)
-#   --up [args...]       after install, immediately exec `swe-kitty-broker up <args>` so
+#   --up [args...]       after install, immediately exec `conduit-broker up <args>` so
 #                        the pairing QR prints in one command.
-#   --service            install as a long-running systemd service under the `swekitty`
+#   --service            install as a long-running systemd service under the `conduit`
 #                        user, with an ExecStartPre that mirrors the deploying user's
 #                        ~/.claude + ~/.codex OAuth credentials so broker-spawned agents
 #                        can use the existing login without an ANTHROPIC_API_KEY /
 #                        OPENAI_API_KEY. Requires root. Args after --service flow through
-#                        to `swe-kitty-broker up` in the unit's ExecStart.
+#                        to `conduit-broker up` in the unit's ExecStart.
 
 set -eu
 
-REPO="nikhilsh/swe-kitty"
+REPO="nikhilsh/conduit"
 VERSION=""
 BIN_DIR=""
 RUN_UP=0
@@ -28,7 +28,7 @@ UP_ARGS=""
 RUN_SERVICE=0
 SERVICE_UP_ARGS=""
 
-# Pre-parse our own flags. Anything after --up flows through to `swe-kitty-broker up`.
+# Pre-parse our own flags. Anything after --up flows through to `conduit-broker up`.
 while [ $# -gt 0 ]; do
     case "$1" in
         --version)
@@ -133,17 +133,17 @@ fi
 # `releases/latest/download/<asset>` follows the same redirect as a
 # specific tag URL, so this asset URL works for both forms.
 if [ -z "$VERSION" ]; then
-    ASSET="https://github.com/$REPO/releases/latest/download/swe-kitty-broker-${OS}-${ARCH}"
+    ASSET="https://github.com/$REPO/releases/latest/download/conduit-broker-${OS}-${ARCH}"
 else
-    ASSET="https://github.com/$REPO/releases/download/${VERSION}/swe-kitty-broker-${OS}-${ARCH}"
+    ASSET="https://github.com/$REPO/releases/download/${VERSION}/conduit-broker-${OS}-${ARCH}"
 fi
 
-TMP="$(mktemp -t swekitty-broker.XXXXXX)" || die "mktemp failed"
+TMP="$(mktemp -t conduit-broker.XXXXXX)" || die "mktemp failed"
 trap 'rm -f "$TMP"' EXIT
 
-echo "→ swe-kitty-broker ${VERSION:-latest} for ${OS}-${ARCH}"
+echo "→ conduit-broker ${VERSION:-latest} for ${OS}-${ARCH}"
 echo "  asset:  $ASSET"
-echo "  bin:    $BIN_DIR/swe-kitty-broker"
+echo "  bin:    $BIN_DIR/conduit-broker"
 
 # shellcheck disable=SC2086
 $FETCH "$ASSET" > "$TMP" || die "download failed: $ASSET"
@@ -159,21 +159,21 @@ case "$(head -c 4 "$TMP" | od -An -c 2>/dev/null | tr -d ' ')" in
 esac
 
 chmod +x "$TMP"
-mv "$TMP" "$BIN_DIR/swe-kitty-broker"
+mv "$TMP" "$BIN_DIR/conduit-broker"
 trap - EXIT
 
 # Strategy A migration: the server binary was renamed from
-# swe-kitty-harness to swe-kitty-broker. If an older binary is sitting
+# conduit-harness to conduit-broker. If an older binary is sitting
 # alongside the new one, remove it so we don't end up with two server
 # binaries on disk. The systemd unit (if installed via --service below)
 # is rewritten further down to point at the new binary; otherwise this
 # is a no-op for fresh installs.
-if [ -e "$BIN_DIR/swe-kitty-harness" ]; then
-    rm -f "$BIN_DIR/swe-kitty-harness"
-    echo "✓ removed legacy $BIN_DIR/swe-kitty-harness"
+if [ -e "$BIN_DIR/conduit-harness" ]; then
+    rm -f "$BIN_DIR/conduit-harness"
+    echo "✓ removed legacy $BIN_DIR/conduit-harness"
 fi
 
-echo "✓ installed swe-kitty-broker to $BIN_DIR/swe-kitty-broker"
+echo "✓ installed conduit-broker to $BIN_DIR/conduit-broker"
 
 case ":$PATH:" in
     *":$BIN_DIR:"*) ;;
@@ -187,8 +187,8 @@ if [ "$RUN_SERVICE" = "1" ]; then
     need install
     need id
     need useradd
-    SVC_USER="swekitty"
-    SVC_HOME="/opt/swe-kitty"
+    SVC_USER="conduit"
+    SVC_HOME="/opt/conduit"
     DEPLOYER_HOME="${SUDO_USER:+$(getent passwd "$SUDO_USER" | cut -d: -f6)}"
     [ -n "$DEPLOYER_HOME" ] || DEPLOYER_HOME="/root"
 
@@ -199,7 +199,7 @@ if [ "$RUN_SERVICE" = "1" ]; then
         echo "✓ created $SVC_USER user with home $SVC_HOME"
     fi
 
-    cat > /usr/local/bin/swekitty-mirror-auth <<MIRROR
+    cat > /usr/local/bin/conduit-mirror-auth <<MIRROR
 #!/bin/bash
 # Idempotent ExecStartPre — copies the deployer's Claude + Codex OAuth
 # credentials into the broker user's home so agents skip the
@@ -233,20 +233,20 @@ sync_one "\$DEPLOYER_HOME/.codex/auth.json"          "\$SVC_HOME/.codex/auth.jso
 sync_one "\$DEPLOYER_HOME/.codex/config.toml"        "\$SVC_HOME/.codex/config.toml"        644
 exit 0
 MIRROR
-    chmod +x /usr/local/bin/swekitty-mirror-auth
+    chmod +x /usr/local/bin/conduit-mirror-auth
 
     # Make the binary discoverable from a stable system path so the unit
     # never breaks when --bin-dir is set to something exotic.
-    install -m 755 "$BIN_DIR/swe-kitty-broker" "$SVC_HOME/swe-kitty-broker"
-    chown "$SVC_USER:$SVC_USER" "$SVC_HOME/swe-kitty-broker"
+    install -m 755 "$BIN_DIR/conduit-broker" "$SVC_HOME/conduit-broker"
+    chown "$SVC_USER:$SVC_USER" "$SVC_HOME/conduit-broker"
 
     # Strategy A migration: existing installs had the binary at
-    # $SVC_HOME/swe-kitty-harness. The unit gets rewritten further
+    # $SVC_HOME/conduit-harness. The unit gets rewritten further
     # down to point at the new path; drop the old binary so we don't
     # leave a dead file in place. Idempotent on fresh installs.
-    if [ -e "$SVC_HOME/swe-kitty-harness" ]; then
-        rm -f "$SVC_HOME/swe-kitty-harness"
-        echo "✓ removed legacy $SVC_HOME/swe-kitty-harness"
+    if [ -e "$SVC_HOME/conduit-harness" ]; then
+        rm -f "$SVC_HOME/conduit-harness"
+        echo "✓ removed legacy $SVC_HOME/conduit-harness"
     fi
 
     SVC_ARGS="up"
@@ -254,9 +254,9 @@ MIRROR
         SVC_ARGS="up $SERVICE_UP_ARGS"
     fi
 
-    cat > /etc/systemd/system/swe-kitty.service <<UNIT
+    cat > /etc/systemd/system/conduit.service <<UNIT
 [Unit]
-Description=swe-kitty broker
+Description=conduit broker
 After=network-online.target
 Wants=network-online.target
 
@@ -265,8 +265,8 @@ User=$SVC_USER
 Group=$SVC_USER
 Type=simple
 WorkingDirectory=$SVC_HOME
-ExecStartPre=/usr/local/bin/swekitty-mirror-auth
-ExecStart=$SVC_HOME/swe-kitty-broker $SVC_ARGS
+ExecStartPre=/usr/local/bin/conduit-mirror-auth
+ExecStart=$SVC_HOME/conduit-broker $SVC_ARGS
 Restart=always
 RestartSec=2s
 StandardOutput=journal
@@ -276,30 +276,30 @@ StandardError=journal
 WantedBy=multi-user.target
 UNIT
     systemctl daemon-reload
-    systemctl enable --now swe-kitty.service
-    echo "✓ enabled swe-kitty.service (user=$SVC_USER, home=$SVC_HOME)"
+    systemctl enable --now conduit.service
+    echo "✓ enabled conduit.service (user=$SVC_USER, home=$SVC_HOME)"
     sleep 3
     echo
     echo "Pairing info from journal:"
-    journalctl -u swe-kitty --since '15 seconds ago' --no-pager 2>/dev/null \
-        | grep -E '(url:|token:|pairing:)' | tail -3 || echo "  (check 'journalctl -u swe-kitty' if missing)"
+    journalctl -u conduit --since '15 seconds ago' --no-pager 2>/dev/null \
+        | grep -E '(url:|token:|pairing:)' | tail -3 || echo "  (check 'journalctl -u conduit' if missing)"
     exit 0
 fi
 
 # Show pairing QR right away if requested.
 if [ "$RUN_UP" = "1" ]; then
     echo
-    echo "→ launching swe-kitty-broker up $UP_ARGS"
+    echo "→ launching conduit-broker up $UP_ARGS"
     # shellcheck disable=SC2086
-    exec "$BIN_DIR/swe-kitty-broker" up $UP_ARGS
+    exec "$BIN_DIR/conduit-broker" up $UP_ARGS
 fi
 
 cat <<EOM
 
 Next: bring the broker up and pair the mobile app.
 
-  swe-kitty-broker up --local     # LAN: mDNS + QR
-  swe-kitty-broker up             # explicit URL
+  conduit-broker up --local     # LAN: mDNS + QR
+  conduit-broker up             # explicit URL
 
-Scan the printed QR with the SweKitty iOS / Android app.
+Scan the printed QR with the Conduit iOS / Android app.
 EOM

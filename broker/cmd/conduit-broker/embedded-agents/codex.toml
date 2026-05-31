@@ -1,0 +1,14 @@
+name                = "codex"
+command             = ["codex"]
+args                = ["--dangerously-bypass-approvals-and-sandbox"]
+env_passthrough     = ["OPENAI_API_KEY"]
+workdir             = "/workspace"
+chat_event_port_env = "AGENT_CHAT_PORT"
+# Structured chat channel (task #24): codex exec/resume → clean Chat
+# events; the Terminal tab hosts a shell (B-i).
+chat_mode           = "codex-exec"
+
+[hooks]
+on_start = "conduit-broker memory render --session $SESSION_UUID > /workspace/.conduit/HANDOFF.html"
+on_exit  = "conduit-broker memory checkpoint --session $SESSION_UUID --reason 'exit'"
+on_swap  = "conduit-broker memory handoff --session $SESSION_UUID --from $FROM_AGENT --to $TO_AGENT"

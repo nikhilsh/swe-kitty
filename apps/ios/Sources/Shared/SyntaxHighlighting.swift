@@ -16,14 +16,14 @@ import HighlightSwift
 /// Why this is a separate file instead of inline in
 /// `ConversationView.swift`: PLAN-2026-05-19 calls out "Code block
 /// view with syntax highlighting (HighlightSwift on iOS, Prism4j on
-/// Android — same libraries litter uses)" as the v1 conversation
+/// Android — same libraries upstream uses)" as the v1 conversation
 /// parity gap. Shipping the detector first lets the Rust core's
 /// classifier reuse the same canonical id set (e.g. `"ts" -> "typescript"`)
 /// without anyone having to read the fenced-code branch in
 /// `ConversationRenderer.blocks(for:)`.
 enum SyntaxLanguage {
     /// Languages we explicitly recognize. Anything else falls back to
-    /// monospace plain text in the renderer. The set tracks litter's
+    /// monospace plain text in the renderer. The set tracks upstream's
     /// `HighlightSwift` configuration: the highlight.js core langs
     /// plus the ones our agent traffic actually carries (Swift / Go /
     /// Kotlin / Rust / Python / TS / JS / Markdown).
@@ -110,11 +110,11 @@ enum SyntaxLanguage {
 ///
 /// Theme bridging to `AppearanceStore.themeMode`:
 ///   1. AppearanceStore feeds `.preferredColorScheme` at the app root
-///      (`SweKittyApp.swift`), so `@Environment(\.colorScheme)` here
+///      (`ConduitApp.swift`), so `@Environment(\.colorScheme)` here
 ///      already resolves to the user's choice (system / light / dark).
 ///   2. HighlightSwift reads `colorScheme` from the environment to
 ///      pick `.atomOneDark` vs `.atomOneLight` inside the `.atomOne`
-///      theme — same automatic-light/dark behavior litter relies on.
+///      theme — same automatic-light/dark behavior upstream relies on.
 ///
 /// API surface kept narrow (`CodeText(content)` + the two stable
 /// modifiers from 1.1+: `.codeTextStyle(.card)` and
@@ -135,7 +135,7 @@ struct SyntaxHighlightedCodeBlock: View {
         } else {
             Text(content)
                 .font(.system(.footnote, design: .monospaced))
-                .foregroundStyle(SweKittyTheme.textPrimary)
+                .foregroundStyle(ConduitTheme.textPrimary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -206,7 +206,7 @@ struct SyntaxHighlightedCodeBlock: View {
     var body: some View {
         Text(content)
             .font(.system(.footnote, design: .monospaced))
-            .foregroundStyle(SweKittyTheme.textPrimary)
+            .foregroundStyle(ConduitTheme.textPrimary)
             .textSelection(.enabled)
             .frame(maxWidth: .infinity, alignment: .leading)
     }

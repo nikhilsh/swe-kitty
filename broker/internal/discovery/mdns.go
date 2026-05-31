@@ -1,6 +1,6 @@
 // Package discovery advertises the harness on the LAN so mobile clients
 // can pick it up without typing the address. Service name is
-// `_swe-kitty._tcp.local`; TXT records carry the bearer token and a
+// `_conduit._tcp.local`; TXT records carry the bearer token and a
 // short instance id so multiple harnesses on one network are
 // distinguishable in the picker UI.
 package discovery
@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	ServiceType = "_swe-kitty._tcp"
+	ServiceType = "_conduit._tcp"
 	Domain      = "local."
 )
 
@@ -23,7 +23,7 @@ const (
 func Advertise(port int, token string) (func(), error) {
 	host, err := os.Hostname()
 	if err != nil || host == "" {
-		host = "swe-kitty"
+		host = "conduit"
 	}
 	instance := fmt.Sprintf("%s-%d", host, port)
 

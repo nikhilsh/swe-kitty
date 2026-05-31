@@ -126,14 +126,14 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p build/ci-logs
-          xcodebuild -scheme SweKitty \
+          xcodebuild -scheme Conduit \
             -destination 'generic/platform=iOS Simulator' \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             SENTRY_DSN="$SENTRY_DSN_IOS" \
             build 2>&1 | tee build/ci-logs/xcodebuild-build.log
-      - name: xcodebuild test (SweKittyTests, simulator)
-        if: steps.detect.outputs.skip != 'true' && hashFiles('apps/ios/Tests/SweKittyTests/**/*.swift') != ''
+      - name: xcodebuild test (ConduitTests, simulator)
+        if: steps.detect.outputs.skip != 'true' && hashFiles('apps/ios/Tests/ConduitTests/**/*.swift') != ''
         working-directory: apps/ios
         env:
           SENTRY_DSN_IOS: ${{ secrets.SENTRY_DSN_IOS }}
@@ -154,18 +154,18 @@ jobs:
           fi
           set -o pipefail
           mkdir -p build/ci-logs
-          xcodebuild -scheme SweKitty \
+          xcodebuild -scheme Conduit \
             -destination "platform=iOS Simulator,id=$DEVICE_UDID" \
             -skipPackagePluginValidation \
             -skipMacroValidation \
-            -resultBundlePath build/SweKitty.xcresult \
+            -resultBundlePath build/Conduit.xcresult \
             SENTRY_DSN="$SENTRY_DSN_IOS" \
             test 2>&1 | tee build/ci-logs/xcodebuild-test.log
       - name: Capture Swift compiler warnings
         if: steps.detect.outputs.skip != 'true' && !cancelled()
         working-directory: apps/ios
         # Swift warnings are emitted as `path:line:col: warning: ...`.
-        # We strip the runner's `/Users/runner/.../swe-kitty/` prefix
+        # We strip the runner's `/Users/runner/.../conduit/` prefix
         # so file paths read as `apps/ios/Sources/…` — the same shape
         # Android's extract uses. Excludes anything inside the SPM
         # checkout (DerivedData/SourcePackages/checkouts) since those
@@ -176,7 +176,7 @@ jobs:
           cat build/ci-logs/xcodebuild-build.log build/ci-logs/xcodebuild-test.log 2>/dev/null \
             | grep -E '^[^[:space:]].*\.swift:[0-9]+:[0-9]+: warning:' \
             | grep -v 'SourcePackages/checkouts/' \
-            | sed -E 's|^.*/swe-kitty/||' \
+            | sed -E 's|^.*/conduit/||' \
             | sort -u \
             > build/ci-logs/swift-warnings.txt || true
           count=$(wc -l < build/ci-logs/swift-warnings.txt | tr -d ' ')
@@ -196,7 +196,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-xcresult
-          path: apps/ios/build/SweKitty.xcresult
+          path: apps/ios/build/Conduit.xcresult
           # 14 days is enough for a PR to land; longer just costs storage.
           retention-days: 14
           if-no-files-found: ignore
@@ -278,7 +278,7 @@ jobs:
         run: |
           mkdir -p build/ci-logs
           grep -E ' w: file://' build/ci-logs/gradle.log \
-            | sed -E 's|^[^w]*w: file://[^/]*/swe-kitty/||' \
+            | sed -E 's|^[^w]*w: file://[^/]*/conduit/||' \
             > build/ci-logs/kotlin-warnings.txt || true
           count=$(wc -l < build/ci-logs/kotlin-warnings.txt | tr -d ' ')
           {
@@ -338,7 +338,7 @@ jobs:
         run: |
           set -e
           claims=(ConversationToolCard ConversationDiffBlock QuickReplyDetector
-                  PendingInputCard LitterPendingInputCard SubagentCard HandoffCard)
+                  PendingInputCard ConduitPendingInputCard SubagentCard HandoffCard)
           missing=()
           for c in "${claims[@]}"; do
             if ! grep -RIlq --include='*.swift' --include='*.kt' "$c" apps/; then

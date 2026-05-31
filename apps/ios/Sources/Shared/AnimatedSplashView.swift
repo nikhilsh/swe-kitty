@@ -4,7 +4,7 @@ import UIKit
 /// Pure-data description of the cold-start splash. Lifted out of the
 /// SwiftUI view so timing + dismiss-trigger logic can be unit-tested
 /// without a host controller. Mirrors PR B's `ProjectHeaderModel`
-/// pattern (and `InSessionBottomBarModel` from the litter-multi-thread
+/// pattern (and `InSessionBottomBarModel` from the upstream-multi-thread
 /// PR): the view is dumb, the model is the contract.
 ///
 /// Audit item A.10 — iOS-only here, Android polish follows in a
@@ -20,7 +20,7 @@ struct AnimatedSplashModel: Equatable {
     static let pulsePeriod: TimeInterval = 0.6
 
     /// Cross-fade duration applied when the splash dismisses into the
-    /// real UI underneath. Matches the 0.3s in `SweKittyApp`'s
+    /// real UI underneath. Matches the 0.3s in `ConduitApp`'s
     /// `.animation(.easeOut(...), value: showSplash)` envelope.
     static let crossFadeDuration: TimeInterval = 0.3
 
@@ -34,16 +34,16 @@ struct AnimatedSplashModel: Equatable {
 
     /// The brand wordmark rendered under the logo. Lower-case kebab
     /// matches the GitHub repo name + the in-product copy elsewhere.
-    static let wordmark = "swe-kitty"
+    static let wordmark = ">conduit"
 
     /// Name of the brand image in `Assets.xcassets`. The view falls
     /// back to a copper SF Symbol if the asset is missing so the
     /// splash is never blank.
-    static let logoAssetName = "KittyMark"
+    static let logoAssetName = "ConduitMark"
 
     /// SF Symbol used as a fallback when the asset isn't installed
     /// (e.g. in a stripped test bundle).
-    static let fallbackSymbol = "pawprint.fill"
+    static let fallbackSymbol = "terminal.fill"
 
     /// Whether the supplied `HarnessState` represents a "we've heard
     /// from the broker" signal that should dismiss the splash. Any
@@ -64,7 +64,7 @@ struct AnimatedSplashModel: Equatable {
     /// brand accent reads on both dark and light backgrounds without
     /// a heavy-handed contrast bump.
     static func captionColor(for scheme: ColorScheme) -> Color {
-        SweKittyTheme.accentStrong.opacity(scheme == .dark ? 0.85 : 0.75)
+        ConduitTheme.accentStrong.opacity(scheme == .dark ? 0.85 : 0.75)
     }
 
     /// Logo tint. Always the strong copper accent — the wordmark
@@ -72,18 +72,18 @@ struct AnimatedSplashModel: Equatable {
     /// glyphs fighting each other.
     static func logoColor(for scheme: ColorScheme) -> Color {
         _ = scheme
-        return SweKittyTheme.accentStrong
+        return ConduitTheme.accentStrong
     }
 
     /// Wordmark colour. Adaptive primary text — black-ish in light
     /// mode, off-white in dark.
     static func wordmarkColor(for scheme: ColorScheme) -> Color {
         _ = scheme
-        return SweKittyTheme.textPrimary
+        return ConduitTheme.textPrimary
     }
 }
 
-/// Brief launch splash. Shows the swe-kitty mark over the standard
+/// Brief launch splash. Shows the conduit mark over the standard
 /// background gradient with a subtle pulse, holds, then cross-fades
 /// out into `RootView` underneath. Mirrors the Android `AnimatedSplash.kt`
 /// (Android polish follows in a separate PR).
@@ -95,7 +95,7 @@ struct AnimatedSplashModel: Equatable {
 ///   • the `AnimatedSplashModel.defaultDuration` timeout, so the
 ///     splash never lingers when the broker is unreachable.
 ///
-/// Wired in `SweKittyApp` as an overlay on top of `RootView` so the
+/// Wired in `ConduitApp` as an overlay on top of `RootView` so the
 /// real UI is mounted underneath and ready by the time the splash
 /// fades — no blank window once the splash dismisses.
 struct AnimatedSplashView: View {
@@ -110,7 +110,7 @@ struct AnimatedSplashView: View {
 
     var body: some View {
         ZStack {
-            SweKittyTheme.backgroundGradient(for: colorScheme)
+            ConduitTheme.backgroundGradient(for: colorScheme)
                 .ignoresSafeArea()
 
             // Subtle copper-tinted glow centred on the logo so the
@@ -118,7 +118,7 @@ struct AnimatedSplashView: View {
             // — no blur cost, reads as ambient warmth in dark mode.
             RadialGradient(
                 colors: [
-                    SweKittyTheme.accentStrong.opacity(colorScheme == .dark ? 0.16 : 0.10),
+                    ConduitTheme.accentStrong.opacity(colorScheme == .dark ? 0.16 : 0.10),
                     .clear,
                 ],
                 center: .center,
@@ -132,11 +132,11 @@ struct AnimatedSplashView: View {
                     .frame(width: 96, height: 96)
                     .foregroundStyle(AnimatedSplashModel.logoColor(for: colorScheme))
                     .shadow(
-                        color: SweKittyTheme.accentStrong.opacity(0.32),
+                        color: ConduitTheme.accentStrong.opacity(0.32),
                         radius: 22, x: 0, y: 10
                     )
                     .scaleEffect(pulsing ? AnimatedSplashModel.pulseScale : 1.0)
-                    .accessibilityLabel("SweKitty")
+                    .accessibilityLabel("Conduit")
 
                 Text(AnimatedSplashModel.wordmark)
                     .font(.system(size: 36, weight: .semibold, design: .serif))
@@ -159,7 +159,7 @@ struct AnimatedSplashView: View {
         .allowsHitTesting(false)
     }
 
-    /// Use the `KittyMark` asset when present, fall back to a copper
+    /// Use the `ConduitMark` asset when present, fall back to a
     /// SF Symbol otherwise. Keeps the splash from going blank in
     /// stripped-asset builds (e.g. some unit-test hosts).
     @ViewBuilder
@@ -203,7 +203,7 @@ struct AnimatedSplashView: View {
         guard !dismissed else { return }
         dismissed = true
         // Cross-fade duration is governed by the .animation modifier
-        // on `showSplash` in SweKittyApp; just hand the dismissal
+        // on `showSplash` in ConduitApp; just hand the dismissal
         // signal up so SwiftUI can run the transition.
         onFinish()
     }

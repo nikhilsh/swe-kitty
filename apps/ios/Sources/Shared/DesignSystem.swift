@@ -11,17 +11,17 @@ struct HealthDot: View {
             .frame(width: size, height: size)
             .overlay(
                 Circle()
-                    .stroke(SweKittyTheme.border.opacity(0.45), lineWidth: 0.5)
+                    .stroke(ConduitTheme.border.opacity(0.45), lineWidth: 0.5)
             )
             .accessibilityLabel("health: \(health)")
     }
 
     private var color: Color {
         switch health {
-        case "green":  return SweKittyTheme.success
-        case "yellow": return SweKittyTheme.warning
-        case "red":    return SweKittyTheme.danger
-        default:       return SweKittyTheme.textMuted
+        case "green":  return ConduitTheme.success
+        case "yellow": return ConduitTheme.warning
+        case "red":    return ConduitTheme.danger
+        default:       return ConduitTheme.textMuted
         }
     }
 }
@@ -35,24 +35,24 @@ struct InlineErrorBanner: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(SweKittyTheme.danger)
+                .foregroundStyle(ConduitTheme.danger)
             Text(message)
                 .font(.footnote)
-                .foregroundStyle(SweKittyTheme.textBody)
+                .foregroundStyle(ConduitTheme.textBody)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .lineLimit(3)
             if let onDismiss {
                 Button(action: onDismiss) {
                     Image(systemName: "xmark")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(SweKittyTheme.textSecondary)
+                        .foregroundStyle(ConduitTheme.textSecondary)
                 }
                 .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .glassRect(cornerRadius: SweKittyTheme.smallCornerRadius, tint: SweKittyTheme.danger.opacity(0.35))
+        .glassRect(cornerRadius: ConduitTheme.smallCornerRadius, tint: ConduitTheme.danger.opacity(0.35))
     }
 }
 
@@ -66,7 +66,7 @@ struct HarnessBadge: View {
             indicator
             Text(state.badgeLabel)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(SweKittyTheme.textBody)
+                .foregroundStyle(ConduitTheme.textBody)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -91,11 +91,11 @@ struct HarnessBadge: View {
 
     private var tint: Color? {
         switch state {
-        case .live:         return SweKittyTheme.success.opacity(0.35)
-        case .linked:       return SweKittyTheme.warning.opacity(0.30)
-        case .reconnecting: return SweKittyTheme.warning.opacity(0.35)
-        case .failed:       return SweKittyTheme.danger.opacity(0.35)
-        case .connecting:   return SweKittyTheme.accent.opacity(0.30)
+        case .live:         return ConduitTheme.success.opacity(0.35)
+        case .linked:       return ConduitTheme.warning.opacity(0.30)
+        case .reconnecting: return ConduitTheme.warning.opacity(0.35)
+        case .failed:       return ConduitTheme.danger.opacity(0.35)
+        case .connecting:   return ConduitTheme.accent.opacity(0.30)
         case .disconnected: return nil
         }
     }

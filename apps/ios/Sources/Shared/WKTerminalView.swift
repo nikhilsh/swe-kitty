@@ -41,7 +41,7 @@ struct TerminalTabXterm: View {
         // keyboard, so the bottom rows of PTY output were hidden under
         // the keyboard while typing. Available since iOS 14.
         .ignoresSafeArea(.container, edges: .bottom)
-        // SwiftUI ancestor touch-pass guard. The LitterUI shell hosts
+        // SwiftUI ancestor touch-pass guard. The ConduitUI shell hosts
         // this view inside a `NavigationStack { … VStack { header;
         // tabStrip; content } }` push. While none of the visible
         // ancestors install a `.gesture` / `TabView` / `ScrollView`,
@@ -50,7 +50,7 @@ struct TerminalTabXterm: View {
         // for the first 150ms after touchDown — long enough that
         // xterm.js's `touchstart` JS handler never fires for short
         // vertical drags and the user perceives the terminal as
-        // un-scrollable in LitterUI even though PR #109's WKWebView
+        // un-scrollable in ConduitUI even though PR #109's WKWebView
         // scrollView fix (delaysContentTouches=false,
         // panGestureRecognizer.cancelsTouchesInView=false) is
         // intact below. Installing a zero-distance simultaneous

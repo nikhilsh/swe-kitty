@@ -21,14 +21,14 @@ import ActivityKit
 ///     most one Live Activity per session even across re-binds.
 ///
 /// **Architecture note**: the lock-screen + Dynamic Island UI lives in
-/// the `SweKittyWidgets` app-extension target (`apps/ios/Widgets/`). The
+/// the `ConduitWidgets` app-extension target (`apps/ios/Widgets/`). The
 /// extension and this controller share the `TurnActivityAttributes` type
 /// declaration (compiled into both targets — see `apps/ios/project.yml`)
 /// so the system can route `Activity.request(...)` payloads to the right
 /// widget.
 @MainActor
 public final class TurnLiveActivityController {
-    /// Singleton shared with `SweKittyApp` — there's exactly one active-turn
+    /// Singleton shared with `ConduitApp` — there's exactly one active-turn
     /// surface per device, so a global is the right shape.
     public static let shared = TurnLiveActivityController()
 
@@ -165,7 +165,7 @@ public final class TurnLiveActivityController {
         #if canImport(ActivityKit)
         // Defensive: if a previous activity is still alive (e.g. app was
         // backgrounded mid-turn and a stale handle leaked), tear it down
-        // before requesting a new one. Mirrors Litter's behaviour.
+        // before requesting a new one. Mirrors Conduit's behaviour.
         if let priorID = activeActivityIDs[sessionID] {
             Task { await Self.terminateActivity(id: priorID) }
             activeActivityIDs[sessionID] = nil

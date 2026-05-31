@@ -6,7 +6,7 @@ import UIKit
 /// `AgentPickerSheet` rows, the `ThreadSwitcherSheet` peek strip and
 /// row list, and the `SessionInfoView` hero. Not used inside the
 /// chat composer or the header pill — those are already tinted via
-/// `SweKittyTheme.accent(forAgent:)` directly.
+/// `ConduitTheme.accent(forAgent:)` directly.
 ///
 /// Renders a single-letter monogram (Claude → "C", Codex → "X", …)
 /// on a filled disc using `accentStrong(forAgent:)`. Falling back to
@@ -39,12 +39,12 @@ struct AgentAvatar: View {
                     // agents keep the monogram.
                     Image(systemName: symbol)
                         .font(.system(size: size * 0.46, weight: .bold))
-                        .foregroundStyle(SweKittyTheme.textOnAccent)
+                        .foregroundStyle(ConduitTheme.textOnAccent)
                         .accessibilityHidden(true)
                 } else {
                     Text(monogram)
                         .font(.system(size: size * 0.5, weight: .heavy, design: .rounded))
-                        .foregroundStyle(SweKittyTheme.textOnAccent)
+                        .foregroundStyle(ConduitTheme.textOnAccent)
                         .accessibilityHidden(true)
                 }
             }
@@ -53,7 +53,7 @@ struct AgentAvatar: View {
         .clipShape(Circle())
         .overlay(
             Circle()
-                .strokeBorder(SweKittyTheme.textOnAccent.opacity(0.15), lineWidth: 0.5)
+                .strokeBorder(ConduitTheme.textOnAccent.opacity(0.15), lineWidth: 0.5)
         )
         .accessibilityLabel(Text(assistant.capitalized))
     }

@@ -4,7 +4,7 @@ import Observation
 /// Per-item streaming state for the in-progress assistant turn.
 ///
 /// `ConversationItem.id` is a `String` (UniFFI shape — see
-/// `core/generated/swe_kitty_core.swift`), so all keys here are
+/// `core/generated/conduit_core.swift`), so all keys here are
 /// strings. The state machine is intentionally small:
 ///
 ///   `.idle`              — no chunks seen, or post-`reset`.
@@ -26,7 +26,7 @@ enum RenderState: Equatable, Sendable {
 }
 
 /// Pure-data state machine driving the streaming-render path
-/// (litter audit A.5). Owns no views and emits no side-effects beyond
+/// (upstream audit A.5). Owns no views and emits no side-effects beyond
 /// updating its own observable storage, so it can be exercised by
 /// unit tests without spinning up a SwiftUI host.
 ///

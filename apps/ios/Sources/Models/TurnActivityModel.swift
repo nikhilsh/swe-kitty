@@ -32,7 +32,7 @@ public struct TurnActivityContentState: Equatable, Hashable, Codable, Sendable {
     public var startedAt: Date
     public var tokensIn: Int
     public var tokensOut: Int
-    /// "running", "pending", or "exited" — matches Litter's vocabulary
+    /// "running", "pending", or "exited" — matches Conduit's vocabulary
     /// so the widget renderer can switch on a known string set.
     public var status: String
 
@@ -108,7 +108,7 @@ public enum TurnActivityEffect: Equatable, Sendable {
 /// Pure state machine that decides whether to start / update / end the
 /// Live Activity for a single session.
 ///
-/// **Transitions** (mirrors Litter's `TurnLiveActivityController`):
+/// **Transitions** (mirrors Conduit's `TurnLiveActivityController`):
 ///   - first `.tool` or `.command` item arrives → emit `.start`
 ///   - subsequent `.tool` / `.command` items for the active turn → `.update`
 ///   - `.exit` item or `status == "exited"` on the active item → `.end`

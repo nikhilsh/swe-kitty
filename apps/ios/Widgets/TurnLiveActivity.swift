@@ -10,7 +10,7 @@ import WidgetKit
 /// `Activity<TurnActivityAttributes>.request(...)` from
 /// `TurnLiveActivityController`; iOS routes the updates here.
 ///
-/// **Why no `SweKittyTheme` import?**
+/// **Why no `ConduitTheme` import?**
 /// Widget extensions get a separate bundle and don't share the host's
 /// asset catalog without an extra Settings.bundle + shared-resources
 /// dance. We keep this view file self-contained with system colors so
@@ -49,7 +49,7 @@ struct TurnLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     // Tapping the cancel surface deep-links back into the
-                    // app via the existing `swekitty://` scheme so the
+                    // app via the existing `conduit://` scheme so the
                     // user lands on the live session. The harness-level
                     // "cancel" verb is the app's job; the widget only
                     // ferries intent.
@@ -80,10 +80,10 @@ struct TurnLiveActivity: Widget {
     }
 
     private func cancelURL(sessionID: String) -> URL {
-        // Matches `CFBundleURLSchemes: [swekitty]` registered by the host
+        // Matches `CFBundleURLSchemes: [conduit]` registered by the host
         // app in `Sources/Info.plist`. The app side decides what to do
         // with the path — today it just brings the session to focus.
-        URL(string: "swekitty://session/\(sessionID)") ?? URL(string: "swekitty://")!
+        URL(string: "conduit://session/\(sessionID)") ?? URL(string: "conduit://")!
     }
 }
 
@@ -140,7 +140,7 @@ private struct TurnLockScreenView: View {
 // MARK: - Subviews
 
 /// Tiny status-coloured dot mirroring the host app's `HealthDot` without
-/// pulling in `SweKittyTheme`. Status strings come from
+/// pulling in `ConduitTheme`. Status strings come from
 /// `TurnActivityContentState.status` — "running" / "pending" / "exited".
 private struct HealthDotView: View {
     let status: String

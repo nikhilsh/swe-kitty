@@ -48,7 +48,7 @@ jobs:
         run: |
           mkdir -p dist
           go build -trimpath -ldflags "-s -w -X main.version=${RELEASE_TAG}" \
-            -o dist/swe-kitty-broker-${GOOS}-${GOARCH} ./cmd/swe-kitty-broker
+            -o dist/conduit-broker-${GOOS}-${GOARCH} ./cmd/conduit-broker
 
       - name: Install sidecar runtime deps
         if: hashFiles('broker/sidecar/package.json') != ''
@@ -64,9 +64,9 @@ jobs:
         run: |
           STAGE="dist/stage-${GOOS}-${GOARCH}"
           mkdir -p "${STAGE}/sidecar"
-          cp "dist/swe-kitty-broker-${GOOS}-${GOARCH}" "${STAGE}/swe-kitty-broker"
+          cp "dist/conduit-broker-${GOOS}-${GOARCH}" "${STAGE}/conduit-broker"
           cp -R sidecar/sidecar.js sidecar/package.json sidecar/README.md sidecar/node_modules "${STAGE}/sidecar/"
-          tar -C "${STAGE}" -czf "dist/swe-kitty-broker-${GOOS}-${GOARCH}.tar.gz" .
+          tar -C "${STAGE}" -czf "dist/conduit-broker-${GOOS}-${GOARCH}.tar.gz" .
 
       - name: Upload binary to GitHub Release
         if: hashFiles('broker/go.mod') != ''
@@ -75,7 +75,7 @@ jobs:
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           gh release upload "${RELEASE_TAG}" \
-            broker/dist/swe-kitty-broker-${{ matrix.goos }}-${{ matrix.goarch }} \
+            broker/dist/conduit-broker-${{ matrix.goos }}-${{ matrix.goarch }} \
             --clobber
 
       - name: Upload broker+sidecar bundle to GitHub Release
@@ -85,7 +85,7 @@ jobs:
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           gh release upload "${RELEASE_TAG}" \
-            broker/dist/swe-kitty-broker-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz \
+            broker/dist/conduit-broker-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz \
             --clobber
 
   upload-installer:

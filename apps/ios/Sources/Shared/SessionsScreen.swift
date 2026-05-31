@@ -164,7 +164,7 @@ extension ResumeDecision {
 /// and a swipe-to-resume action that re-establishes the WebSocket if
 /// needed and selects the row via `store.switchTo(sessionID:)`.
 ///
-/// Litter parity audit item A.8. Distinct from `ThreadSwitcherSheet`
+/// Conduit parity audit item A.8. Distinct from `ThreadSwitcherSheet`
 /// (#42), which shows live parallel sessions on the *current* server —
 /// this is the *historical* surface, across servers, including ones
 /// that have already exited.
@@ -189,7 +189,7 @@ struct SessionsScreen: View {
 
     var body: some View {
         ZStack {
-            SweKittyTheme.backgroundGradient(for: colorScheme)
+            ConduitTheme.backgroundGradient(for: colorScheme)
                 .ignoresSafeArea()
 
             VStack(spacing: 14) {
@@ -246,7 +246,7 @@ struct SessionsScreen: View {
     private var searchField: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(SweKittyTheme.textMuted)
+                .foregroundStyle(ConduitTheme.textMuted)
             TextField("Search by name or summary…", text: $query)
                 .textFieldStyle(.plain)
                 .submitLabel(.search)
@@ -256,7 +256,7 @@ struct SessionsScreen: View {
                     query = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(SweKittyTheme.textMuted)
+                        .foregroundStyle(ConduitTheme.textMuted)
                 }
                 .buttonStyle(.plain)
             }
@@ -310,12 +310,12 @@ struct SessionsScreen: View {
         HStack(spacing: 6) {
             Text(section.title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(SweKittyTheme.textPrimary)
+                .foregroundStyle(ConduitTheme.textPrimary)
             Text("·")
-                .foregroundStyle(SweKittyTheme.textMuted)
+                .foregroundStyle(ConduitTheme.textMuted)
             Text("\(section.sessions.count) session\(section.sessions.count == 1 ? "" : "s")")
                 .font(.caption)
-                .foregroundStyle(SweKittyTheme.textMuted)
+                .foregroundStyle(ConduitTheme.textMuted)
             Spacer()
         }
         .padding(.horizontal, 14)
@@ -331,23 +331,23 @@ struct SessionsScreen: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(rowTitle(row))
                         .font(.system(.body, design: .monospaced).weight(.semibold))
-                        .foregroundStyle(SweKittyTheme.textPrimary)
+                        .foregroundStyle(ConduitTheme.textPrimary)
                         .lineLimit(1)
                     HStack(spacing: 6) {
                         Text(row.agent)
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(SweKittyTheme.textSecondary)
+                            .foregroundStyle(ConduitTheme.textSecondary)
                         Text("·")
                             .font(.caption)
-                            .foregroundStyle(SweKittyTheme.textMuted)
+                            .foregroundStyle(ConduitTheme.textMuted)
                         Text(relativeTime(row.lastSeen))
                             .font(.caption.monospaced())
-                            .foregroundStyle(SweKittyTheme.textMuted)
+                            .foregroundStyle(ConduitTheme.textMuted)
                             .lineLimit(1)
                         if let serverName {
                             Text("·")
                                 .font(.caption)
-                                .foregroundStyle(SweKittyTheme.textMuted)
+                                .foregroundStyle(ConduitTheme.textMuted)
                             HStack(spacing: 3) {
                                 Image(systemName: "server.rack")
                                     .font(.system(size: 9, weight: .semibold))
@@ -355,18 +355,18 @@ struct SessionsScreen: View {
                                     .font(.caption.weight(.medium))
                                     .lineLimit(1)
                             }
-                            .foregroundStyle(SweKittyTheme.textMuted)
+                            .foregroundStyle(ConduitTheme.textMuted)
                         }
                     }
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(SweKittyTheme.textMuted)
+                    .foregroundStyle(ConduitTheme.textMuted)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .glassRect(cornerRadius: SweKittyTheme.smallCornerRadius)
+            .glassRect(cornerRadius: ConduitTheme.smallCornerRadius)
         }
         .buttonStyle(.plain)
     }
@@ -376,13 +376,13 @@ struct SessionsScreen: View {
             Spacer(minLength: 24)
             Image(systemName: "clock.arrow.circlepath")
                 .font(.system(size: 40, weight: .light))
-                .foregroundStyle(SweKittyTheme.textSecondary)
+                .foregroundStyle(ConduitTheme.textSecondary)
             Text("No sessions yet")
                 .font(.headline)
-                .foregroundStyle(SweKittyTheme.textPrimary)
+                .foregroundStyle(ConduitTheme.textPrimary)
             Text("Start one from the Home screen — it'll show up here so you can pick up later.")
                 .font(.footnote)
-                .foregroundStyle(SweKittyTheme.textMuted)
+                .foregroundStyle(ConduitTheme.textMuted)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 36)
             Spacer()
@@ -395,13 +395,13 @@ struct SessionsScreen: View {
             Spacer(minLength: 24)
             Image(systemName: "questionmark.circle")
                 .font(.system(size: 36, weight: .light))
-                .foregroundStyle(SweKittyTheme.textSecondary)
+                .foregroundStyle(ConduitTheme.textSecondary)
             Text("No matches")
                 .font(.headline)
-                .foregroundStyle(SweKittyTheme.textPrimary)
+                .foregroundStyle(ConduitTheme.textPrimary)
             Text("Try a shorter query — we match against the session summary, id, agent, and cwd.")
                 .font(.footnote)
-                .foregroundStyle(SweKittyTheme.textMuted)
+                .foregroundStyle(ConduitTheme.textMuted)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 36)
             Spacer()

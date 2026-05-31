@@ -18,11 +18,11 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/nikhilsh/swe-kitty/broker/internal/auth"
-	"github.com/nikhilsh/swe-kitty/broker/internal/credentials"
-	"github.com/nikhilsh/swe-kitty/broker/internal/oauth"
-	"github.com/nikhilsh/swe-kitty/broker/internal/push"
-	"github.com/nikhilsh/swe-kitty/broker/internal/session"
+	"github.com/nikhilsh/conduit/broker/internal/auth"
+	"github.com/nikhilsh/conduit/broker/internal/credentials"
+	"github.com/nikhilsh/conduit/broker/internal/oauth"
+	"github.com/nikhilsh/conduit/broker/internal/push"
+	"github.com/nikhilsh/conduit/broker/internal/session"
 )
 
 const (
@@ -49,7 +49,7 @@ type Server struct {
 	// spawn path falls back to the legacy global host-mirror.
 	Credentials *credentials.Store
 	// OAuth drives the v2 server-side login flow (PLAN-AGENT-OAUTH.md
-	// "Approach v2 — litter-faithful"). Spawns `codex login` or
+	// "Approach v2 — upstream-faithful"). Spawns `codex login` or
 	// `claude auth login` on the broker host, ferries the phone's
 	// captured `?code=...` query string to the CLI's loopback. Nil-safe:
 	// when nil, start_agent_login / agent_login_callback /
@@ -72,7 +72,7 @@ func New(a *auth.Store, m *session.Manager) *Server {
 }
 
 // WithCredentials wires the per-identity credential store into the
-// server. Called from cmd/swe-kitty-broker/main.go after the store is
+// server. Called from cmd/conduit-broker/main.go after the store is
 // constructed. Returning the same *Server keeps the call site fluent.
 func (s *Server) WithCredentials(store *credentials.Store) *Server {
 	s.Credentials = store
@@ -647,7 +647,7 @@ func (c *client) handleText(payload []byte) {
 		c.handleSetAgentCredentials(env.Provider, env.Kind, env.Credential)
 	case "start_agent_login":
 		// v2 agent-login entry point (PLAN-AGENT-OAUTH.md "Approach
-		// v2 — litter-faithful"). Spawns the CLI's own login
+		// v2 — upstream-faithful"). Spawns the CLI's own login
 		// subcommand on the broker host, captures the authorize URL,
 		// and emits an `agent_login_url` view_event so the phone can
 		// open the URL in ASWebAuthenticationSession / CustomTabs.

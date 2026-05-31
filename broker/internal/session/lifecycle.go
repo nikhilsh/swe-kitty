@@ -16,7 +16,7 @@ import (
 
 	"github.com/creack/pty"
 
-	"github.com/nikhilsh/swe-kitty/broker/internal/agents"
+	"github.com/nikhilsh/conduit/broker/internal/agents"
 )
 
 var handoffSectionPattern = regexp.MustCompile(`(?is)<section[^>]*data-section=["']handoff["'][^>]*>(.*?)</section>`)
@@ -148,12 +148,12 @@ func providerForAssistant(assistant string) string {
 
 // hostHomeDir returns the broker's real $HOME — the place where claude
 // / codex stash their per-user credentials when the operator runs them
-// interactively for the first login. Honours $SWE_KITTY_HOST_HOME for
+// interactively for the first login. Honours $CONDUIT_HOST_HOME for
 // tests; otherwise mirrors `os.UserHomeDir()`. Returns "" when the home
 // can't be resolved; callers must treat that as "no host creds, skip
 // the mirror and let the agent prompt for /login".
 func hostHomeDir() string {
-	if v := strings.TrimSpace(os.Getenv("SWE_KITTY_HOST_HOME")); v != "" {
+	if v := strings.TrimSpace(os.Getenv("CONDUIT_HOST_HOME")); v != "" {
 		return v
 	}
 	h, err := os.UserHomeDir()

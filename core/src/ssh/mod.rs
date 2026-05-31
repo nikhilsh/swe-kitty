@@ -9,7 +9,7 @@
 //!
 //! Architectural notes:
 //! - Single transport (WebSocket on 1977 in the Docker container) —
-//!   we don't need litter's app-server-proxy vs WS-tunnel branching.
+//!   we don't need upstream's app-server-proxy vs WS-tunnel branching.
 //! - Single remote shell (POSIX) — we're targeting the harness's
 //!   own Docker image, hosted on a Linux server. PowerShell, NU, etc.
 //!   are out of scope.

@@ -1,10 +1,10 @@
 import SwiftUI
 import UIKit
 
-/// Light/dark colour pairs used by `SweKittyTheme`. The neutrals are
+/// Light/dark colour pairs used by `ConduitTheme`. The neutrals are
 /// the system grays Apple ships in its HIG palette; `accentStrong` is
-/// tuned to the neon-cat brand.
-enum SweKittyPalette {
+/// tuned to the Conduit brand.
+enum ConduitPalette {
     struct Pair {
         let light: String
         let dark: String
@@ -12,7 +12,7 @@ enum SweKittyPalette {
 
     static let accent          = Pair(light: "#4A4A4A", dark: "#B0B0B0")
     // Brand accent — switched from green (#00A86B / #34C759) to
-    // Anthropic copper to match the litter visual reference (the
+    // Anthropic copper to match the upstream visual reference (the
     // entire UI in their screenshots tints orange — badges, +,
     // user bubble, status, stat numbers). Per-agent tints below
     // (`codexAccent`, `hermesAccent`, …) live alongside.
@@ -49,8 +49,8 @@ enum SweKittyPalette {
     static let textMuted       = Pair(light: "#9E9E9E", dark: "#555555")
     static let textBody        = Pair(light: "#2D2D2D", dark: "#E0E0E0")
     /// Muted-green tone used by handoff / system-emitted bubble rendering
-    /// (mirrors litter's `LitterPalette.textSystem`). Added in the
-    /// PLAN-LITTER-VISUAL-PARITY PR 1 foundation pass so non-LitterUI
+    /// (mirrors upstream's `ConduitPalette.textSystem`). Added in the
+    /// PLAN-CONDUIT-VISUAL-PARITY PR 1 foundation pass so non-ConduitUI
     /// surfaces stop falling back to ad-hoc opacity tricks.
     static let textSystem      = Pair(light: "#3A4A3F", dark: "#C6D0CA")
     static let textOnAccent    = Pair(light: "#FFFFFF", dark: "#0D0D0D")
@@ -58,8 +58,8 @@ enum SweKittyPalette {
     static let surfaceLight    = Pair(light: "#E5E5EA", dark: "#2A2A2A")
     static let border          = Pair(light: "#D1D1D6", dark: "#333333")
     static let separator       = Pair(light: "#E0E0E0", dark: "#1E1E1E")
-    /// Background tone for inline code / code blocks (mirrors litter's
-    /// `LitterPalette.codeBackground`). Until PR 1 we used
+    /// Background tone for inline code / code blocks (mirrors upstream's
+    /// `ConduitPalette.codeBackground`). Until PR 1 we used
     /// `surface.opacity(0.72)` ad-hoc, which read differently per scheme.
     static let codeBackground  = Pair(light: "#F0F0F5", dark: "#111111")
     static let danger          = Pair(light: "#D32F2F", dark: "#FF5555")
@@ -69,7 +69,7 @@ enum SweKittyPalette {
 }
 
 extension Color {
-    /// Hex initializer mirroring litter's `Color(hex:)`. Accepts `#RRGGBB`
+    /// Hex initializer mirroring upstream's `Color(hex:)`. Accepts `#RRGGBB`
     /// or `RRGGBB`; ignores non-hex characters.
     init(hex: String) {
         let cleaned = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
@@ -82,7 +82,7 @@ extension Color {
     }
 }
 
-extension SweKittyPalette.Pair {
+extension ConduitPalette.Pair {
     /// Adaptive SwiftUI color resolved per-trait so the same value works
     /// in light/dark mode without sprinkling `@Environment(\.colorScheme)`.
     var color: Color {

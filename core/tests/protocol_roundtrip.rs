@@ -3,7 +3,7 @@
 //! Stands up a tiny in-process WebSocket server, drives `transport::connect`
 //! from the public API with a recording delegate, and asserts that the
 //! broker's wire-format frames (`status`, `view_event { view: "chat" }`)
-//! produce the expected `SweKittyDelegate` callbacks.
+//! produce the expected `ConduitDelegate` callbacks.
 //!
 //! This is the **real test harness** for the wire protocol: changing the
 //! shape of a frame on either side without updating both will fail here.
@@ -14,10 +14,10 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use futures_util::{SinkExt, StreamExt};
-use swe_kitty_core::{
-    transport, ChatEvent, ConnectionHealth, PreviewInfo, SessionStatus, SweKittyDelegate,
+use conduit_core::{
+    transport, ChatEvent, ConduitDelegate, ConnectionHealth, PreviewInfo, SessionStatus,
 };
+use futures_util::{SinkExt, StreamExt};
 use tokio::net::TcpListener;
 use tokio_tungstenite::tungstenite::Message;
 
@@ -34,7 +34,7 @@ struct RecordingDelegate {
     view_events: Mutex<Vec<ViewEventRecord>>,
 }
 
-impl SweKittyDelegate for RecordingDelegate {
+impl ConduitDelegate for RecordingDelegate {
     fn on_pty_data(&self, _session_id: String, _data: Vec<u8>) {}
     fn on_chat_event(&self, session_id: String, event: ChatEvent) {
         self.chats.lock().unwrap().push((session_id, event));

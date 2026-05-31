@@ -9,7 +9,7 @@ import Foundation
 // discovery to the Rust shared core (PLAN-2026-05-19.md Package 4).
 //
 // Extracted from the legacy `Views/DiscoveryView.swift` so the
-// LitterUI tree can drive the same NetService glue without dragging
+// ConduitUI tree can drive the same NetService glue without dragging
 // the SwiftUI surface along. Behaviour is unchanged — see the
 // original PR for the design rationale.
 
@@ -42,7 +42,7 @@ final class LANDiscoveryBrowser: NSObject, NetServiceBrowserDelegate, NetService
         pending.removeAll()
         browser.stop()
         isBrowsing = true
-        browser.searchForServices(ofType: "_swe-kitty._tcp.", inDomain: "local.")
+        browser.searchForServices(ofType: "_conduit._tcp.", inDomain: "local.")
     }
 
     func stop() {

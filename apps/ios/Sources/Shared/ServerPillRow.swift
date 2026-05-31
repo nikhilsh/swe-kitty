@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Horizontal scrollable strip of `ServerPill` — saved first, then
 /// discovered, then trailing `+ server` CTA. Used both on Home and
-/// inside the DiscoveryView so the litter-style "pill row" affordance
+/// inside the DiscoveryView so the upstream-style "pill row" affordance
 /// stays consistent across the two surfaces.
 ///
 /// Discovery state is provided by the caller (an `@State` browser),
@@ -117,12 +117,12 @@ struct ServerPillRow: View {
                 Text("server")
                     .font(.subheadline.weight(.semibold))
             }
-            .foregroundStyle(SweKittyTheme.accentStrong)
+            .foregroundStyle(ConduitTheme.accentStrong)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(
                 Capsule()
-                    .stroke(SweKittyTheme.accentStrong, lineWidth: 1.5)
+                    .stroke(ConduitTheme.accentStrong, lineWidth: 1.5)
             )
         }
         .buttonStyle(.plain)

@@ -5,7 +5,7 @@ import SwiftUI
 // Small chrome helpers shared by the Phase-2 screen re-skin: a neon
 // agent-tint resolver (maps an agent name to one of the neon brand
 // tokens so chips/avatars read in the active palette rather than the
-// legacy copper/green SweKitty hues) and a compact mono chip + a
+// legacy copper/green Conduit hues) and a compact mono chip + a
 // floating segmented pill, both built on the resolved `NeonTheme` +
 // `NeonComponents` helpers so the surface/glow rules stay in one place.
 

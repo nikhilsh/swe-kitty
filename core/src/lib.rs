@@ -1,4 +1,4 @@
-//! swe-kitty-core: the shared Rust client for the swe-kitty mobile apps.
+//! conduit-core: the shared Rust client for the conduit mobile apps.
 #![allow(clippy::empty_line_after_doc_comments)]
 
 pub mod conversation;
@@ -27,7 +27,7 @@ pub use views::{
     ProjectSession, ProjectSessionState, SessionStatus, TerminalViewState, ViewEventFile,
 };
 
-uniffi::include_scaffolding!("swe_kitty_core");
+uniffi::include_scaffolding!("conduit_core");
 
 /// Our own multi-thread tokio runtime with full I/O + timer support.
 ///
@@ -39,13 +39,13 @@ uniffi::include_scaffolding!("swe_kitty_core");
 static CORE_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
-        .thread_name("swe-kitty-core")
+        .thread_name("conduit-core")
         .build()
-        .expect("failed to build swe-kitty-core tokio runtime")
+        .expect("failed to build conduit-core tokio runtime")
 });
 
 #[derive(Debug, Error)]
-pub enum SweKittyError {
+pub enum ConduitError {
     #[error("connection: {0}")]
     Connection(String),
     #[error("auth")]
@@ -60,13 +60,13 @@ pub enum SweKittyError {
     UnknownSession(String),
 }
 
-impl From<serde_json::Error> for SweKittyError {
+impl From<serde_json::Error> for ConduitError {
     fn from(error: serde_json::Error) -> Self {
         Self::Json(error.to_string())
     }
 }
 
-pub trait SweKittyDelegate: Send + Sync {
+pub trait ConduitDelegate: Send + Sync {
     fn on_pty_data(&self, session_id: String, data: Vec<u8>);
     fn on_chat_event(&self, session_id: String, event: ChatEvent);
     fn on_preview_ready(&self, session_id: String, preview: PreviewInfo);
@@ -121,7 +121,7 @@ pub async fn ssh_bootstrap(
     .await
 }
 
-pub struct SweKittyClient {
+pub struct ConduitClient {
     inner: Arc<Inner>,
 }
 
@@ -130,10 +130,10 @@ struct Inner {
     token: String,
     handles: Mutex<HashMap<String, transport::SessionHandle>>,
     sessions: Arc<Mutex<HashMap<String, ProjectSessionState>>>,
-    delegate: Mutex<Option<Arc<dyn SweKittyDelegate>>>,
+    delegate: Mutex<Option<Arc<dyn ConduitDelegate>>>,
 }
 
-impl SweKittyClient {
+impl ConduitClient {
     pub fn new(endpoint: String, bearer_token: String) -> Self {
         Self {
             inner: Arc::new(Inner {
@@ -146,7 +146,7 @@ impl SweKittyClient {
         }
     }
 
-    pub async fn connect(&self, delegate: Box<dyn SweKittyDelegate>) -> Result<(), SweKittyError> {
+    pub async fn connect(&self, delegate: Box<dyn ConduitDelegate>) -> Result<(), ConduitError> {
         // Pure store of the delegate — no network work yet. Real socket
         // setup happens on the first session.
         *self.inner.delegate.lock() = Some(Arc::from(delegate));
@@ -193,7 +193,7 @@ impl SweKittyClient {
         reasoning_effort: Option<String>,
         model: Option<String>,
         cwd: Option<String>,
-    ) -> Result<String, SweKittyError> {
+    ) -> Result<String, ConduitError> {
         let inner = Arc::clone(&self.inner);
         run_on_core(async move {
             let session_id = Uuid::new_v4().to_string();
@@ -216,7 +216,7 @@ impl SweKittyClient {
         &self,
         session_id: String,
         assistant: Option<String>,
-    ) -> Result<(), SweKittyError> {
+    ) -> Result<(), ConduitError> {
         let inner = Arc::clone(&self.inner);
         run_on_core(async move {
             inner
@@ -233,7 +233,7 @@ impl SweKittyClient {
         .await
     }
 
-    pub async fn send_input(&self, session_id: String, data: Vec<u8>) -> Result<(), SweKittyError> {
+    pub async fn send_input(&self, session_id: String, data: Vec<u8>) -> Result<(), ConduitError> {
         let handle = self.inner.lookup_handle(&session_id)?;
         run_on_core(async move { handle.send_input(data).await }).await
     }
@@ -248,7 +248,7 @@ impl SweKittyClient {
         filename: String,
         mime: String,
         payload: Vec<u8>,
-    ) -> Result<(), SweKittyError> {
+    ) -> Result<(), ConduitError> {
         let handle = self.inner.lookup_handle(&session_id)?;
         run_on_core(async move {
             handle
@@ -258,7 +258,7 @@ impl SweKittyClient {
         .await
     }
 
-    pub async fn send_chat(&self, session_id: String, msg: String) -> Result<(), SweKittyError> {
+    pub async fn send_chat(&self, session_id: String, msg: String) -> Result<(), ConduitError> {
         let handle = self.inner.lookup_handle(&session_id)?;
         run_on_core(async move {
             handle
@@ -276,7 +276,7 @@ impl SweKittyClient {
     /// subscription usage (5-hour + weekly windows) and re-broadcast it on the
     /// status frame. Backs the "refresh" button in the Session Info usage card.
     /// Fire-and-forget on the wire — the fresh numbers arrive via `on_status`.
-    pub async fn refresh_account_usage(&self, session_id: String) -> Result<(), SweKittyError> {
+    pub async fn refresh_account_usage(&self, session_id: String) -> Result<(), ConduitError> {
         let handle = self.inner.lookup_handle(&session_id)?;
         run_on_core(async move {
             handle
@@ -294,7 +294,7 @@ impl SweKittyClient {
         session_id: String,
         rows: u16,
         cols: u16,
-    ) -> Result<(), SweKittyError> {
+    ) -> Result<(), ConduitError> {
         let handle = self.inner.lookup_handle(&session_id)?;
         run_on_core(async move { handle.resize(rows, cols).await }).await
     }
@@ -303,7 +303,7 @@ impl SweKittyClient {
         &self,
         session_id: String,
         assistant: String,
-    ) -> Result<(), SweKittyError> {
+    ) -> Result<(), ConduitError> {
         let handle = self.inner.lookup_handle(&session_id)?;
         run_on_core(async move {
             handle
@@ -342,7 +342,7 @@ impl SweKittyClient {
         &self,
         provider: String,
         credential_json: String,
-    ) -> Result<(), SweKittyError> {
+    ) -> Result<(), ConduitError> {
         let handle = self.inner.any_handle()?;
         let credential: serde_json::Value = serde_json::from_str(&credential_json)?;
         run_on_core(async move {
@@ -367,7 +367,7 @@ impl SweKittyClient {
     /// is identity-scoped rather than session-scoped, so we carry the
     /// control frame over any live session WS. Returns `NotConnected`
     /// if no session is live yet.
-    pub async fn start_agent_login(&self, provider: String) -> Result<(), SweKittyError> {
+    pub async fn start_agent_login(&self, provider: String) -> Result<(), ConduitError> {
         let handle = self.inner.any_handle()?;
         run_on_core(async move {
             handle
@@ -389,7 +389,7 @@ impl SweKittyClient {
         &self,
         session_token: String,
         query_string: String,
-    ) -> Result<(), SweKittyError> {
+    ) -> Result<(), ConduitError> {
         let handle = self.inner.any_handle()?;
         run_on_core(async move {
             handle
@@ -407,7 +407,7 @@ impl SweKittyClient {
     /// The broker tears down the spawned `login` subprocess keyed by
     /// `session_token`. Idempotent broker-side, so a cancel for an
     /// already-finished flow is harmless.
-    pub async fn cancel_agent_login(&self, session_token: String) -> Result<(), SweKittyError> {
+    pub async fn cancel_agent_login(&self, session_token: String) -> Result<(), ConduitError> {
         let handle = self.inner.any_handle()?;
         run_on_core(async move {
             handle
@@ -420,14 +420,14 @@ impl SweKittyClient {
         .await
     }
 
-    pub async fn exit_session(&self, session_id: String) -> Result<(), SweKittyError> {
+    pub async fn exit_session(&self, session_id: String) -> Result<(), ConduitError> {
         let inner = Arc::clone(&self.inner);
         run_on_core(async move {
             let handle = inner
                 .handles
                 .lock()
                 .remove(&session_id)
-                .ok_or_else(|| SweKittyError::UnknownSession(session_id.clone()))?;
+                .ok_or_else(|| ConduitError::UnknownSession(session_id.clone()))?;
             let _ = handle
                 .send_json(&serde_json::json!({ "type": "exit" }))
                 .await;
@@ -438,13 +438,13 @@ impl SweKittyClient {
         .await
     }
 
-    pub fn get_session(&self, session_id: String) -> Result<ProjectSession, SweKittyError> {
+    pub fn get_session(&self, session_id: String) -> Result<ProjectSession, ConduitError> {
         self.inner
             .sessions
             .lock()
             .get(&session_id)
             .map(|state| state.session.clone())
-            .ok_or(SweKittyError::UnknownSession(session_id))
+            .ok_or(ConduitError::UnknownSession(session_id))
     }
 
     pub fn list_sessions(&self) -> Vec<ProjectSession> {
@@ -459,13 +459,13 @@ impl SweKittyClient {
     pub fn list_conversation_items(
         &self,
         session_id: String,
-    ) -> Result<Vec<ConversationItem>, SweKittyError> {
+    ) -> Result<Vec<ConversationItem>, ConduitError> {
         self.inner
             .sessions
             .lock()
             .get(&session_id)
             .map(|state| state.chat.conversation.clone())
-            .ok_or(SweKittyError::UnknownSession(session_id))
+            .ok_or(ConduitError::UnknownSession(session_id))
     }
 }
 
@@ -479,12 +479,12 @@ impl Inner {
         reasoning_effort: Option<String>,
         model: Option<String>,
         cwd: Option<String>,
-    ) -> Result<(), SweKittyError> {
+    ) -> Result<(), ConduitError> {
         let delegate = self
             .delegate
             .lock()
             .clone()
-            .ok_or(SweKittyError::NotConnected)?;
+            .ok_or(ConduitError::NotConnected)?;
         if self.handles.lock().contains_key(&session_id) {
             return Ok(());
         }
@@ -544,29 +544,29 @@ impl Inner {
         Ok(())
     }
 
-    fn lookup_handle(&self, session_id: &str) -> Result<transport::SessionHandle, SweKittyError> {
+    fn lookup_handle(&self, session_id: &str) -> Result<transport::SessionHandle, ConduitError> {
         self.handles
             .lock()
             .get(session_id)
             .cloned()
-            .ok_or_else(|| SweKittyError::UnknownSession(session_id.to_string()))
+            .ok_or_else(|| ConduitError::UnknownSession(session_id.to_string()))
     }
 
     /// Pick any active session handle. Used for connection-scoped
     /// control frames whose semantics aren't tied to a particular
     /// session — today just `set_agent_credentials`, which the broker
     /// keys by bearer-token identity (PLAN-AGENT-OAUTH §D.1).
-    fn any_handle(&self) -> Result<transport::SessionHandle, SweKittyError> {
+    fn any_handle(&self) -> Result<transport::SessionHandle, ConduitError> {
         self.handles
             .lock()
             .values()
             .next()
             .cloned()
-            .ok_or(SweKittyError::NotConnected)
+            .ok_or(ConduitError::NotConnected)
     }
 }
 
-/// Run `fut` on the swe-kitty-core tokio runtime and await its result
+/// Run `fut` on the conduit-core tokio runtime and await its result
 /// from any caller, including ones that don't have a tokio context.
 ///
 /// The returned future itself only touches a oneshot channel and the
@@ -580,15 +580,15 @@ where
     CORE_RUNTIME.spawn(async move {
         let _ = tx.send(fut.await);
     });
-    rx.await.expect("swe-kitty-core runtime task cancelled")
+    rx.await.expect("conduit-core runtime task cancelled")
 }
 
 struct ClientDelegate {
     sessions: Arc<Mutex<HashMap<String, ProjectSessionState>>>,
-    delegate: Arc<dyn SweKittyDelegate>,
+    delegate: Arc<dyn ConduitDelegate>,
 }
 
-impl SweKittyDelegate for ClientDelegate {
+impl ConduitDelegate for ClientDelegate {
     fn on_pty_data(&self, session_id: String, data: Vec<u8>) {
         if let Some(state) = self.sessions.lock().get_mut(&session_id) {
             state.terminal.scrollback.extend_from_slice(&data);

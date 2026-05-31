@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
-# Build SweKittyCore.xcframework + Swift bindings from core/.
+# Build ConduitCore.xcframework + Swift bindings from core/.
 #
-# Output (all under apps/ios/SweKittyCore/):
-#   SweKittyCore.xcframework            consumed by xcodegen via project.yml
-#   Sources/SweKittyCore.swift          UniFFI-generated Swift API
+# Output (all under apps/ios/ConduitCore/):
+#   ConduitCore.xcframework            consumed by xcodegen via project.yml
+#   Sources/ConduitCore.swift          UniFFI-generated Swift API
 #
-# Triple coverage (litter pattern):
+# Triple coverage (upstream pattern):
 #   - aarch64-apple-ios       device       (one slice)
 #   - aarch64-apple-ios-sim   sim arm64    \ lipo'd into one slice
 #   - x86_64-apple-ios        sim x86_64   /
 #
 # Layout: `.framework`-flavored xcframework. Each arch slice contains a
-# per-arch `swe_kitty_coreFFI.framework/` directory tree:
+# per-arch `conduit_coreFFI.framework/` directory tree:
 #
-#   <slice>/swe_kitty_coreFFI.framework/
-#     swe_kitty_coreFFI            (the static archive, renamed without `lib`)
-#     Info.plist                   (minimal CFBundleExecutable=swe_kitty_coreFFI)
-#     Headers/swe_kitty_coreFFI.h  (UniFFI-generated C header)
-#     Modules/module.modulemap     (`framework module swe_kitty_coreFFI ...`)
+#   <slice>/conduit_coreFFI.framework/
+#     conduit_coreFFI            (the static archive, renamed without `lib`)
+#     Info.plist                   (minimal CFBundleExecutable=conduit_coreFFI)
+#     Headers/conduit_coreFFI.h  (UniFFI-generated C header)
+#     Modules/module.modulemap     (`framework module conduit_coreFFI ...`)
 #
 # Why framework-flavored: the previous `-library + -headers` layout
 # made Xcode's `ProcessXCFramework` write its `module.modulemap` to
@@ -29,12 +29,12 @@
 # map inside the per-arch framework's `Modules/` dir — no shared path
 # collision, both xcframeworks can be consumed by the same target.
 #
-# Module name MUST stay `swe_kitty_coreFFI`: the UniFFI-generated Swift
-# wrapper hardcodes `import swe_kitty_coreFFI` and relies on its C
+# Module name MUST stay `conduit_coreFFI`: the UniFFI-generated Swift
+# wrapper hardcodes `import conduit_coreFFI` and relies on its C
 # typedefs (RustBuffer, RustCallStatus, ForeignBytes) being in scope.
 # A framework's Swift module name is the framework's directory name,
-# so the per-arch framework directory is also `swe_kitty_coreFFI.framework`.
-# The outer xcframework directory stays `SweKittyCore.xcframework`
+# so the per-arch framework directory is also `conduit_coreFFI.framework`.
+# The outer xcframework directory stays `ConduitCore.xcframework`
 # (consumed by project.yml) — only the inner per-arch framework
 # matches the import name.
 #
@@ -57,17 +57,17 @@ done
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 CORE_DIR="$REPO_ROOT/core"
-OUT_DIR="$SCRIPT_DIR/SweKittyCore"
-XCFW="$OUT_DIR/SweKittyCore.xcframework"
+OUT_DIR="$SCRIPT_DIR/ConduitCore"
+XCFW="$OUT_DIR/ConduitCore.xcframework"
 BINDINGS_DIR="$OUT_DIR/Sources"
 
-LIB_NAME="libswe_kitty_core.a"
-# Module name MUST match the UDL namespace ("swe_kitty_core") + "FFI" suffix:
-# the UniFFI-generated Swift wrapper hardcodes `import swe_kitty_coreFFI` and
+LIB_NAME="libconduit_core.a"
+# Module name MUST match the UDL namespace ("conduit_core") + "FFI" suffix:
+# the UniFFI-generated Swift wrapper hardcodes `import conduit_coreFFI` and
 # relies on its C typedefs (RustBuffer, RustCallStatus, ForeignBytes) being in
-# scope. Renaming the module breaks `canImport(swe_kitty_coreFFI)` silently.
-MODULE_NAME="swe_kitty_coreFFI"
-UDL="$CORE_DIR/src/swe_kitty_core.udl"
+# scope. Renaming the module breaks `canImport(conduit_coreFFI)` silently.
+MODULE_NAME="conduit_coreFFI"
+UDL="$CORE_DIR/src/conduit_core.udl"
 
 PROFILE="${RUST_PROFILE:-release}"
 CARGO_PROFILE_FLAG=$([ "$PROFILE" = "release" ] && echo "--release" || echo "")
@@ -98,7 +98,7 @@ lipo -create \
 
 cp "$CORE_DIR/target/aarch64-apple-ios/$PROFILE/$LIB_NAME" "$WORK/device/$LIB_NAME"
 
-# UniFFI Swift bindings: emits swe_kitty_core.swift + swe_kitty_coreFFI.{h,modulemap}.
+# UniFFI Swift bindings: emits conduit_core.swift + conduit_coreFFI.{h,modulemap}.
 BINDGEN_OUT="$WORK/bindings"
 mkdir -p "$BINDGEN_OUT"
 ( cd "$CORE_DIR" && cargo run --quiet --bin uniffi-bindgen -- \
@@ -107,8 +107,8 @@ mkdir -p "$BINDGEN_OUT"
     --out-dir "$BINDGEN_OUT" )
 
 # Move the Swift wrapper out (renamed for Xcode niceties; content is unchanged
-# so its `import swe_kitty_coreFFI` line still matches the C module below).
-mv "$BINDGEN_OUT/swe_kitty_core.swift" "$BINDINGS_DIR/SweKittyCore.swift"
+# so its `import conduit_coreFFI` line still matches the C module below).
+mv "$BINDGEN_OUT/conduit_core.swift" "$BINDINGS_DIR/ConduitCore.swift"
 
 if [[ "$LEGACY" -eq 1 ]]; then
   # ---- Legacy `-library + -headers` shape (PR #88-era). ----
@@ -118,8 +118,8 @@ if [[ "$LEGACY" -eq 1 ]]; then
   # include/module.modulemap") — see header comment.
   HEADERS="$WORK/headers"
   mkdir -p "$HEADERS"
-  cp "$BINDGEN_OUT/swe_kitty_coreFFI.h" "$HEADERS/"
-  cp "$BINDGEN_OUT/swe_kitty_coreFFI.modulemap" "$HEADERS/module.modulemap"
+  cp "$BINDGEN_OUT/conduit_coreFFI.h" "$HEADERS/"
+  cp "$BINDGEN_OUT/conduit_coreFFI.modulemap" "$HEADERS/module.modulemap"
 
   xcodebuild -create-xcframework \
     -library "$WORK/device/$LIB_NAME" -headers "$HEADERS" \
@@ -128,13 +128,13 @@ if [[ "$LEGACY" -eq 1 ]]; then
 
   rm -rf "$WORK"
   echo "==> done (LEGACY -library shape): $XCFW"
-  echo "==> bindings: $BINDINGS_DIR/SweKittyCore.swift"
+  echo "==> bindings: $BINDINGS_DIR/ConduitCore.swift"
   exit 0
 fi
 
 # ---- New `.framework`-flavored shape (default). ----
 #
-# For each slice, build a per-arch `swe_kitty_coreFFI.framework/`
+# For each slice, build a per-arch `conduit_coreFFI.framework/`
 # directory tree. The framework's binary is the renamed static archive
 # (Mach-O `ar` archive — Xcode accepts this as the framework's
 # executable just like SPM binaryTargets do).
@@ -154,7 +154,7 @@ build_framework_slice() {
 
   # module.modulemap: framework-style, points at the UniFFI header as
   # the umbrella. `export *` keeps RustBuffer / RustCallStatus visible
-  # to the generated Swift wrapper's `import swe_kitty_coreFFI`.
+  # to the generated Swift wrapper's `import conduit_coreFFI`.
   cat > "$fw_dir/Modules/module.modulemap" <<EOF
 framework module $MODULE_NAME {
     umbrella header "$MODULE_NAME.h"
@@ -176,7 +176,7 @@ EOF
     <key>CFBundleExecutable</key>
     <string>$MODULE_NAME</string>
     <key>CFBundleIdentifier</key>
-    <string>sh.nikhil.swekitty.${MODULE_NAME//_/-}</string>
+    <string>sh.nikhil.conduit.${MODULE_NAME//_/-}</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
@@ -212,5 +212,5 @@ xcodebuild -create-xcframework \
 rm -rf "$WORK"
 
 echo "==> done: $XCFW"
-echo "==> bindings: $BINDINGS_DIR/SweKittyCore.swift"
+echo "==> bindings: $BINDINGS_DIR/ConduitCore.swift"
 echo "==> layout: per-arch <slice>/$MODULE_NAME.framework/ (framework-flavored)"

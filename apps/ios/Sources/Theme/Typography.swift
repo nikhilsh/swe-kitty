@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// Shared typography ramp for non-LitterUI surfaces (Settings sheets,
+/// Shared typography ramp for non-ConduitUI surfaces (Settings sheets,
 /// Appearance sheet, AccessoryBar, etc.). Mirrors the
-/// `LitterUI/Theme/LitterTypography.swift` shape so call sites can be
+/// `ConduitUI/Theme/ConduitTypography.swift` shape so call sites can be
 /// ported 1:1 when subsequent PR 2–5 rebuilds touch them.
 ///
-/// **Why a parent-level ramp at all?** Before PR 1, non-LitterUI views
+/// **Why a parent-level ramp at all?** Before PR 1, non-ConduitUI views
 /// reached for raw `Font.system(.body, design: …)` calls, which:
 ///   - ignored `AppearanceStore.fontFamily` (the user's serif /
 ///     monospaced / system preference)
@@ -15,13 +15,13 @@ import SwiftUI
 ///
 /// This enum centralises the scaling so the audit's PR 2 (Settings
 /// rebuild) can replace ad-hoc `.system(.caption2)` calls with
-/// `SweKittyTypography.caption(appearance)` once and have everything
+/// `ConduitTypography.caption(appearance)` once and have everything
 /// downstream pick up the user's chosen family + base size.
 ///
 /// Heading scale (1.07× / 1.15× / 1.30× / 1.43× of base) is
-/// extracted from litter's `MessageBubbleView` markdown rendering —
-/// see `docs/PLAN-LITTER-VISUAL-PARITY.md` §B.2.
-enum SweKittyTypography {
+/// extracted from upstream's `MessageBubbleView` markdown rendering —
+/// see `docs/PLAN-CONDUIT-VISUAL-PARITY.md` §B.2.
+enum ConduitTypography {
 
     /// Maps `AppearanceStore.fontFamily` to the SwiftUI design enum.
     /// `system` resolves to `.default` so callers that want
@@ -89,7 +89,7 @@ enum SweKittyTypography {
     /// Always-monospaced caption — for paths, SHAs, branch labels.
     /// Bypasses the user's family preference because these strings
     /// are unreadable in serif and lose alignment in proportional
-    /// system. Mirror of litter's mono-locked metadata rows.
+    /// system. Mirror of upstream's mono-locked metadata rows.
     static func monoCaption() -> Font {
         .system(.caption, design: .monospaced)
     }

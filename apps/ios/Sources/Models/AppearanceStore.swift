@@ -103,35 +103,35 @@ final class AppearanceStore {
     }
 
     private enum Keys {
-        static let font = "swekitty.appearance.font"
-        static let theme = "swekitty.appearance.theme"
-        static let collapseTurns = "swekitty.appearance.collapseTurns"
+        static let font = "conduit.appearance.font"
+        static let theme = "conduit.appearance.theme"
+        static let collapseTurns = "conduit.appearance.collapseTurns"
         /// Stage 0 feature flag for the Ghostty-libghostty native
         /// terminal path. See docs/PLAN-TERMINAL-REWRITE.md. Defaults
         /// off; xterm.js stays the production renderer until Stage 2.
-        static let experimentalNativeTerminal = "swekitty.experimental.nativeTerminal"
-        /// Trash-rebuild feature flag for the parallel `LitterUI/` view
-        /// tree. When on, `SweKittyApp` renders `LitterUI.RootView`
+        static let experimentalNativeTerminal = "conduit.experimental.nativeTerminal"
+        /// Trash-rebuild feature flag for the parallel `ConduitUI/` view
+        /// tree. When on, `ConduitApp` renders `ConduitUI.RootView`
         /// instead of the current `RootView`. Off by default for this
         /// PR — follow-up PRs flip the default and delete the old
-        /// views. See `docs/PLAN-LITTER-UI.md`.
-        static let experimentalLitterUI = "swekitty.experimental.litterUI"
+        /// views. See `docs/PLAN-CONDUIT-UI.md`.
+        static let experimentalConduitUI = "conduit.experimental.conduitUI"
         /// Body point size for the typography ramp
-        /// (`SweKittyTypography`). User-tunable within
+        /// (`ConduitTypography`). User-tunable within
         /// [bodyPointSizeRange]; everything in the ramp scales off this.
-        static let bodyPointSize = "swekitty.appearance.bodyPointSize"
+        static let bodyPointSize = "conduit.appearance.bodyPointSize"
         /// Font size (points) libghostty renders the native terminal grid
         /// at. Only consumed on the `experimentalNativeTerminal` path.
-        static let ghosttyFontSize = "swekitty.appearance.ghosttyFontSize"
+        static let ghosttyFontSize = "conduit.appearance.ghosttyFontSize"
         /// Color theme rawValue for the native (libghostty) terminal.
         /// Only consumed on the `experimentalNativeTerminal` path.
-        static let ghosttyTerminalTheme = "swekitty.appearance.ghosttyTerminalTheme"
+        static let ghosttyTerminalTheme = "conduit.appearance.ghosttyTerminalTheme"
         /// Palette choice for the Neon Terminal theme system
         /// (`NeonPaletteChoice` rawValue). Resolved into tokens by
         /// `NeonTheme.resolve(...)` and injected via `\.neonTheme`.
-        static let neonPalette = "swekitty.appearance.neonPalette"
+        static let neonPalette = "conduit.appearance.neonPalette"
         /// Glow on/off toggle for the Neon Terminal theme system.
-        static let neonGlow = "swekitty.appearance.neonGlow"
+        static let neonGlow = "conduit.appearance.neonGlow"
     }
 
     /// Clamp range for the native-terminal font size. Lower bound keeps a
@@ -148,7 +148,7 @@ final class AppearanceStore {
     /// readable; upper bound prevents headings from blowing out the
     /// composer / list rows.
     static let bodyPointSizeRange: ClosedRange<CGFloat> = 12...18
-    /// Default chosen to match litter's `LitterFont.conversationBodyPointSize`
+    /// Default chosen to match upstream's `ConduitFont.conversationBodyPointSize`
     /// starting value at the centre of the slider's range.
     static let defaultBodyPointSize: CGFloat = 14
 
@@ -177,12 +177,12 @@ final class AppearanceStore {
     }
 
     /// Trash-rebuild flag — when true, the app boots into the parallel
-    /// `LitterUI` view tree rather than the legacy `RootView`. Default
-    /// `false`; users opt in via Settings → Experimental → "Litter UI
-    /// (preview)". See `apps/ios/Sources/LitterUI/` and
-    /// `docs/PLAN-LITTER-UI.md`.
-    var experimentalLitterUI: Bool {
-        didSet { defaults.set(experimentalLitterUI, forKey: Keys.experimentalLitterUI) }
+    /// `ConduitUI` view tree rather than the legacy `RootView`. Default
+    /// `false`; users opt in via Settings → Experimental → "Conduit UI
+    /// (preview)". See `apps/ios/Sources/ConduitUI/` and
+    /// `docs/PLAN-CONDUIT-UI.md`.
+    var experimentalConduitUI: Bool {
+        didSet { defaults.set(experimentalConduitUI, forKey: Keys.experimentalConduitUI) }
     }
 
     /// Font size libghostty renders the native terminal at. Setter
@@ -222,7 +222,7 @@ final class AppearanceStore {
         didSet { defaults.set(neonGlow, forKey: Keys.neonGlow) }
     }
 
-    /// Base point size the typography ramp (`SweKittyTypography`)
+    /// Base point size the typography ramp (`ConduitTypography`)
     /// scales off. Setter clamps into [bodyPointSizeRange] so an
     /// out-of-range value (corrupted defaults, future migration) can't
     /// blow out the layout. Persisted on every set.
@@ -251,16 +251,16 @@ final class AppearanceStore {
         self.collapseTurns = defaults.object(forKey: Keys.collapseTurns) as? Bool ?? false
         self.experimentalNativeTerminal =
             defaults.object(forKey: Keys.experimentalNativeTerminal) as? Bool ?? false
-        // Default flipped to `true` in the litter-ui-cutover (this PR):
-        // LitterUI is now the production tree. The flag is kept around
+        // Default flipped to `true` in the upstream-ui-cutover (this PR):
+        // ConduitUI is now the production tree. The flag is kept around
         // (rather than being deleted entirely) so an emergency revert
         // is one line — flip the default back to `false` and ship a
         // hotfix. The legacy view tree itself is gone, so flipping the
         // flag without restoring `Sources/Views/` would just render a
         // blank screen; we'll delete the flag in the next PR once the
         // cutover has soaked.
-        self.experimentalLitterUI =
-            defaults.object(forKey: Keys.experimentalLitterUI) as? Bool ?? true
+        self.experimentalConduitUI =
+            defaults.object(forKey: Keys.experimentalConduitUI) as? Bool ?? true
         let storedBody = defaults.object(forKey: Keys.bodyPointSize) as? Double
         self.bodyPointSize = CGFloat(storedBody ?? Double(Self.defaultBodyPointSize))
             .clamped(to: Self.bodyPointSizeRange)

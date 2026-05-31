@@ -2,7 +2,7 @@
 
 > **Archived 2026-05-23.** Both shipping priorities (Tokio runtime fix and
 > typed session-creation errors) landed on `main`; the iOS-UI convergence
-> priority lives on under `PLAN-LITTER-VISUAL-PARITY.md` now. Current
+> priority lives on under `PLAN-CONDUIT-VISUAL-PARITY.md` now. Current
 > release status lives in [`PLAN.md`](PLAN.md) Status Snapshot.
 
 Date: 2026-05-18 (updated 2026-05-19)
@@ -15,7 +15,7 @@ Priorities 1 and 2 below have shipped on `main`:
 - `broker/internal/ws/conformance_test.go::TestPingPong` is green; ping/pong are now JSON text frames per `docs/WEBSOCKET-PROTOCOL.md §3.3`.
 - Session creation failures surface as typed errors instead of a Rust panic. The apps now distinguish "Paired" (token stored) from a verified broker round-trip; auth failures map to a re-pair instruction (see `docs/SENTRY.md`).
 
-Priority 3 (iOS UI convergence toward the KittyLitter surface) is the open work — tracked in `docs/MOBILE-PORT-MATRIX.md` (Package B sub-plan) and `docs/MOBILE-FEATURE-BACKLOG.md`.
+Priority 3 (iOS UI convergence toward the KittyConduit surface) is the open work — tracked in `docs/MOBILE-PORT-MATRIX.md` (Package B sub-plan) and `docs/MOBILE-FEATURE-BACKLOG.md`.
 
 The original findings below are kept for historical context.
 
@@ -30,7 +30,7 @@ Symptom seen in the app:
 Evidence:
 
 - [apps/ios/Sources/SessionStore.swift](/root/developer/projects/kitty-swe/apps/ios/Sources/SessionStore.swift:85) calls `client.createSession(...)` inside a Swift `Task`.
-- [core/generated/swe_kitty_core.swift](/root/developer/projects/kitty-swe/core/generated/swe_kitty_core.swift:629) exposes `createSession(...)` as an async UniFFI call, so the Swift side is not the source of the panic.
+- [core/generated/conduit_core.swift](/root/developer/projects/kitty-swe/core/generated/conduit_core.swift:629) exposes `createSession(...)` as an async UniFFI call, so the Swift side is not the source of the panic.
 - [core/src/lib.rs](/root/developer/projects/kitty-swe/core/src/lib.rs:166) routes `create_session` into `open_session(...)`.
 - [core/src/lib.rs](/root/developer/projects/kitty-swe/core/src/lib.rs:188) then calls `transport::connect(...)`.
 - [core/src/transport.rs](/root/developer/projects/kitty-swe/core/src/transport.rs:89) uses Tokio networking/spawn/timers.
@@ -40,11 +40,11 @@ Interpretation:
 - `connect()` on the Swift side currently only stores a delegate and returns; it does not touch the network, which is why initial connection looks healthy.
 - The first real network work happens in `create_session`.
 - At that point the Rust library is entering Tokio-dependent code without a guaranteed Tokio runtime owned by the library itself.
-- Result: first session creation panics instead of returning a normal `SweKittyError`.
+- Result: first session creation panics instead of returning a normal `ConduitError`.
 
 Required fix:
 
-- Make `swe-kitty-core` own its async runtime boundary instead of assuming callers are already inside Tokio.
+- Make `conduit-core` own its async runtime boundary instead of assuming callers are already inside Tokio.
 - The clean version is: create and hold a runtime/handle in the Rust client layer, then run transport work on that runtime.
 - Also convert this panic path into a normal surfaced error if runtime setup fails.
 
@@ -74,7 +74,7 @@ Required fix:
 - Add explicit session creation state and inline error presentation in the project/session creation flow.
 - Do not report the app as fully "connected" until at least one broker operation has succeeded, or rename the state to something narrower like "configured".
 
-### 3. The current iOS UI is intentionally a minimal shell, not the planned KittyLitter-style product surface
+### 3. The current iOS UI is intentionally a minimal shell, not the planned KittyConduit-style product surface
 
 Evidence:
 
@@ -84,7 +84,7 @@ Evidence:
   - project detail
   - header with agent badge
   - segmented terminal/chat/browser
-- But [`.swe-kitty/tasks/003-ios-shell.md`](/root/developer/projects/kitty-swe/.swe-kitty/tasks/003-ios-shell.md:1) explicitly narrowed the first iOS delivery to:
+- But [`.conduit/tasks/003-ios-shell.md`](/root/developer/projects/kitty-swe/.conduit/tasks/003-ios-shell.md:1) explicitly narrowed the first iOS delivery to:
   - "minimal SwiftUI app"
   - terminal view only
   - chat/browser stubbed
@@ -94,9 +94,9 @@ Interpretation:
 
 - The current app is not a faithful build of the full planned UI.
 - It is the outcome of the narrower task brief that was actually implemented.
-- So the divergence from the KittyLitter reference is not accidental styling drift alone; it is scope drift caused by shipping the shell milestone as if it were the product UI milestone.
+- So the divergence from the KittyConduit reference is not accidental styling drift alone; it is scope drift caused by shipping the shell milestone as if it were the product UI milestone.
 
-### 4. We likely should have reused more of the KittyLitter structure instead of inventing a thinner shell
+### 4. We likely should have reused more of the KittyConduit structure instead of inventing a thinner shell
 
 Assessment:
 
@@ -110,7 +110,7 @@ Recommendation:
 
 - Treat the next iOS pass as a convergence release:
   - keep the new Rust core + broker plumbing
-  - pull the UI hierarchy, navigation patterns, and view composition much closer to the KittyLitter reference / planned design
+  - pull the UI hierarchy, navigation patterns, and view composition much closer to the KittyConduit reference / planned design
   - avoid another parallel custom shell unless a specific platform limitation forces it
 
 ## Next Release Scope
@@ -127,9 +127,9 @@ Recommendation:
 - Show session creation failure inline at the point of action.
 - Keep Settings for configuration, not as the main place users discover runtime failures.
 
-### Priority 3: Converge iOS UI toward the planned KittyLitter surface
+### Priority 3: Converge iOS UI toward the planned KittyConduit surface
 
-- Audit the KittyLitter reference against the current files under `apps/ios/Sources/Views/`.
+- Audit the KittyConduit reference against the current files under `apps/ios/Sources/Views/`.
 - Rework the current shell to match the planned hierarchy in `docs/PLAN.md` instead of continuing to elaborate the minimal shell.
 - Prefer lifting structure and interaction patterns from the reference where possible rather than redesigning them from scratch.
 
@@ -137,7 +137,7 @@ Recommendation:
 
 - `core/src/lib.rs`
 - `core/src/transport.rs`
-- `core/src/swe_kitty_core.udl`
+- `core/src/conduit_core.udl`
 - `apps/ios/Sources/SessionStore.swift`
 - `apps/ios/Sources/Views/RootView.swift`
 - `apps/ios/Sources/Views/ProjectListView.swift`
@@ -150,4 +150,4 @@ The next iOS release should:
 
 - successfully create and open a session against a live broker
 - surface session creation failures in-context if anything goes wrong
-- move the UI materially closer to the planned KittyLitter-style app instead of preserving the current scaffold feel
+- move the UI materially closer to the planned KittyConduit-style app instead of preserving the current scaffold feel

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Litter parity audit item A.3 (iOS half): a glass-capsule pill row that
+/// Conduit parity audit item A.3 (iOS half): a glass-capsule pill row that
 /// represents one server — saved or discovered — uniformly across the
 /// Home strip and the DiscoveryView. Lifted into a pure-data model
 /// (`ServerPillModel`) so the rendering, label formatting, and saved-vs
@@ -31,19 +31,19 @@ struct ServerPill: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(model.displayName)
                         .font(.system(.subheadline, design: .monospaced).weight(.semibold))
-                        .foregroundStyle(model.isActive ? SweKittyTheme.textPrimary : SweKittyTheme.textSecondary)
+                        .foregroundStyle(model.isActive ? ConduitTheme.textPrimary : ConduitTheme.textSecondary)
                         .lineLimit(1)
                     if let subtitle = model.subtitle {
                         Text(subtitle)
                             .font(.caption2)
-                            .foregroundStyle(SweKittyTheme.textMuted)
+                            .foregroundStyle(ConduitTheme.textMuted)
                             .lineLimit(1)
                     }
                 }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            // PLAN-LITTER-VISUAL-PARITY PR 5, audit §A.5/A.4: drop the
+            // PLAN-CONDUIT-VISUAL-PARITY PR 5, audit §A.5/A.4: drop the
             // glass-capsule fill in favour of a transparent
             // background + accent / muted stroke. The prior treatment
             // gave every pill a "saved chip" look and made it hard to
@@ -62,7 +62,7 @@ struct ServerPill: View {
                     .stroke(
                         model.isActive
                             ? neon.accent.opacity(ServerPillStroke.activeOpacity)
-                            : SweKittyTheme.textMuted.opacity(ServerPillStroke.inactiveOpacity),
+                            : ConduitTheme.textMuted.opacity(ServerPillStroke.inactiveOpacity),
                         lineWidth: model.isActive ? ServerPillStroke.activeWidth : ServerPillStroke.inactiveWidth
                     )
             )
@@ -88,7 +88,7 @@ struct ServerPill: View {
 }
 
 /// Stroke metrics for `ServerPill`'s active vs inactive treatment
-/// (PLAN-LITTER-VISUAL-PARITY PR 5, audit §A.5/A.4). Extracted so
+/// (PLAN-CONDUIT-VISUAL-PARITY PR 5, audit §A.5/A.4). Extracted so
 /// `ServerPillStrokeTests` can pin the values — the prior glass-
 /// capsule fill couldn't distinguish active vs idle at a glance, and
 /// the next pass at "tightening" the pill could quietly drop these
@@ -186,10 +186,10 @@ struct ServerPillModel: Equatable, Identifiable {
     /// `kind` doesn't affect the colour, only the caption.
     var statusColor: Color {
         switch status {
-        case .live:       return SweKittyTheme.success
-        case .connecting: return SweKittyTheme.warning
-        case .idle:       return SweKittyTheme.textMuted.opacity(0.4)
-        case .failed:     return SweKittyTheme.danger
+        case .live:       return ConduitTheme.success
+        case .connecting: return ConduitTheme.warning
+        case .idle:       return ConduitTheme.textMuted.opacity(0.4)
+        case .failed:     return ConduitTheme.danger
         }
     }
 

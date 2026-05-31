@@ -41,14 +41,14 @@ extension Notification.Name {
     /// for this and asks the Rust core to drop its socket and retry
     /// instead of waiting for the heartbeat timeout to surface the
     /// previously-broken link.
-    static let networkBecameReachable = Notification.Name("swekitty.networkBecameReachable")
+    static let networkBecameReachable = Notification.Name("conduit.networkBecameReachable")
 
     /// Posted when the network stays satisfied but the active interface
     /// changes (e.g. LTE → Wi-Fi roam, hotspot toggle, VPN flap). The
     /// existing socket is technically alive but bound to an interface
     /// the OS has already torn down underneath it — same remediation as
     /// `networkBecameReachable`.
-    static let networkInterfaceChanged = Notification.Name("swekitty.networkInterfaceChanged")
+    static let networkInterfaceChanged = Notification.Name("conduit.networkInterfaceChanged")
 }
 
 /// Wraps `NWPathMonitor` behind an `@Observable` `status` property and a
@@ -79,7 +79,7 @@ final class NetworkReachabilityObserver {
     private let queue: DispatchQueue
 
     init(monitor: NWPathMonitor = NWPathMonitor(),
-         queue: DispatchQueue = DispatchQueue(label: "swekitty.nwpath"),
+         queue: DispatchQueue = DispatchQueue(label: "conduit.nwpath"),
          startMonitor: Bool = true) {
         self.monitor = monitor
         self.queue = queue

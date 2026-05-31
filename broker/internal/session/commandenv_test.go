@@ -8,7 +8,7 @@ import (
 // TestCommandEnv_StripsEmptyAuthKeys verifies the broker does not
 // forward an empty ANTHROPIC_API_KEY / OPENAI_API_KEY from its own
 // environment to spawned agents. The legacy install ships an
-// EnvironmentFile=/opt/swe-kitty/.swe-kitty/env with literal
+// EnvironmentFile=/opt/conduit/.conduit/env with literal
 // `ANTHROPIC_API_KEY=` placeholder lines; systemd exports those as
 // "set to empty string", and the Claude CLI then prefers the empty
 // env var over the OAuth credentials file, forcing the session to
@@ -61,14 +61,14 @@ func TestCommandEnv_PreservesNonEmptyAuthKeys(t *testing.T) {
 // PS2=) must still pass through, since it does not interact with
 // agent auth.
 func TestCommandEnv_LeavesUnrelatedEmptyVarsAlone(t *testing.T) {
-	t.Setenv("SWEKITTY_TEST_EMPTY", "")
+	t.Setenv("CONDUIT_TEST_EMPTY", "")
 
 	s := &Session{ID: "sess-unrelated", Assistant: "claude"}
 	got := s.commandEnv(nil)
 
 	found := false
 	for _, kv := range got {
-		if strings.HasPrefix(kv, "SWEKITTY_TEST_EMPTY=") {
+		if strings.HasPrefix(kv, "CONDUIT_TEST_EMPTY=") {
 			found = true
 			break
 		}
