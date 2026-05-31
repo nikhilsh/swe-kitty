@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Build SweKittyCore.xcframework + Swift bindings from core/.
+# Build ConduitCore.xcframework + Swift bindings from core/.
 #
-# Output (all under apps/ios/SweKittyCore/):
-#   SweKittyCore.xcframework            consumed by xcodegen via project.yml
-#   Sources/SweKittyCore.swift          UniFFI-generated Swift API
+# Output (all under apps/ios/ConduitCore/):
+#   ConduitCore.xcframework            consumed by xcodegen via project.yml
+#   Sources/ConduitCore.swift          UniFFI-generated Swift API
 #
 # Triple coverage (litter pattern):
 #   - aarch64-apple-ios       device       (one slice)
@@ -34,7 +34,7 @@
 # typedefs (RustBuffer, RustCallStatus, ForeignBytes) being in scope.
 # A framework's Swift module name is the framework's directory name,
 # so the per-arch framework directory is also `conduit_coreFFI.framework`.
-# The outer xcframework directory stays `SweKittyCore.xcframework`
+# The outer xcframework directory stays `ConduitCore.xcframework`
 # (consumed by project.yml) — only the inner per-arch framework
 # matches the import name.
 #
@@ -57,8 +57,8 @@ done
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 CORE_DIR="$REPO_ROOT/core"
-OUT_DIR="$SCRIPT_DIR/SweKittyCore"
-XCFW="$OUT_DIR/SweKittyCore.xcframework"
+OUT_DIR="$SCRIPT_DIR/ConduitCore"
+XCFW="$OUT_DIR/ConduitCore.xcframework"
 BINDINGS_DIR="$OUT_DIR/Sources"
 
 LIB_NAME="libconduit_core.a"
@@ -108,7 +108,7 @@ mkdir -p "$BINDGEN_OUT"
 
 # Move the Swift wrapper out (renamed for Xcode niceties; content is unchanged
 # so its `import conduit_coreFFI` line still matches the C module below).
-mv "$BINDGEN_OUT/conduit_core.swift" "$BINDINGS_DIR/SweKittyCore.swift"
+mv "$BINDGEN_OUT/conduit_core.swift" "$BINDINGS_DIR/ConduitCore.swift"
 
 if [[ "$LEGACY" -eq 1 ]]; then
   # ---- Legacy `-library + -headers` shape (PR #88-era). ----
@@ -128,7 +128,7 @@ if [[ "$LEGACY" -eq 1 ]]; then
 
   rm -rf "$WORK"
   echo "==> done (LEGACY -library shape): $XCFW"
-  echo "==> bindings: $BINDINGS_DIR/SweKittyCore.swift"
+  echo "==> bindings: $BINDINGS_DIR/ConduitCore.swift"
   exit 0
 fi
 
@@ -212,5 +212,5 @@ xcodebuild -create-xcframework \
 rm -rf "$WORK"
 
 echo "==> done: $XCFW"
-echo "==> bindings: $BINDINGS_DIR/SweKittyCore.swift"
+echo "==> bindings: $BINDINGS_DIR/ConduitCore.swift"
 echo "==> layout: per-arch <slice>/$MODULE_NAME.framework/ (framework-flavored)"

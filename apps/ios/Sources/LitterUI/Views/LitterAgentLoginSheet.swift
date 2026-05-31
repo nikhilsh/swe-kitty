@@ -83,7 +83,7 @@ extension LitterUI {
         private var intro: some View {
             VStack(alignment: .leading, spacing: 6) {
                 sectionLabel("Agent accounts")
-                Text("Sign in to the model providers you want to use through SweKitty. Tokens are minted by the broker via the v2 OAuth flow (litter pattern) — credentials never live on your phone.")
+                Text("Sign in to the model providers you want to use through Conduit. Tokens are minted by the broker via the v2 OAuth flow (litter pattern) — credentials never live on your phone.")
                     .font(.footnote)
                     .foregroundStyle(LitterUI.Palette.textMuted.color)
             }

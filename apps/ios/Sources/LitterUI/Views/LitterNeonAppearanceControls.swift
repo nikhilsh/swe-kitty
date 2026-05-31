@@ -11,7 +11,7 @@ import SwiftUI
 // Matches the design's `NeonSettingsScreen` Appearance card: a row of
 // gradient swatches (each palette's `accent → accent2`) labelled with the
 // active palette, then a "Glow & scanlines" row; a terminal-styled
-// `$ swe-kitty --theme <id>` preview chip sits beneath the card.
+// `$ conduit --theme <id>` preview chip sits beneath the card.
 
 extension LitterUI {
 
@@ -111,7 +111,7 @@ extension LitterUI {
         }
     }
 
-    /// Live preview chip — a terminal-styled `$ swe-kitty --theme <id>`
+    /// Live preview chip — a terminal-styled `$ conduit --theme <id>`
     /// line that re-tints with the active palette/glow (design's "preview"
     /// chip beneath the Appearance card).
     struct NeonThemePreviewChip: View {
@@ -124,7 +124,7 @@ extension LitterUI {
                     .font(neon.mono(13))
                     .foregroundStyle(neon.accentBright)
                     .neonTextGlow(neon.textGlow)
-                Text("swe-kitty --theme \(appearance.neonPalette.rawValue)")
+                Text("conduit --theme \(appearance.neonPalette.rawValue)")
                     .font(neon.mono(12.5))
                     .foregroundStyle(neon.codeText)
                 Spacer(minLength: 6)

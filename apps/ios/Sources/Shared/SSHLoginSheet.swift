@@ -30,7 +30,7 @@ struct SSHLoginSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                SweKittyTheme.backgroundGradient(for: colorScheme)
+                ConduitTheme.backgroundGradient(for: colorScheme)
                     .ignoresSafeArea()
 
                 ScrollView {
@@ -84,20 +84,20 @@ struct SSHLoginSheet: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("\(cred.username)@\(cred.host)")
-                                    .foregroundStyle(SweKittyTheme.textBody)
+                                    .foregroundStyle(ConduitTheme.textBody)
                                 Text("Port \(cred.port) · \(cred.kind == .password ? "Password" : "SSH Key")")
                                     .font(.caption)
-                                    .foregroundStyle(SweKittyTheme.textSecondary)
+                                    .foregroundStyle(ConduitTheme.textSecondary)
                             }
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(SweKittyTheme.textMuted)
+                                .foregroundStyle(ConduitTheme.textMuted)
                         }
                     }
                     .buttonStyle(.plain)
                     if cred.id != saved.last?.id {
-                        Divider().background(SweKittyTheme.separator)
+                        Divider().background(ConduitTheme.separator)
                     }
                 }
             }
@@ -119,7 +119,7 @@ struct SSHLoginSheet: View {
                     .frame(width: 60)
             }
             .padding(.vertical, 4)
-            Divider().background(SweKittyTheme.separator)
+            Divider().background(ConduitTheme.separator)
             TextField("username", text: $username)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -137,7 +137,7 @@ struct SSHLoginSheet: View {
             }
             .pickerStyle(.segmented)
 
-            Divider().background(SweKittyTheme.separator)
+            Divider().background(ConduitTheme.separator)
 
             switch mode {
             case .password:
@@ -149,16 +149,16 @@ struct SSHLoginSheet: View {
             case .privateKey:
                 Text("Paste the PEM-encoded private key. The passphrase, if any, is stored only in the Keychain.")
                     .font(.caption)
-                    .foregroundStyle(SweKittyTheme.textSecondary)
+                    .foregroundStyle(ConduitTheme.textSecondary)
                 TextEditor(text: $privateKey)
                     .font(.system(.footnote, design: .monospaced))
                     .frame(minHeight: 120)
                     .padding(8)
                     .background(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(SweKittyTheme.surface.opacity(0.45))
+                            .fill(ConduitTheme.surface.opacity(0.45))
                     )
-                Divider().background(SweKittyTheme.separator)
+                Divider().background(ConduitTheme.separator)
                 SecureField("Passphrase (optional)", text: $passphrase)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -166,7 +166,7 @@ struct SSHLoginSheet: View {
                     .padding(.vertical, 4)
             }
 
-            Divider().background(SweKittyTheme.separator)
+            Divider().background(ConduitTheme.separator)
             Toggle("Remember this server", isOn: $remember)
                 .toggleStyle(.switch)
         }
@@ -176,13 +176,13 @@ struct SSHLoginSheet: View {
         SSHCard(title: "Agent API Keys (optional)") {
             Text("Forwarded into the broker container so first launch can sign in without you SSHing in.")
                 .font(.caption)
-                .foregroundStyle(SweKittyTheme.textSecondary)
+                .foregroundStyle(ConduitTheme.textSecondary)
             SecureField("ANTHROPIC_API_KEY", text: $anthropicKey)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .textFieldStyle(.plain)
                 .padding(.vertical, 4)
-            Divider().background(SweKittyTheme.separator)
+            Divider().background(ConduitTheme.separator)
             SecureField("OPENAI_API_KEY", text: $openaiKey)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -202,7 +202,7 @@ struct SSHLoginSheet: View {
                     ProgressView()
                         .progressViewStyle(.circular)
                     Text(message)
-                        .foregroundStyle(SweKittyTheme.textBody)
+                        .foregroundStyle(ConduitTheme.textBody)
                     Spacer()
                 }
                 .padding(.vertical, 4)
@@ -211,7 +211,7 @@ struct SSHLoginSheet: View {
             SSHCard(title: "Failed") {
                 Text(reason)
                     .font(.footnote)
-                    .foregroundStyle(SweKittyTheme.danger)
+                    .foregroundStyle(ConduitTheme.danger)
             }
         }
     }
@@ -222,12 +222,12 @@ struct SSHLoginSheet: View {
         } label: {
             Label("Connect", systemImage: "bolt.horizontal.circle")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(SweKittyTheme.textPrimary)
+                .foregroundStyle(ConduitTheme.textPrimary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .glassCapsule(
                     interactive: true,
-                    tint: SweKittyTheme.success.opacity(0.55)
+                    tint: ConduitTheme.success.opacity(0.55)
                 )
         }
         .buttonStyle(.plain)
@@ -314,7 +314,7 @@ private struct SSHCard<Content: View>: View {
             Text(title.uppercased())
                 .font(.caption2.weight(.semibold))
                 .tracking(0.8)
-                .foregroundStyle(SweKittyTheme.textSecondary)
+                .foregroundStyle(ConduitTheme.textSecondary)
                 .padding(.bottom, 8)
 
             VStack(alignment: .leading, spacing: 10) {

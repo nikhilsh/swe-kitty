@@ -867,7 +867,7 @@ public final class GhosttySurface {
         // the defer below. A failed write just skips the update (config
         // keeps its prior state).
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("swekitty-ghostty-\(UUID().uuidString).conf")
+            .appendingPathComponent("conduit-ghostty-\(UUID().uuidString).conf")
         do {
             try body.write(to: url, atomically: true, encoding: .utf8)
         } catch {

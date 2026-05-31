@@ -103,35 +103,35 @@ final class AppearanceStore {
     }
 
     private enum Keys {
-        static let font = "swekitty.appearance.font"
-        static let theme = "swekitty.appearance.theme"
-        static let collapseTurns = "swekitty.appearance.collapseTurns"
+        static let font = "conduit.appearance.font"
+        static let theme = "conduit.appearance.theme"
+        static let collapseTurns = "conduit.appearance.collapseTurns"
         /// Stage 0 feature flag for the Ghostty-libghostty native
         /// terminal path. See docs/PLAN-TERMINAL-REWRITE.md. Defaults
         /// off; xterm.js stays the production renderer until Stage 2.
-        static let experimentalNativeTerminal = "swekitty.experimental.nativeTerminal"
+        static let experimentalNativeTerminal = "conduit.experimental.nativeTerminal"
         /// Trash-rebuild feature flag for the parallel `LitterUI/` view
-        /// tree. When on, `SweKittyApp` renders `LitterUI.RootView`
+        /// tree. When on, `ConduitApp` renders `LitterUI.RootView`
         /// instead of the current `RootView`. Off by default for this
         /// PR — follow-up PRs flip the default and delete the old
         /// views. See `docs/PLAN-LITTER-UI.md`.
-        static let experimentalLitterUI = "swekitty.experimental.litterUI"
+        static let experimentalLitterUI = "conduit.experimental.litterUI"
         /// Body point size for the typography ramp
-        /// (`SweKittyTypography`). User-tunable within
+        /// (`ConduitTypography`). User-tunable within
         /// [bodyPointSizeRange]; everything in the ramp scales off this.
-        static let bodyPointSize = "swekitty.appearance.bodyPointSize"
+        static let bodyPointSize = "conduit.appearance.bodyPointSize"
         /// Font size (points) libghostty renders the native terminal grid
         /// at. Only consumed on the `experimentalNativeTerminal` path.
-        static let ghosttyFontSize = "swekitty.appearance.ghosttyFontSize"
+        static let ghosttyFontSize = "conduit.appearance.ghosttyFontSize"
         /// Color theme rawValue for the native (libghostty) terminal.
         /// Only consumed on the `experimentalNativeTerminal` path.
-        static let ghosttyTerminalTheme = "swekitty.appearance.ghosttyTerminalTheme"
+        static let ghosttyTerminalTheme = "conduit.appearance.ghosttyTerminalTheme"
         /// Palette choice for the Neon Terminal theme system
         /// (`NeonPaletteChoice` rawValue). Resolved into tokens by
         /// `NeonTheme.resolve(...)` and injected via `\.neonTheme`.
-        static let neonPalette = "swekitty.appearance.neonPalette"
+        static let neonPalette = "conduit.appearance.neonPalette"
         /// Glow on/off toggle for the Neon Terminal theme system.
-        static let neonGlow = "swekitty.appearance.neonGlow"
+        static let neonGlow = "conduit.appearance.neonGlow"
     }
 
     /// Clamp range for the native-terminal font size. Lower bound keeps a
@@ -222,7 +222,7 @@ final class AppearanceStore {
         didSet { defaults.set(neonGlow, forKey: Keys.neonGlow) }
     }
 
-    /// Base point size the typography ramp (`SweKittyTypography`)
+    /// Base point size the typography ramp (`ConduitTypography`)
     /// scales off. Setter clamps into [bodyPointSizeRange] so an
     /// out-of-range value (corrupted defaults, future migration) can't
     /// blow out the layout. Persisted on every set.

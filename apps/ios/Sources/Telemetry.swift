@@ -32,7 +32,7 @@ enum Telemetry {
     }
 
     /// Structured diagnostic telemetry meant to be READ BACK from Sentry
-    /// (org `swe-kitty`, project `apple-ios`): an INFO-level event tagged
+    /// (org `conduit`, project `apple-ios`): an INFO-level event tagged
     /// `diag=<category>` with `data` as searchable extras. Use it for runtime
     /// state that can't be reproduced on the dev box — layout / render /
     /// timing / keyboard — so the actual on-device numbers can be read

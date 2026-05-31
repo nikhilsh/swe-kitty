@@ -1706,7 +1706,7 @@ func renderColor(_ color: SGRColorShim, fg: Bool, palette: TerminalPalette) -> U
 /// `GhosttyRenderView` UIView so the substring path is unit-testable
 /// without standing up a UIKit host — same shape as the Android
 /// `TerminalSelectionRange` data class. See
-/// `apps/ios/Tests/SweKittyTests/TerminalSelectionRangeTests.swift`.
+/// `apps/ios/Tests/ConduitTests/TerminalSelectionRangeTests.swift`.
 ///
 /// The range is **inclusive on both ends** — `start` and `end` both
 /// point at cells whose graphemes belong to the selection. A

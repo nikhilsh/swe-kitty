@@ -15,7 +15,7 @@ private struct NeonTokenPart: Identifiable {
 // UsageCardB + the Visual/Terminal segmented switch). Two variants the
 // team is choosing between:
 //   • Visual   — a context ring + window readout + in/out/cache tiles.
-//   • Terminal — a dense mono `swe-kitty usage --session` readout with a
+//   • Terminal — a dense mono `conduit usage --session` readout with a
 //                block-character context bar + a stacked token bar.
 //
 // Data is the live broker-accumulated `SessionStatus` (PR #274): token
@@ -235,7 +235,7 @@ extension LitterUI {
                 HStack(spacing: 8) {
                     Text("$").font(neon.mono(12.5)).foregroundStyle(neon.accentBright)
                         .neonTextGlow(neon.textGlow)
-                    Text("swe-kitty usage --session")
+                    Text("conduit usage --session")
                         .font(neon.mono(12))
                         .foregroundStyle(neon.codeText)
                     Spacer(minLength: 6)

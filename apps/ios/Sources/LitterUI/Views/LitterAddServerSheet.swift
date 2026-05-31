@@ -30,7 +30,7 @@ extension LitterUI {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 14) {
                             sectionLabel("Where is the broker?")
-                            Text("Pick how this device should reach the swe-kitty server. You can change servers later.")
+                            Text("Pick how this device should reach the conduit server. You can change servers later.")
                                 .font(.footnote)
                                 .foregroundStyle(LitterUI.Palette.textMuted.color)
                                 .padding(.bottom, 4)

@@ -11,8 +11,8 @@ bindings:
 	cp core/generated/.tmp/swift/conduit_core.swift core/generated/conduit_core.swift
 	cp core/generated/.tmp/kotlin/uniffi/conduit_core/conduit_core.kt core/generated/conduitCore.kt
 
-# Build the SweKittyCore xcframework + UniFFI Swift bindings, then regenerate
-# the Xcode project. Run before opening apps/ios/SweKitty.xcodeproj.
+# Build the ConduitCore xcframework + UniFFI Swift bindings, then regenerate
+# the Xcode project. Run before opening apps/ios/Conduit.xcodeproj.
 ios: ios-project
 
 ios-project:

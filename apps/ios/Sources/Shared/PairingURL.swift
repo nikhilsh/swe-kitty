@@ -1,6 +1,6 @@
 import Foundation
 
-/// `swekitty://host[:port]?token=<bearer>` → (endpoint URL, token).
+/// `conduit://host[:port]?token=<bearer>` → (endpoint URL, token).
 ///
 /// Lived in the now-deleted `Sources/Views/SettingsSheet.swift` before
 /// PR #119's cutover. Hoisted here because LitterAddServerSheet +
@@ -14,7 +14,7 @@ enum PairingURL {
         let token = components.queryItems?.first(where: { $0.name.lowercased() == "token" })?.value ?? ""
         guard !token.isEmpty else { return nil }
 
-        if scheme == "swekitty", let host = components.host {
+        if scheme == "conduit", let host = components.host {
             let port = components.port.map { ":\($0)" } ?? ""
             return Parsed(endpoint: "ws://\(host)\(port)", token: token)
         }

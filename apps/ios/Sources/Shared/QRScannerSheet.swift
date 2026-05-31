@@ -6,7 +6,7 @@ import PhotosUI
 import UIKit
 
 /// AVFoundation-backed QR scanner. Returns the raw scanned string via the
-/// `onScan` closure (the caller parses `swekitty://…`).
+/// `onScan` closure (the caller parses `conduit://…`).
 struct QRScannerSheet: View {
     @Environment(\.dismiss) private var dismiss
     let onScan: (String) -> Void
@@ -34,7 +34,7 @@ struct QRScannerSheet: View {
                 VStack {
                     Spacer()
                     VStack(spacing: 12) {
-                        Text("Point at a SweKitty pairing QR")
+                        Text("Point at a Conduit pairing QR")
                             .font(.headline)
                         PhotosPicker(selection: $selectedPhoto, matching: .images) {
                             Label("Choose From Photos", systemImage: "photo.on.rectangle")

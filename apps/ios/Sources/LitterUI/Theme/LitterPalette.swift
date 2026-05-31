@@ -9,13 +9,13 @@ import SwiftUI
 // any GPLv3 source. Every named color is a (light, dark) pair, the
 // shape matches litter's `LitterColor` indirection so callers in the
 // LitterUI views can write `.litterAccentStrong` etc. without
-// reaching into SweKittyPalette.
+// reaching into ConduitPalette.
 //
 // Mapping notes:
 //   - litter's `accentStrong` (00995D / 00FF9C) is litter's brand
-//     hue — green. SweKitty's brand accent is copper (#CC785C, decided
+//     hue — green. Conduit's brand accent is copper (#CC785C, decided
 //     in PR b22bd63). For visual parity with litter we keep litter's
-//     green for `accentStrong`, but use SweKitty's copper for the
+//     green for `accentStrong`, but use Conduit's copper for the
 //     `brand` accent. Views that previously read `accentStrong` for
 //     the brand color (e.g. the "+" FAB) should switch to `.brand`.
 //   - "accent" in litter is a neutral gray, used for muted icon
@@ -69,12 +69,12 @@ extension LitterUI {
         )
         /// Litter's brand "strong" accent (00995D / 00FF9C). Kept for
         /// surfaces where we want to read as litter (e.g. status
-        /// dots, success states). For the *SweKitty* brand color
+        /// dots, success states). For the *Conduit* brand color
         /// (the "+" FAB, header active state) use `.brand`.
         static let accentStrong = AdaptiveColor(
             lightHex: 0x00995D, darkHex: 0x00FF9C
         )
-        /// SweKitty brand accent — copper. Set in PR b22bd63 and kept
+        /// Conduit brand accent — copper. Set in PR b22bd63 and kept
         /// as the dominant global accent.
         static let brand = AdaptiveColor(
             lightHex: 0xCC785C, darkHex: 0xCC785C

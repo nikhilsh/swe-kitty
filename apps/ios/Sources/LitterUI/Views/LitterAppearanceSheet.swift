@@ -107,7 +107,7 @@ extension LitterUI {
             }
         }
 
-        /// Live `$ swe-kitty --theme <id>` preview chip (shared component).
+        /// Live `$ conduit --theme <id>` preview chip (shared component).
         private var previewChip: some View {
             LitterUI.NeonThemePreviewChip()
         }
@@ -173,7 +173,7 @@ extension LitterUI {
                     )
                     .tint(neon.accent)
                     Text("The quick brown fox jumps over the lazy dog.")
-                        .font(SweKittyTypography.body(appearance))
+                        .font(ConduitTypography.body(appearance))
                         .foregroundStyle(neon.textDim)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }

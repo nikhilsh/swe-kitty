@@ -42,7 +42,7 @@ final class LANDiscoveryBrowser: NSObject, NetServiceBrowserDelegate, NetService
         pending.removeAll()
         browser.stop()
         isBrowsing = true
-        browser.searchForServices(ofType: "_swe-kitty._tcp.", inDomain: "local.")
+        browser.searchForServices(ofType: "_conduit._tcp.", inDomain: "local.")
     }
 
     func stop() {

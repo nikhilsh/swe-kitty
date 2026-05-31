@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 //
 // Pure-data layer for the LitterUI composer's "+" attach affordance.
 // Deliberately framework-light (no SwiftUI / no PhotosUI imports) so the
-// model can be unit-tested under SweKittyTests without a view host. The
+// model can be unit-tested under ConduitTests without a view host. The
 // SwiftUI sheet + chips (`LitterComposerAttachSheet.swift`) are the
 // renderer; the send path uploads bytes via core `send_file` (0x01
 // frame) and appends one reference line per file.

@@ -12,23 +12,23 @@ struct HostKeyPromptSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                SweKittyTheme.backgroundGradient(for: colorScheme)
+                ConduitTheme.backgroundGradient(for: colorScheme)
                     .ignoresSafeArea()
                 VStack(alignment: .leading, spacing: 18) {
                     Text("First time connecting to")
                         .font(.subheadline)
-                        .foregroundStyle(SweKittyTheme.textSecondary)
+                        .foregroundStyle(ConduitTheme.textSecondary)
                     Text("\(prompt.host):\(prompt.port)")
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(SweKittyTheme.textBody)
+                        .foregroundStyle(ConduitTheme.textBody)
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Host Key Fingerprint")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(SweKittyTheme.textSecondary)
+                            .foregroundStyle(ConduitTheme.textSecondary)
                         Text(prompt.fingerprint)
                             .font(.system(.footnote, design: .monospaced))
-                            .foregroundStyle(SweKittyTheme.textBody)
+                            .foregroundStyle(ConduitTheme.textBody)
                             .padding(12)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .glassRoundedRect()
@@ -36,7 +36,7 @@ struct HostKeyPromptSheet: View {
 
                     Text("Verify this fingerprint against the server's `ssh-keyscan` output before trusting. If it doesn't match, something is intercepting your connection.")
                         .font(.footnote)
-                        .foregroundStyle(SweKittyTheme.textSecondary)
+                        .foregroundStyle(ConduitTheme.textSecondary)
 
                     Spacer()
 
@@ -47,10 +47,10 @@ struct HostKeyPromptSheet: View {
                         } label: {
                             Label("Trust and Continue", systemImage: "checkmark.shield")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(SweKittyTheme.textPrimary)
+                                .foregroundStyle(ConduitTheme.textPrimary)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
-                                .glassCapsule(interactive: true, tint: SweKittyTheme.success.opacity(0.55))
+                                .glassCapsule(interactive: true, tint: ConduitTheme.success.opacity(0.55))
                         }
                         .buttonStyle(.plain)
 
@@ -60,10 +60,10 @@ struct HostKeyPromptSheet: View {
                         } label: {
                             Label("Reject", systemImage: "xmark.shield")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(SweKittyTheme.textPrimary)
+                                .foregroundStyle(ConduitTheme.textPrimary)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
-                                .glassCapsule(interactive: true, tint: SweKittyTheme.danger.opacity(0.55))
+                                .glassCapsule(interactive: true, tint: ConduitTheme.danger.opacity(0.55))
                         }
                         .buttonStyle(.plain)
                     }

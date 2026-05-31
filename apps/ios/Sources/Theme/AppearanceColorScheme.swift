@@ -31,7 +31,7 @@ import SwiftUI
 //
 // The modifier reads `AppearanceStore` from the environment, so the
 // presenting parent only has to inject it once (already done at
-// `SweKittyApp` root). No-ops gracefully (.colorScheme nil = system)
+// `ConduitApp` root). No-ops gracefully (.colorScheme nil = system)
 // when the user is on `.system` mode.
 
 struct AppearanceColorSchemeModifier: ViewModifier {

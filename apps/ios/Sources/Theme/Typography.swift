@@ -15,13 +15,13 @@ import SwiftUI
 ///
 /// This enum centralises the scaling so the audit's PR 2 (Settings
 /// rebuild) can replace ad-hoc `.system(.caption2)` calls with
-/// `SweKittyTypography.caption(appearance)` once and have everything
+/// `ConduitTypography.caption(appearance)` once and have everything
 /// downstream pick up the user's chosen family + base size.
 ///
 /// Heading scale (1.07× / 1.15× / 1.30× / 1.43× of base) is
 /// extracted from litter's `MessageBubbleView` markdown rendering —
 /// see `docs/PLAN-LITTER-VISUAL-PARITY.md` §B.2.
-enum SweKittyTypography {
+enum ConduitTypography {
 
     /// Maps `AppearanceStore.fontFamily` to the SwiftUI design enum.
     /// `system` resolves to `.default` so callers that want

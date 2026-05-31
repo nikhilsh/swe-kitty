@@ -110,7 +110,7 @@ enum SyntaxLanguage {
 ///
 /// Theme bridging to `AppearanceStore.themeMode`:
 ///   1. AppearanceStore feeds `.preferredColorScheme` at the app root
-///      (`SweKittyApp.swift`), so `@Environment(\.colorScheme)` here
+///      (`ConduitApp.swift`), so `@Environment(\.colorScheme)` here
 ///      already resolves to the user's choice (system / light / dark).
 ///   2. HighlightSwift reads `colorScheme` from the environment to
 ///      pick `.atomOneDark` vs `.atomOneLight` inside the `.atomOne`
@@ -135,7 +135,7 @@ struct SyntaxHighlightedCodeBlock: View {
         } else {
             Text(content)
                 .font(.system(.footnote, design: .monospaced))
-                .foregroundStyle(SweKittyTheme.textPrimary)
+                .foregroundStyle(ConduitTheme.textPrimary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -206,7 +206,7 @@ struct SyntaxHighlightedCodeBlock: View {
     var body: some View {
         Text(content)
             .font(.system(.footnote, design: .monospaced))
-            .foregroundStyle(SweKittyTheme.textPrimary)
+            .foregroundStyle(ConduitTheme.textPrimary)
             .textSelection(.enabled)
             .frame(maxWidth: .infinity, alignment: .leading)
     }

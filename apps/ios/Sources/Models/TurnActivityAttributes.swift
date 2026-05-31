@@ -13,7 +13,7 @@ import ActivityKit
 /// the controller class — which transitively references `SessionStore`,
 /// `ConversationItem`, and other host-only types.
 ///
-/// Both the main app target and the `SweKittyWidgets` extension target
+/// Both the main app target and the `ConduitWidgets` extension target
 /// include this source file (see `apps/ios/project.yml`) so the generic
 /// `Activity<TurnActivityAttributes>` resolves to the same concrete type
 /// on both sides of the system boundary — that's the contract iOS uses

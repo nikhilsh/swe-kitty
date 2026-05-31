@@ -3,7 +3,7 @@ import Foundation
 /// Recognises `/`-prefixed commands typed in the chat composer and
 /// classifies how each should be routed. Pure value types + parsing — no
 /// SwiftUI, no I/O — so it unit-tests directly. Mirror of
-/// `apps/android/app/src/main/kotlin/sh/nikhil/swekitty/ui/SlashCommandRegistry.kt`;
+/// `apps/android/app/src/main/kotlin/sh/nikhil/conduit/ui/SlashCommandRegistry.kt`;
 /// keep the two in sync (a test pins the command-name set on each platform).
 ///
 /// See docs/SLASH-COMMANDS.md for the design + the per-CLI capability
@@ -12,7 +12,7 @@ enum SlashCommandClass {
     /// Sent to the agent unchanged. Only the Claude stream-json backend
     /// intercepts these (Codex `exec` can't — openai/codex#3641).
     case passThrough
-    /// swe-kitty handles it on the client; never reaches the agent.
+    /// conduit handles it on the client; never reaches the agent.
     case appHandled
 }
 

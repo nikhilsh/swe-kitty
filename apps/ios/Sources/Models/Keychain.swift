@@ -8,11 +8,11 @@ import Security
 ///
 /// 1. Legacy "single shared service" string API used by the pairing /
 ///    SSH credential stores: `set(_:for:)` and `get(_:)` use the
-///    package-private `defaultService` ("sh.nikhil.swekitty").
+///    package-private `defaultService` ("sh.nikhil.conduit").
 /// 2. Explicit `service:account:` Data-blob API used by the agent OAuth
 ///    flow (see `OAuthClient.swift` + Stage 0 of
 ///    `docs/PLAN-AGENT-OAUTH.md`). The OAuth service is
-///    `"sh.nikhil.swekitty.oauth"` so existing pairing keys never
+///    `"sh.nikhil.conduit.oauth"` so existing pairing keys never
 ///    collide with provider-credential blobs.
 ///
 /// All items use `kSecClassGenericPassword` and
@@ -21,7 +21,7 @@ import Security
 /// background WS reconnects to materialize credentials before the user
 /// re-unlocks).
 enum Keychain {
-    static let defaultService = "sh.nikhil.swekitty"
+    static let defaultService = "sh.nikhil.conduit"
 
     // MARK: - String-keyed legacy API (pairing + SSH stores)
 

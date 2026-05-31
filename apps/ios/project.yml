@@ -1,4 +1,4 @@
-name: SweKitty
+name: Conduit
 
 options:
   bundleIdPrefix: sh.nikhil
@@ -74,14 +74,14 @@ packages:
     path: GhosttyVT
 
 targets:
-  SweKitty:
+  Conduit:
     type: application
     platform: iOS
     sources:
       - path: Sources
         excludes:
           - "Resources/terminal/**"
-      - path: SweKittyCore/Sources
+      - path: ConduitCore/Sources
         optional: true
       - path: Sources/Assets.xcassets
       # Vendored xterm.js bundle. Added as a `folder` so the directory
@@ -93,16 +93,16 @@ targets:
         type: folder
         buildPhase: resources
     dependencies:
-      - framework: SweKittyCore/SweKittyCore.xcframework
+      - framework: ConduitCore/ConduitCore.xcframework
         embed: true
         codeSign: true
       - package: Sentry
       - package: HighlightSwift
       - package: GhosttyVT
-      # NOTE: Live Activity widget extension (SweKittyWidgets) is built
+      # NOTE: Live Activity widget extension (ConduitWidgets) is built
       # by CI sim flow but intentionally NOT embedded in the release
       # IPA. Ad-hoc archive signing requires a separate provisioning
-      # profile for the widget's bundle id (sh.nikhil.swekitty.widgets)
+      # profile for the widget's bundle id (sh.nikhil.conduit.widgets)
       # and the release pipeline only ships the host-app profile. With
       # the widget embedded but unsigned, archive fails with
       # "Embedded binary is not signed with the same certificate as the
@@ -114,7 +114,7 @@ targets:
     info:
       path: Sources/Info.plist
       properties:
-        CFBundleDisplayName: SweKitty
+        CFBundleDisplayName: Conduit
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen:
@@ -127,18 +127,18 @@ targets:
           UIApplicationSupportsMultipleScenes: false
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
-        NSCameraUsageDescription: "Scan SweKitty pairing QR codes."
-        NSPhotoLibraryUsageDescription: "Import a SweKitty pairing QR code from your photo library."
+        NSCameraUsageDescription: "Scan Conduit pairing QR codes."
+        NSPhotoLibraryUsageDescription: "Import a Conduit pairing QR code from your photo library."
         NSMicrophoneUsageDescription: "Dictate replies to the coding agent."
         NSSpeechRecognitionUsageDescription: "Transcribe your voice on-device into chat messages for the coding agent."
-        NSLocalNetworkUsageDescription: "Discover SweKitty harnesses advertising on your Wi-Fi."
+        NSLocalNetworkUsageDescription: "Discover Conduit harnesses advertising on your Wi-Fi."
         NSBonjourServices:
-          - "_swe-kitty._tcp"
+          - "_conduit._tcp"
         CFBundleURLTypes:
           - CFBundleTypeRole: Editor
-            CFBundleURLName: sh.nikhil.swekitty.pairing
+            CFBundleURLName: sh.nikhil.conduit.pairing
             CFBundleURLSchemes:
-              - swekitty
+              - conduit
         # Required by iOS so the app may call Activity.request(...) to
         # surface the active turn on the lock screen / Dynamic Island.
         # See apps/ios/Sources/Models/TurnLiveActivityController.swift.
@@ -146,7 +146,7 @@ targets:
         SentryDSN: $(SENTRY_DSN)
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: sh.nikhil.swekitty
+        PRODUCT_BUNDLE_IDENTIFIER: sh.nikhil.conduit
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
         GENERATE_INFOPLIST_FILE: NO
@@ -162,7 +162,7 @@ targets:
   # re-compiles the same TurnActivityAttributes shape (Widgets/Shared
   # mirrors the model file via xcodegen `sources`) so both processes
   # agree on the Codable layout.
-  SweKittyWidgets:
+  ConduitWidgets:
     type: app-extension
     platform: iOS
     deploymentTarget: "16.1"
@@ -179,7 +179,7 @@ targets:
     info:
       path: Widgets/Info.plist
       properties:
-        CFBundleDisplayName: SweKittyWidgets
+        CFBundleDisplayName: ConduitWidgets
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # Modern WidgetKit extensions use a `@main WidgetBundle` —
@@ -189,7 +189,7 @@ targets:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: sh.nikhil.swekitty.widgets
+        PRODUCT_BUNDLE_IDENTIFIER: sh.nikhil.conduit.widgets
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
         GENERATE_INFOPLIST_FILE: NO
@@ -200,13 +200,13 @@ targets:
         CODE_SIGNING_REQUIRED: NO
         CODE_SIGNING_ALLOWED: NO
 
-  SweKittyTests:
+  ConduitTests:
     type: bundle.unit-test
     platform: iOS
     sources:
-      - path: Tests/SweKittyTests
+      - path: Tests/ConduitTests
     dependencies:
-      - target: SweKitty
+      - target: Conduit
       - package: SnapshotTesting
         product: SnapshotTesting
       # Stage 3 SGR tests need to construct `TerminalCell` /
@@ -217,10 +217,10 @@ targets:
       - package: GhosttyVT
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: sh.nikhil.swekitty.tests
+        PRODUCT_BUNDLE_IDENTIFIER: sh.nikhil.conduit.tests
         GENERATE_INFOPLIST_FILE: YES
         BUNDLE_LOADER: $(TEST_HOST)
-        TEST_HOST: $(BUILT_PRODUCTS_DIR)/SweKitty.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SweKitty
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Conduit.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Conduit
         # Test target doesn't ship; skip the team-id requirement so
         # local + CI builds don't need signing material configured.
         CODE_SIGN_STYLE: Automatic
@@ -228,21 +228,21 @@ targets:
         CODE_SIGNING_ALLOWED: NO
 
 schemes:
-  SweKitty:
+  Conduit:
     build:
       targets:
-        SweKitty: all
-        # SweKittyWidgets intentionally excluded from the scheme — see
-        # the note on the SweKitty target's dependencies block. The
+        Conduit: all
+        # ConduitWidgets intentionally excluded from the scheme — see
+        # the note on the Conduit target's dependencies block. The
         # widget target still exists so a future PR can re-add it once
         # release-ios.yml ships a widget provisioning profile.
-        SweKittyTests: [test]
+        ConduitTests: [test]
     run:
       config: Debug
     test:
       config: Debug
       gatherCoverageData: false
       targets:
-        - SweKittyTests
+        - ConduitTests
     archive:
       config: Release

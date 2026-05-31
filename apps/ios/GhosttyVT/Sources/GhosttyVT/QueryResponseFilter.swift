@@ -3,7 +3,7 @@
 //
 // Why this exists
 // ===============
-// swe-kitty's native terminal puts TWO VT emulators in series on the
+// conduit's native terminal puts TWO VT emulators in series on the
 // same byte stream:
 //
 //   1. The BROKER's real kernel PTY + tmux (`TERM=xterm-256color`,

@@ -118,7 +118,7 @@ struct GlassRectModifier: ViewModifier {
 }
 
 struct GlassRoundedRectModifier: ViewModifier {
-    var cornerRadius: CGFloat = SweKittyTheme.cardCornerRadius
+    var cornerRadius: CGFloat = ConduitTheme.cardCornerRadius
     var agentTint: Color? = nil
 
     func body(content: Content) -> some View {
@@ -183,18 +183,18 @@ struct GlassMorphContainer<Content: View>: View {
 }
 
 extension View {
-    func glassRect(cornerRadius: CGFloat = SweKittyTheme.cardCornerRadius, tint: Color? = nil) -> some View {
+    func glassRect(cornerRadius: CGFloat = ConduitTheme.cardCornerRadius, tint: Color? = nil) -> some View {
         modifier(GlassRectModifier(cornerRadius: cornerRadius, tint: tint))
     }
 
-    func glassRoundedRect(cornerRadius: CGFloat = SweKittyTheme.cardCornerRadius) -> some View {
+    func glassRoundedRect(cornerRadius: CGFloat = ConduitTheme.cardCornerRadius) -> some View {
         modifier(GlassRoundedRectModifier(cornerRadius: cornerRadius))
     }
 
     /// Agent-tinted overload: same surface as `glassRoundedRect`, plus a
     /// flat 8% overlay of the agent accent so cards in a session pick
     /// up the agent hue without the heavy capsule tint.
-    func glassRoundedRect(cornerRadius: CGFloat = SweKittyTheme.cardCornerRadius, agentTint: Color) -> some View {
+    func glassRoundedRect(cornerRadius: CGFloat = ConduitTheme.cardCornerRadius, agentTint: Color) -> some View {
         modifier(GlassRoundedRectModifier(cornerRadius: cornerRadius, agentTint: agentTint))
     }
 

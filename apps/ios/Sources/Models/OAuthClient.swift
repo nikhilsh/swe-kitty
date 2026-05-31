@@ -8,7 +8,7 @@ import UIKit
 //
 // This file implements the v1 PKCE-on-the-phone approach documented
 // in `docs/PLAN-AGENT-OAUTH.md` "v1 archive". It is **deprecated**:
-// both Anthropic and OpenAI reject the `swekitty://` custom-scheme
+// both Anthropic and OpenAI reject the `conduit://` custom-scheme
 // redirect URI at the authorize endpoint, so this code path doesn't
 // reach token exchange in practice. PRs #100/#104/#110/#112 shipped
 // it; the dead-code state was confirmed end-to-end against both
@@ -41,7 +41,7 @@ import UIKit
 ///
 /// Out of scope for this PR: refresh, broker wiring.
 ///
-/// Why `swekitty://` custom scheme instead of loopback `http://127.0.0.1:1455/auth/callback`
+/// Why `conduit://` custom scheme instead of loopback `http://127.0.0.1:1455/auth/callback`
 /// (which is what the codex CLI uses): `ASWebAuthenticationSession`
 /// requires a `callbackURLScheme:` that is a non-http custom scheme —
 /// it won't intercept http loopback URLs (litter works around this by
@@ -62,8 +62,8 @@ enum OAuthProvider: String, Sendable {
                 // Codex CLI public client ID — see PLAN §C.2.
                 clientID: "app_EMoamEEZ73f0CkXaXp7hrann",
                 scopes: ["openid", "profile", "email", "offline_access"],
-                redirectURI: URL(string: "swekitty://oauth/openai/callback")!,
-                callbackURLScheme: "swekitty",
+                redirectURI: URL(string: "conduit://oauth/openai/callback")!,
+                callbackURLScheme: "conduit",
                 authorizePath: "oauth/authorize",
                 tokenURL: URL(string: "https://auth.openai.com/oauth/token")!
             )
@@ -83,8 +83,8 @@ enum OAuthProvider: String, Sendable {
             //      Anthropic's authorize endpoint refuses arbitrary
             //      redirect_uris (likely whitelisted), this fails at
             //      `/oauth/authorize` and we fall back in a follow-up
-            //      (loopback HTTP server, or a relay on the swe-kitty
-            //      website that 302s into `swekitty://...`).
+            //      (loopback HTTP server, or a relay on the conduit
+            //      website that 302s into `conduit://...`).
             //
             // TODO(stage-1): Verify the flow end-to-end on-device.
             return OAuthConfig(
@@ -97,8 +97,8 @@ enum OAuthProvider: String, Sendable {
                     "user:mcp_servers",
                     "user:sessions:claude_code",
                 ],
-                redirectURI: URL(string: "swekitty://oauth/anthropic/callback")!,
-                callbackURLScheme: "swekitty",
+                redirectURI: URL(string: "conduit://oauth/anthropic/callback")!,
+                callbackURLScheme: "conduit",
                 // Anthropic splits authorize (claude.ai) from token
                 // exchange (platform.claude.com) — `issuer` alone
                 // can't derive both, hence the explicit `tokenURL`.
@@ -109,7 +109,7 @@ enum OAuthProvider: String, Sendable {
     }
 
     /// Keychain account used to persist the resulting credential blob.
-    /// Service is `"sh.nikhil.swekitty.oauth"` (see `OAuthCredentialStore`).
+    /// Service is `"sh.nikhil.conduit.oauth"` (see `OAuthCredentialStore`).
     var keychainAccount: String { rawValue }
 }
 
@@ -584,7 +584,7 @@ final class OAuthClient: NSObject, ASWebAuthenticationPresentationContextProvidi
 }
 
 /// Persistence shim used by `AgentLoginSheet`. Keeps the OAuth blob in
-/// its own Keychain service (`"sh.nikhil.swekitty.oauth"`) keyed by
+/// its own Keychain service (`"sh.nikhil.conduit.oauth"`) keyed by
 /// provider, so the legacy pairing keys never collide with credential
 /// blobs and a "wipe-OAuth" affordance can blow them away without
 /// touching pairing state.
@@ -596,7 +596,7 @@ final class OAuthClient: NSObject, ASWebAuthenticationPresentationContextProvidi
 /// provider, and Stage 2's broker will eventually want to lift the
 /// bytes straight onto disk without unwrapping anything.
 enum OAuthCredentialStore {
-    static let service = "sh.nikhil.swekitty.oauth"
+    static let service = "sh.nikhil.conduit.oauth"
 
     static func save(_ credential: OAuthCredential) throws {
         let data: Data

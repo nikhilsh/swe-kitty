@@ -1,10 +1,10 @@
 import SwiftUI
 import UIKit
 
-/// Light/dark colour pairs used by `SweKittyTheme`. The neutrals are
+/// Light/dark colour pairs used by `ConduitTheme`. The neutrals are
 /// the system grays Apple ships in its HIG palette; `accentStrong` is
 /// tuned to the neon-cat brand.
-enum SweKittyPalette {
+enum ConduitPalette {
     struct Pair {
         let light: String
         let dark: String
@@ -82,7 +82,7 @@ extension Color {
     }
 }
 
-extension SweKittyPalette.Pair {
+extension ConduitPalette.Pair {
     /// Adaptive SwiftUI color resolved per-trait so the same value works
     /// in light/dark mode without sprinkling `@Environment(\.colorScheme)`.
     var color: Color {

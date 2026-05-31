@@ -1,0 +1,309 @@
+import Testing
+import Foundation
+@testable import Conduit
+
+/// Pins down the row-derivation rules in `LitterUI.HomeViewModel`. The
+/// SwiftUI view is a renderer over these rows, so the model is what's
+/// load-bearing for the home screen.
+@Suite("LitterUI.HomeViewModel")
+struct LitterHomeViewModelTests {
+
+    @Test func rowsEmptyOnEmptySnapshot() {
+        let snap = LitterUI.HomeSnapshot.empty
+        #expect(LitterUI.HomeViewModel.rows(snap).isEmpty)
+    }
+
+    @Test func sessionRowSecondaryLineCarriesAgentAndStatus() {
+        // The secondary line is now structured: agent + status word +
+        // relative time (host dropped — it wasn't useful). A connected,
+        // non-exited session reads "running".
+        let snap = LitterUI.HomeSnapshot(
+            harness: .live,
+            sessions: [
+                LitterUI.HomeSnapshotSession(
+                    id: "s1",
+                    displayName: "feature-branch",
+                    assistant: "claude",
+                    phase: "working"
+                )
+            ],
+            placeholders: [],
+            selectedSessionID: nil,
+            endpointDisplayHost: "192.168.4.30"
+        )
+        let rows = LitterUI.HomeViewModel.rows(snap)
+        #expect(rows.count == 1)
+        #expect(rows[0].agent == "claude")
+        #expect(rows[0].statusText == "running")
+    }
+
+    @Test func sessionRowStatusReadsExitedAndIdle() {
+        // An `exited…` phase reads "exited"; a disconnected harness reads
+        // "idle" (device bug #30 — can't trust a stale running phase).
+        let exited = LitterUI.HomeSnapshot(
+            harness: .live,
+            sessions: [LitterUI.HomeSnapshotSession(id: "e", displayName: "E", assistant: "claude", phase: "exited(0)")],
+            placeholders: [],
+            selectedSessionID: nil,
+            endpointDisplayHost: nil
+        )
+        #expect(LitterUI.HomeViewModel.rows(exited)[0].statusText == "exited")
+
+        let disconnected = LitterUI.HomeSnapshot(
+            harness: .disconnected,
+            sessions: [LitterUI.HomeSnapshotSession(id: "d", displayName: "D", assistant: "claude", phase: "working")],
+            placeholders: [],
+            selectedSessionID: nil,
+            endpointDisplayHost: nil
+        )
+        #expect(LitterUI.HomeViewModel.rows(disconnected)[0].statusText == "idle")
+    }
+
+    @Test func sessionRowRelativeTimeIsDeterministic() {
+        let now = ISO8601DateFormatter().date(from: "2026-05-25T12:00:00Z")!
+        let snap = LitterUI.HomeSnapshot(
+            harness: .live,
+            sessions: [
+                LitterUI.HomeSnapshotSession(
+                    id: "s1",
+                    displayName: "x",
+                    assistant: "claude",
+                    phase: "working",
+                    lastActivityAt: "2026-05-25T11:58:00Z"
+                )
+            ],
+            placeholders: [],
+            selectedSessionID: nil,
+            endpointDisplayHost: nil
+        )
+        let rows = LitterUI.HomeViewModel.rows(snap, now: now)
+        #expect(rows[0].relativeTime == "2m ago")
+    }
+
+    @Test func sessionRowDropsEphemeralWorkDir() {
+        // The per-session scratch dir must NOT surface as a project path;
+        // a real cwd does.
+        let snap = LitterUI.HomeSnapshot(
+            harness: .live,
+            sessions: [
+                LitterUI.HomeSnapshotSession(
+                    id: "eph",
+                    displayName: "eph",
+                    assistant: "claude",
+                    phase: "working",
+                    workingDir: SessionNaming.meaningfulWorkingDir("/root/.conduit/sessions/abc/work")
+                ),
+                LitterUI.HomeSnapshotSession(
+                    id: "real",
+                    displayName: "real",
+                    assistant: "claude",
+                    phase: "working",
+                    workingDir: SessionNaming.meaningfulWorkingDir("/Users/me/code/conduit")
+                ),
+            ],
+            placeholders: [],
+            selectedSessionID: nil,
+            endpointDisplayHost: nil
+        )
+        let rows = LitterUI.HomeViewModel.rows(snap)
+        #expect(rows[0].workingDir == nil)
+        #expect(rows[1].workingDir == "/Users/me/code/conduit")
+    }
+
+    @Test func sessionRowFlagsSelectedWhenIDMatches() {
+        let snap = LitterUI.HomeSnapshot(
+            harness: .live,
+            sessions: [
+                LitterUI.HomeSnapshotSession(id: "a", displayName: "A", assistant: "claude", phase: nil),
+                LitterUI.HomeSnapshotSession(id: "b", displayName: "B", assistant: "claude", phase: nil),
+            ],
+            placeholders: [],
+            selectedSessionID: "b",
+            endpointDisplayHost: nil
+        )
+        let rows = LitterUI.HomeViewModel.rows(snap)
+        #expect(rows[0].isSelected == false)
+        #expect(rows[1].isSelected == true)
+    }
+
+    @Test func sessionRowRunStateIsIndependentOfSelection() {
+        // device bug #9: the status dot tracked selection, so a second
+        // *running* session looked stopped. Run state must come from the
+        // phase, not which row is attached — both running sessions show
+        // green even though only one is selected; an exited one is muted.
+        let snap = LitterUI.HomeSnapshot(
+            harness: .live,
+            sessions: [
+                LitterUI.HomeSnapshotSession(id: "a", displayName: "A", assistant: "claude", phase: "working"),
+                LitterUI.HomeSnapshotSession(id: "b", displayName: "B", assistant: "codex", phase: nil),
+                LitterUI.HomeSnapshotSession(id: "c", displayName: "C", assistant: "claude", phase: "exited(0)"),
+            ],
+            placeholders: [],
+            selectedSessionID: "b",
+            endpointDisplayHost: nil
+        )
+        let rows = LitterUI.HomeViewModel.rows(snap)
+        #expect(rows[0].isRunning == true)   // working, not selected
+        #expect(rows[1].isRunning == true)   // ready (nil), selected
+        #expect(rows[2].isRunning == false)  // exited
+        #expect(rows[0].isSelected == false) // running but not attached → still green
+    }
+
+    @Test func sessionRowsMutedWhenDisconnected() {
+        // device bug #30: stale phase ("running") must NOT show green when
+        // the connection is down — the app can't know real state.
+        let snap = LitterUI.HomeSnapshot(
+            harness: .disconnected,
+            sessions: [
+                LitterUI.HomeSnapshotSession(id: "a", displayName: "A", assistant: "claude", phase: "working"),
+                LitterUI.HomeSnapshotSession(id: "b", displayName: "B", assistant: "codex", phase: "ready"),
+            ],
+            placeholders: [],
+            selectedSessionID: "a",
+            endpointDisplayHost: nil
+        )
+        let rows = LitterUI.HomeViewModel.rows(snap)
+        #expect(rows[0].isRunning == false) // disconnected → muted despite "working"
+        #expect(rows[1].isRunning == false)
+    }
+
+    @Test func secondaryLineOmitsTimeWhenNoTimestamp() {
+        // No `lastActivityAt` → the relative-time slot is empty (the row
+        // simply doesn't render the time chip). Agent + status still show.
+        let snap = LitterUI.HomeSnapshot(
+            harness: .live,
+            sessions: [
+                LitterUI.HomeSnapshotSession(id: "s", displayName: "S", assistant: "claude", phase: "ready")
+            ],
+            placeholders: [],
+            selectedSessionID: nil,
+            endpointDisplayHost: nil
+        )
+        let rows = LitterUI.HomeViewModel.rows(snap)
+        #expect(rows[0].agent == "claude")
+        #expect(rows[0].statusText == "running")
+        #expect(rows[0].relativeTime == "")
+    }
+
+    @Test func emptyStateChangesByHarnessReachability() {
+        let unreachable = LitterUI.HomeSnapshot.empty
+        #expect(LitterUI.HomeViewModel.emptyTitle(unreachable) == "Waiting for server")
+        #expect(LitterUI.HomeViewModel.emptySymbol(unreachable) == "cloud.slash")
+
+        let reachable = LitterUI.HomeSnapshot(
+            harness: .live,
+            sessions: [],
+            placeholders: [],
+            selectedSessionID: nil,
+            endpointDisplayHost: "local"
+        )
+        #expect(LitterUI.HomeViewModel.emptyTitle(reachable) == "No sessions yet")
+        #expect(LitterUI.HomeViewModel.emptySymbol(reachable) == "sparkles")
+    }
+
+    @Test func sessionRowCarriesActivityPreview() {
+        // The card's third line is a one-line preview of the latest
+        // activity. The view layer pre-condenses it and hands it through
+        // the snapshot; the row simply carries it.
+        let snap = LitterUI.HomeSnapshot(
+            harness: .live,
+            sessions: [
+                LitterUI.HomeSnapshotSession(
+                    id: "s1",
+                    displayName: "feature-branch",
+                    assistant: "claude",
+                    phase: "working",
+                    lastActivityPreview: "Run: cargo test"
+                )
+            ],
+            placeholders: [],
+            selectedSessionID: nil,
+            endpointDisplayHost: nil
+        )
+        let rows = LitterUI.HomeViewModel.rows(snap)
+        #expect(rows[0].lastActivityPreview == "Run: cargo test")
+    }
+
+    @Test func sessionRowPreviewDefaultsEmpty() {
+        // No preview supplied → the row carries an empty string and the
+        // view drops the line.
+        let snap = LitterUI.HomeSnapshot(
+            harness: .live,
+            sessions: [LitterUI.HomeSnapshotSession(id: "s", displayName: "S", assistant: "claude", phase: "ready")],
+            placeholders: [],
+            selectedSessionID: nil,
+            endpointDisplayHost: nil
+        )
+        #expect(LitterUI.HomeViewModel.rows(snap)[0].lastActivityPreview == "")
+    }
+
+    @Test func activityPreviewPrefersToolCommand() {
+        // A tool item surfaces its command, labelled by the tool name.
+        let preview = LitterUI.HomeViewModel.activityPreview(
+            role: "tool",
+            kind: "tool",
+            toolName: "Bash",
+            command: "cargo test --all\nshould-not-show",
+            content: "ignored body"
+        )
+        #expect(preview == "Bash: cargo test --all")
+    }
+
+    @Test func activityPreviewFallsBackToAssistantBody() {
+        // An assistant message uses its first non-empty line, condensed.
+        let preview = LitterUI.HomeViewModel.activityPreview(
+            role: "assistant",
+            kind: "message",
+            toolName: nil,
+            command: nil,
+            content: "\n   Here is the   plan\nmore detail"
+        )
+        #expect(preview == "Here is the plan")
+    }
+
+    @Test func activityPreviewClipsLongLines() {
+        let long = String(repeating: "a", count: 200)
+        let preview = LitterUI.HomeViewModel.activityPreview(
+            role: "assistant",
+            kind: "message",
+            toolName: nil,
+            command: nil,
+            content: long,
+            budget: 10
+        )
+        #expect(preview?.count == 10)            // 9 chars + ellipsis
+        #expect(preview?.hasSuffix("…") == true)
+    }
+
+    @Test func activityPreviewNilOnEmptyContent() {
+        let preview = LitterUI.HomeViewModel.activityPreview(
+            role: "assistant",
+            kind: "message",
+            toolName: nil,
+            command: nil,
+            content: "   \n  "
+        )
+        #expect(preview == nil)
+    }
+
+    @Test func placeholdersAppearAfterRealSessions() {
+        // Placeholder = an in-flight session-creation, must render
+        // *under* real sessions so a long-running placeholder doesn't
+        // displace the live ones.
+        let snap = LitterUI.HomeSnapshot(
+            harness: .live,
+            sessions: [
+                LitterUI.HomeSnapshotSession(id: "real", displayName: "real", assistant: "claude", phase: nil)
+            ],
+            placeholders: [
+                LitterUI.HomeSnapshotPlaceholder(id: "ph", label: "asking harness…")
+            ],
+            selectedSessionID: nil,
+            endpointDisplayHost: nil
+        )
+        let rows = LitterUI.HomeViewModel.rows(snap)
+        #expect(rows.count == 2)
+        if case .session = rows[0].kind {} else { Issue.record("first row should be session") }
+        if case .creatingPlaceholder = rows[1].kind {} else { Issue.record("second row should be placeholder") }
+    }
+}

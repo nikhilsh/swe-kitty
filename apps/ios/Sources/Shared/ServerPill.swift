@@ -31,12 +31,12 @@ struct ServerPill: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(model.displayName)
                         .font(.system(.subheadline, design: .monospaced).weight(.semibold))
-                        .foregroundStyle(model.isActive ? SweKittyTheme.textPrimary : SweKittyTheme.textSecondary)
+                        .foregroundStyle(model.isActive ? ConduitTheme.textPrimary : ConduitTheme.textSecondary)
                         .lineLimit(1)
                     if let subtitle = model.subtitle {
                         Text(subtitle)
                             .font(.caption2)
-                            .foregroundStyle(SweKittyTheme.textMuted)
+                            .foregroundStyle(ConduitTheme.textMuted)
                             .lineLimit(1)
                     }
                 }
@@ -62,7 +62,7 @@ struct ServerPill: View {
                     .stroke(
                         model.isActive
                             ? neon.accent.opacity(ServerPillStroke.activeOpacity)
-                            : SweKittyTheme.textMuted.opacity(ServerPillStroke.inactiveOpacity),
+                            : ConduitTheme.textMuted.opacity(ServerPillStroke.inactiveOpacity),
                         lineWidth: model.isActive ? ServerPillStroke.activeWidth : ServerPillStroke.inactiveWidth
                     )
             )
@@ -186,10 +186,10 @@ struct ServerPillModel: Equatable, Identifiable {
     /// `kind` doesn't affect the colour, only the caption.
     var statusColor: Color {
         switch status {
-        case .live:       return SweKittyTheme.success
-        case .connecting: return SweKittyTheme.warning
-        case .idle:       return SweKittyTheme.textMuted.opacity(0.4)
-        case .failed:     return SweKittyTheme.danger
+        case .live:       return ConduitTheme.success
+        case .connecting: return ConduitTheme.warning
+        case .idle:       return ConduitTheme.textMuted.opacity(0.4)
+        case .failed:     return ConduitTheme.danger
         }
     }
 

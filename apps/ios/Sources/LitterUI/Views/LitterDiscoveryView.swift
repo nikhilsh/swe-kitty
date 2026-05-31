@@ -9,7 +9,7 @@ import Foundation
 // MARK: - LitterDiscoveryView
 //
 // Native LitterUI port of the legacy `DiscoveryView`. Browses
-// `_swe-kitty._tcp.local` via the NetService-backed
+// `_conduit._tcp.local` via the NetService-backed
 // `LANDiscoveryBrowser`, lists saved + discovered harnesses, and taps
 // connect through the existing `SessionStore` flow.
 //
@@ -92,10 +92,10 @@ extension LitterUI {
 
         private var header: some View {
             VStack(alignment: .leading, spacing: 6) {
-                Text("SweKitty on your network")
+                Text("Conduit on your network")
                     .font(neon.sans(13).weight(.semibold))
                     .foregroundStyle(neon.text)
-                Text("Saved servers up top, plus anything advertising `_swe-kitty._tcp` on this Wi-Fi. Pull down to rescan.")
+                Text("Saved servers up top, plus anything advertising `_conduit._tcp` on this Wi-Fi. Pull down to rescan.")
                     .font(neon.sans(11))
                     .foregroundStyle(neon.textDim)
             }

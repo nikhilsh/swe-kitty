@@ -19,7 +19,7 @@ import SwiftUI
 // License posture: litter (`https://github.com/dnakov/litter`) is
 // GPLv3 with an App Store additional permission (LICENSE checked
 // 2026-05-22 via `gh api repos/dnakov/litter/contents/LICENSE`).
-// Because SweKitty is not GPLv3, we cannot copy litter source into
+// Because Conduit is not GPLv3, we cannot copy litter source into
 // this tree. Every visual decision below is a clean-room
 // reimplementation: we studied litter's structural layout (Views,
 // Models/LitterPalette, Extensions glass modifiers) via the

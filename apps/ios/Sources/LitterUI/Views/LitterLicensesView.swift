@@ -47,7 +47,7 @@ extension LitterUI {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
                         Text(
-                            "SweKitty ships the open-source libraries listed below. " +
+                            "Conduit ships the open-source libraries listed below. " +
                             "Each is used under its respective license; tap a row " +
                             "for the upstream source."
                         )
@@ -338,7 +338,7 @@ private let trademarkAttributions: [TrademarkAttribution] = [
         name: "Claude / Anthropic",
         text: """
             Claude and the Claude wordmark are trademarks of Anthropic, PBC. \
-            SweKitty is an independent client and is not affiliated with, \
+            Conduit is an independent client and is not affiliated with, \
             endorsed by, or sponsored by Anthropic.
             """
     ),
@@ -346,7 +346,7 @@ private let trademarkAttributions: [TrademarkAttribution] = [
         name: "OpenAI / Codex / ChatGPT",
         text: """
             OpenAI, Codex, ChatGPT, and their respective wordmarks are \
-            trademarks of OpenAI OpCo, LLC. SweKitty is an independent client \
+            trademarks of OpenAI OpCo, LLC. Conduit is an independent client \
             and is not affiliated with, endorsed by, or sponsored by OpenAI.
             """
     ),
@@ -354,7 +354,7 @@ private let trademarkAttributions: [TrademarkAttribution] = [
         name: "Ghostty",
         text: """
             Ghostty is a trademark of Mitchell Hashimoto. The libghostty \
-            xcframework is used under the MIT license; SweKitty is not the \
+            xcframework is used under the MIT license; Conduit is not the \
             Ghostty terminal emulator and is not affiliated with the Ghostty \
             project.
             """

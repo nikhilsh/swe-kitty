@@ -8,7 +8,7 @@ import SwiftUI
 // — the app's deployment target is 26.0, so there's no material+stroke
 // fallback path.
 //
-// We don't reuse the SweKittyTheme glass wrappers because the LitterUI
+// We don't reuse the ConduitTheme glass wrappers because the LitterUI
 // palette has different default opacity + border tokens, and we want
 // the legacy and new UIs to be tunable independently.
 

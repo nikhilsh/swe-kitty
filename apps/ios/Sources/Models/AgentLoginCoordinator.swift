@@ -128,7 +128,7 @@ final class AgentLoginCoordinator {
             // in v2 — our callback lands on the loopback HTTP server,
             // not on a scheme intercept. Pass a placeholder; the
             // completionHandler will only fire on user cancel.
-            callbackURLScheme: "swekitty"
+            callbackURLScheme: "conduit"
         ) { [weak self] _, error in
             Task { @MainActor [weak self] in
                 guard let self else { return }

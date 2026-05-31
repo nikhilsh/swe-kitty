@@ -224,7 +224,7 @@ extension LitterUI {
         }
 
         /// Body font size slider. Drives `AppearanceStore.bodyPointSize`
-        /// (the base size the `SweKittyTypography` ramp scales off,
+        /// (the base size the `ConduitTypography` ramp scales off,
         /// landed in PR 1). Range / clamp lives in `AppearanceStore`;
         /// the slider just binds and previews the current size in the
         /// user's chosen family so they can read what they're choosing
@@ -253,7 +253,7 @@ extension LitterUI {
                     )
                     .tint(neon.accent)
                     Text("The quick brown fox jumps over the lazy dog.")
-                        .font(SweKittyTypography.body(appearance))
+                        .font(ConduitTypography.body(appearance))
                         .foregroundStyle(neon.textDim)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -450,7 +450,7 @@ extension LitterUI {
                 VStack(spacing: 0) {
                     LitterUI.valueRow(
                         icon: "info.circle.fill",
-                        title: "SweKitty",
+                        title: "Conduit",
                         value: aboutVersion,
                         subtitle: nil
                     )

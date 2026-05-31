@@ -267,7 +267,7 @@ final class SessionStore {
     /// SSH-bootstrap progress. Observed by the SSH login sheet.
     var sshBootstrapState: SshBootstrapState = .idle
 
-    /// Active TOFU prompt. SweKittyApp observes this and presents a sheet.
+    /// Active TOFU prompt. ConduitApp observes this and presents a sheet.
     var pendingHostKey: HostKeyPrompt?
 
     /// Resolver for the active TOFU prompt. Wired up by the bridge; consumed
@@ -365,7 +365,7 @@ final class SessionStore {
     private let useRustStore = true
     let rustStore = SessionStoreCore()
 
-    /// View-layer coordinator wired in by `SweKittyApp` so `ingestChat`
+    /// View-layer coordinator wired in by `ConduitApp` so `ingestChat`
     /// can hand each terminal-shaped chat event to the streaming
     /// renderer. Optional because tests instantiate `SessionStore`
     /// without a SwiftUI host — the coordinator is then `nil` and the
@@ -398,7 +398,7 @@ final class SessionStore {
     }
 
     // No deinit cleanup: SessionStore lives for the app's lifetime
-    // (owned by SweKittyApp's @State), so the NotificationCenter
+    // (owned by ConduitApp's @State), so the NotificationCenter
     // observers are released only at process exit — and Swift 6 actor
     // isolation forbids touching MainActor state from a nonisolated
     // deinit anyway. The path monitor itself now lives on
@@ -436,7 +436,7 @@ final class SessionStore {
         ) { _ in nudge() }
 
         // Path-level reachability is owned by NetworkReachabilityObserver
-        // (instantiated at app launch by SweKittyApp). We just listen for
+        // (instantiated at app launch by ConduitApp). We just listen for
         // the coarse `unsatisfied→satisfied` and `interface-changed`
         // edges and nudge the Rust core into immediate reconnect. The
         // old inline `NWPathMonitor` lived here; A.9 hoisted it so the
@@ -859,7 +859,7 @@ final class SessionStore {
                 // spawns the agent *in* it. (Previously this cd'd the PTY
                 // shell as a workaround, which only moved the Terminal tab —
                 // the headless agent still started in the broker's default
-                // .swe-kitty work dir.)
+                // .conduit work dir.)
                 let trimmedCwd = startupCwd?.trimmingCharacters(in: .whitespacesAndNewlines)
                 let startup = (trimmedCwd?.isEmpty == false) ? trimmedCwd : nil
                 let id = try await client.createSession(assistant: assistant, branch: branch, reasoningEffort: nil, model: nil, cwd: startup)
@@ -1266,7 +1266,7 @@ final class SessionStore {
     /// row, or wait for the next `createSession` to fire the resend).
     func sendAgentCredentials(provider: OAuthProvider, credential: OAuthCredential) async throws {
         guard let client else {
-            throw ConduitError.NotConnected(message: "no active swe-kitty client")
+            throw ConduitError.NotConnected(message: "no active conduit client")
         }
         let json = try Self.encodeCredentialAsJSONString(credential)
         try await client.setAgentCredentials(
@@ -1287,21 +1287,21 @@ final class SessionStore {
 
     func sendAgentLoginStart(provider: String) async throws {
         guard let client else {
-            throw ConduitError.NotConnected(message: "no active swe-kitty client")
+            throw ConduitError.NotConnected(message: "no active conduit client")
         }
         try await client.startAgentLogin(provider: provider)
     }
 
     func sendAgentLoginCallback(sessionToken: String, queryString: String) async throws {
         guard let client else {
-            throw ConduitError.NotConnected(message: "no active swe-kitty client")
+            throw ConduitError.NotConnected(message: "no active conduit client")
         }
         try await client.agentLoginCallback(sessionToken: sessionToken, queryString: queryString)
     }
 
     func sendAgentLoginCancel(sessionToken: String) async throws {
         guard let client else {
-            throw ConduitError.NotConnected(message: "no active swe-kitty client")
+            throw ConduitError.NotConnected(message: "no active conduit client")
         }
         try await client.cancelAgentLogin(sessionToken: sessionToken)
     }
@@ -1349,7 +1349,7 @@ final class SessionStore {
     //
     // The send-side wiring requires UDL surface
     // (`ConduitClient.start_agent_login` etc.) that hasn't shipped in
-    // the SweKittyCore xcframework yet — the broker (PR #114) is live
+    // the ConduitCore xcframework yet — the broker (PR #114) is live
     // but the Rust→Swift bridge is the missing link. Until that lands,
     // the transport methods throw a typed "not yet bridged" error so
     // the coordinator's state machine resolves to `.failed(...)` with
@@ -1498,7 +1498,7 @@ final class SessionStore {
         }
     }
 
-    // `internal` access (not `fileprivate`) so SweKittyTests can drive
+    // `internal` access (not `fileprivate`) so ConduitTests can drive
     // the parity tests in SessionStoreRustParityTests. Same rationale
     // as `ingestChat` / `ingestStatus`.
     func ingestPtyData(_ sessionID: String, _ bytes: Data) {
@@ -1516,7 +1516,7 @@ final class SessionStore {
         }
     }
 
-    // `internal` (not `fileprivate`) so SweKittyTests can drive this
+    // `internal` (not `fileprivate`) so ConduitTests can drive this
     // path directly. The fileprivate access was originally to lock
     // down "only the transport delegate can ingest"; that constraint
     // is fine to relax for tests because the type guards (ChatEvent)
@@ -1585,7 +1585,7 @@ final class SessionStore {
         }
     }
 
-    // `internal` (not `fileprivate`) so SweKittyTests can drive this
+    // `internal` (not `fileprivate`) so ConduitTests can drive this
     // path directly — same rationale as `ingestChat` above. The status
     // frame carries `reasoningEffort` / `cwd` / `startedAt` etc. and
     // a test confirms `statusBySession` reflects those fields end-to-end.
@@ -1845,10 +1845,10 @@ final class SessionStore {
 
     // MARK: - Persistence
 
-    private static let endpointKey = "swekitty.endpoint.url"
-    private static let tokenKey = "swekitty.endpoint.token"
-    private static let savedServersKey = "swekitty.saved_servers.json"
-    private static let legacyEndpointDefaultsKey = "swekitty.endpoint.url"
+    private static let endpointKey = "conduit.endpoint.url"
+    private static let tokenKey = "conduit.endpoint.token"
+    private static let savedServersKey = "conduit.saved_servers.json"
+    private static let legacyEndpointDefaultsKey = "conduit.endpoint.url"
 
     private static func loadPersisted() -> StoredEndpoint {
         let token = Keychain.get(tokenKey) ?? ""
@@ -1889,7 +1889,7 @@ final class SessionStore {
         Keychain.set(raw, for: savedServersKey)
     }
 
-    private static let displayNamesKey = "swekitty.session.displayNames"
+    private static let displayNamesKey = "conduit.session.displayNames"
 
     static func loadDisplayNames() -> [String: String] {
         guard let raw = UserDefaults.standard.data(forKey: displayNamesKey),
@@ -1909,7 +1909,7 @@ final class SessionStore {
         }
     }
 
-    private static let brokerTitlesKey = "swekitty.session.brokerTitles"
+    private static let brokerTitlesKey = "conduit.session.brokerTitles"
 
     static func loadBrokerTitles() -> [String: String] {
         guard let raw = UserDefaults.standard.data(forKey: brokerTitlesKey),
@@ -2382,7 +2382,7 @@ final class SessionStore {
 }
 
 private extension SessionStore {
-    static let recentDirectoriesByServerKey = "swekitty.recentDirectoriesByServer"
+    static let recentDirectoriesByServerKey = "conduit.recentDirectoriesByServer"
 
     static func describe(_ error: Error) -> String {
         if isAuth(error) {

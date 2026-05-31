@@ -26,7 +26,7 @@ struct SavedSshCredential: Codable, Equatable, Identifiable {
 /// entry per `host@user:port` tuple. Reuses the same `Keychain` helper as
 /// the bearer token + endpoint URL.
 enum SshCredentialStore {
-    private static let indexKey = "swekitty.ssh.creds.index"
+    private static let indexKey = "conduit.ssh.creds.index"
 
     static func load() -> [SavedSshCredential] {
         guard let raw = Keychain.get(indexKey),
@@ -66,7 +66,7 @@ enum SshCredentialStore {
 /// in UserDefaults — re-prompting is a deliberate UX signal that the host
 /// key changed, not a "default deny" wall.
 enum SshHostKeyTrustStore {
-    private static let key = "swekitty.ssh.knownHosts"
+    private static let key = "conduit.ssh.knownHosts"
 
     static func known(host: String, port: UInt16) -> String? {
         let map = load()

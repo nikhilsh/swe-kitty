@@ -154,7 +154,7 @@ extension LitterUI {
                 },
                 center: {
                     LitterUI.AnimatedBrandMark(size: 32)
-                        .accessibilityLabel("SweKitty")
+                        .accessibilityLabel("Conduit")
                         .accessibilityHint("Press and hold for settings")
                         .onLongPressGesture(minimumDuration: 0.4) {
                             showSettings = true

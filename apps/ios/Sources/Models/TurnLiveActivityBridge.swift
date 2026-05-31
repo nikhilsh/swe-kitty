@@ -197,7 +197,7 @@ public final class TurnLiveActivityBridge {
     // Class is public so tests can @testable-import it; the init
     // takes an internal `TurnLiveActivityController`, so it must be
     // internal too (Swift rejects a public init whose parameter
-    // types are internal). Constructors at the SweKittyApp call site
+    // types are internal). Constructors at the ConduitApp call site
     // live in the same module, so the access drop is invisible
     // outside tests.
     /// `controller` defaults to the shared singleton, but Swift 6's

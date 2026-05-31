@@ -1,7 +1,7 @@
 import SwiftUI
 
 extension LitterUI {
-    /// The SweKitty brand mark (`KittyMark`) with a subtle, continuous
+    /// The Conduit brand mark (`KittyMark`) with a subtle, continuous
     /// "breathe" — a gentle scale loop so the home header feels alive
     /// without the attention-grabbing pulse of the cold-start splash.
     /// Mirrors the Android `AnimatedBrandMark`; both share the same calm

@@ -117,12 +117,12 @@ struct ServerPillRow: View {
                 Text("server")
                     .font(.subheadline.weight(.semibold))
             }
-            .foregroundStyle(SweKittyTheme.accentStrong)
+            .foregroundStyle(ConduitTheme.accentStrong)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(
                 Capsule()
-                    .stroke(SweKittyTheme.accentStrong, lineWidth: 1.5)
+                    .stroke(ConduitTheme.accentStrong, lineWidth: 1.5)
             )
         }
         .buttonStyle(.plain)

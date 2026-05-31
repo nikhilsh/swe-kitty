@@ -17,7 +17,7 @@ struct VoiceDictationSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                SweKittyTheme.backgroundGradient(for: colorScheme)
+                ConduitTheme.backgroundGradient(for: colorScheme)
                     .ignoresSafeArea()
 
                 VStack(spacing: 26) {
@@ -25,17 +25,17 @@ struct VoiceDictationSheet: View {
                     if case .error(let message) = transcriber.state {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 44, weight: .regular))
-                            .foregroundStyle(SweKittyTheme.danger)
+                            .foregroundStyle(ConduitTheme.danger)
                         Text(message)
                             .font(.callout)
-                            .foregroundStyle(SweKittyTheme.danger)
+                            .foregroundStyle(ConduitTheme.danger)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
                     } else {
                         waveform
                         Text(displayTranscript.isEmpty ? "Listening…" : displayTranscript)
                             .font(.title3)
-                            .foregroundStyle(SweKittyTheme.textPrimary)
+                            .foregroundStyle(ConduitTheme.textPrimary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
                             .frame(minHeight: 80, alignment: .top)
@@ -48,7 +48,7 @@ struct VoiceDictationSheet: View {
                         } label: {
                             Text("Cancel")
                                 .font(.headline)
-                                .foregroundStyle(SweKittyTheme.textPrimary)
+                                .foregroundStyle(ConduitTheme.textPrimary)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
                                 .glassRoundedRect(cornerRadius: 24)
@@ -60,7 +60,7 @@ struct VoiceDictationSheet: View {
                         } label: {
                             Text("Send")
                                 .font(.headline.weight(.semibold))
-                                .foregroundStyle(SweKittyTheme.textOnAccent)
+                                .foregroundStyle(ConduitTheme.textOnAccent)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
                                 .background(neon.accent)

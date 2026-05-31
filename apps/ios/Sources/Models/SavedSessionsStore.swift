@@ -51,7 +51,7 @@ struct SavedSession: Codable, Equatable, Identifiable {
 /// every server. Backs the "Resume an old thread" screen (litter parity
 /// audit item A.8). Mirrors `core/src/saved/mod.rs::SavedSessionStore`:
 ///
-/// * Persistence path: `Application Support/swe-kitty/saved-sessions.json`.
+/// * Persistence path: `Application Support/conduit/saved-sessions.json`.
 /// * Wire shape: `{"sessions": {"<server_id>::<session_id>": SavedSession, ...}}`,
 ///   matching the Rust `HashMap` serde repr so either side can produce
 ///   or consume the file without a schema dance.
@@ -259,7 +259,7 @@ final class SavedSessionsStore {
             create: true
         )) ?? FileManager.default.temporaryDirectory
         return base
-            .appendingPathComponent("swe-kitty", isDirectory: true)
+            .appendingPathComponent("conduit", isDirectory: true)
             .appendingPathComponent("saved-sessions.json", isDirectory: false)
     }
 
