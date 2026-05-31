@@ -2,13 +2,13 @@ import SwiftUI
 
 // MARK: - ConduitTypography
 //
-// Type ramp matching litter. Conduit exposes a single `litterFont`
+// Type ramp matching upstream. Conduit exposes a single `litterFont`
 // helper that respects the user's font-design choice (monospaced vs.
 // default). We adapt that to honour `AppearanceStore.fontFamily`, so
 // the ConduitUI tree picks up the user's chosen body font without any
 // per-view wiring.
 //
-// Sizes were derived from litter's structural notes (HomeBottomBar:
+// Sizes were derived from upstream's structural notes (HomeBottomBar:
 // 10pt mono meta, 12pt telemetry, headlines tracking body weight).
 // The ramp here is intentionally narrow — we want clear hierarchy at
 // a glance.

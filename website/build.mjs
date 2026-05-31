@@ -17,7 +17,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.join(__dirname, "out");
 const publicDir = path.join(__dirname, "public");
 
-const repo = process.env.GITHUB_REPO || "nikhilsh/swe-kitty";
+const repo = process.env.GITHUB_REPO || "nikhilsh/conduit";
 const siteOrigin = process.env.SITE_ORIGIN || "https://swekitty.kaopeh.com";
 
 const headers = {

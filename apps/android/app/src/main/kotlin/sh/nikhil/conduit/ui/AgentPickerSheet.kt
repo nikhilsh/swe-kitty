@@ -50,7 +50,7 @@ import sh.nikhil.conduit.SessionStore
  *      browser over `store.listDirectories(path:)` (tap a folder to
  *      descend, the up button to go back). "Use this folder" cd's into
  *      the current path; "Start without a folder" preserves the old
- *      no-cwd behavior. (litter parity, task #36.)
+ *      no-cwd behavior. (upstream parity, task #36.)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

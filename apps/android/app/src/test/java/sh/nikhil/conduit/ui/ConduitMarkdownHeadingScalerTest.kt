@@ -7,7 +7,7 @@ import org.junit.Test
 
 /**
  * Android mirror of iOS `ConduitMarkdownHeadingScalerTests.swift`
- * (PLAN-LITTER-VISUAL-PARITY PR 4). The two platforms keep the
+ * (PLAN-CONDUIT-VISUAL-PARITY PR 4). The two platforms keep the
  * heading scale aligned — if iOS drifts to a new multiplier set, this
  * test fails because the values are inlined per-platform; the visible
  * jump on either device would otherwise go unnoticed until the user

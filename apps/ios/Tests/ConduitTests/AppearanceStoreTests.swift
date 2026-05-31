@@ -97,7 +97,7 @@ struct AppearanceStoreTests {
         #expect(store.experimentalNativeTerminal == false)
     }
 
-    // MARK: - bodyPointSize (PLAN-LITTER-VISUAL-PARITY PR 1)
+    // MARK: - bodyPointSize (PLAN-CONDUIT-VISUAL-PARITY PR 1)
 
     @Test func freshInstallBodyPointSizeIsDefault() {
         let store = AppearanceStore(defaults: freshDefaults())

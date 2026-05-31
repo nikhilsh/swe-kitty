@@ -168,4 +168,4 @@ not "running". Unify with #23's server-chip dot into clear semantics
 ### #10 — main-menu buttons missing iOS 26 glass material (LOW/polish)
 Buttons don't look flat and don't pick up the Liquid Glass material — look
 "weird". Apply glass tokens to the session-list controls; folds into
-`PLAN-LITTER-VISUAL-PARITY.md`. Task #28.
+`PLAN-CONDUIT-VISUAL-PARITY.md`. Task #28.

@@ -30,8 +30,8 @@ struct ServerPillModelTests {
         // the caption must distinguish them at a glance. The "discovered"
         // prefix is the contract the UI relies on.
         let model = ServerPillModel.fromDiscovered(
-            id: "kitty-1977",
-            name: "kitty-1977",
+            id: "conduit-1977",
+            name: "conduit-1977",
             host: "192.168.1.10",
             port: 1977,
             version: "1",
@@ -180,8 +180,8 @@ struct ServerPillModelTests {
             harness: .disconnected
         )
         let discoveredModel = ServerPillModel.fromDiscovered(
-            id: "kitty",
-            name: "kitty",
+            id: "conduit",
+            name: "conduit",
             host: "1.2.3.4",
             port: 1977,
             version: nil,
@@ -206,8 +206,8 @@ struct ServerPillModelTests {
         #expect(savedModel.accessibilityLabel.hasPrefix("Saved server "))
 
         let discoveredModel = ServerPillModel.fromDiscovered(
-            id: "kitty",
-            name: "kitty",
+            id: "conduit",
+            name: "conduit",
             host: "1.2.3.4",
             port: 1977,
             version: nil,

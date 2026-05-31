@@ -10,7 +10,7 @@ import uniffi.conduit_core.SessionStatus
 /**
  * Android mirror of `apps/ios/Tests/ConduitTests/ProjectViewHeaderTests.swift`.
  *
- * Stage 2 — litter-style header restructure. The header is now an
+ * Stage 2 — upstream-style header restructure. The header is now an
  * explicit three-row layout (controls / path / tab-picker) and the
  * agent dropdown is a compound control (status dot · name · effort ·
  * chevron). These tests defend that shape so a future refactor can't
@@ -31,7 +31,7 @@ class ProjectHeaderModelTest {
     @Test
     fun headerHasThreeRowsInOrder() {
         // Stage 2 lock: render order is controls → path → tab picker.
-        // Drift (collapsed rows, reordered) means the litter visual
+        // Drift (collapsed rows, reordered) means the upstream visual
         // reference is broken.
         assertEquals(
             listOf(
@@ -80,7 +80,7 @@ class ProjectHeaderModelTest {
     @Test
     fun unknownHealthShowsAsUnknownDot() {
         // No status frame yet → dot defaults to "unknown" (grey),
-        // matching litter's "we don't know yet" treatment.
+        // matching upstream's "we don't know yet" treatment.
         val session = makeSession(assistant = "claude")
         val model = ProjectHeaderModel.from(session, status = null, lifecycleLabel = null)
         assertEquals("unknown", model.agentPill.healthKey)

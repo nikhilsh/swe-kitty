@@ -9,7 +9,7 @@ import org.junit.Test
  * Android code-block (fenced) and diff (per-line) renderers. Mirror
  * of `apps/ios/Tests/ConduitTests/SyntaxHighlightingTests.swift` --
  * the Prism4j integration ships as a follow-up, but the detector
- * contract is what the renderer reads and what the litter-parity
+ * contract is what the renderer reads and what the upstream-parity
  * audit calls out as v1 (`docs/PLAN-2026-05-19.md` "Code block view
  * with syntax highlighting").
  *

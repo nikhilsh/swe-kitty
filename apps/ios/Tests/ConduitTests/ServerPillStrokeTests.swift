@@ -2,8 +2,8 @@ import Testing
 import SwiftUI
 @testable import Conduit
 
-/// Pins the litter-faithful stroke treatment chosen for `ServerPill`
-/// in `PLAN-LITTER-VISUAL-PARITY` PR 5. Before this PR every pill
+/// Pins the upstream-faithful stroke treatment chosen for `ServerPill`
+/// in `PLAN-CONDUIT-VISUAL-PARITY` PR 5. Before this PR every pill
 /// carried a `glassCapsule(interactive: true, tint: …)` fill — active
 /// vs idle differed only by tint, which was indistinguishable at a
 /// glance in bright daylight. PR 5 swaps to a transparent background +

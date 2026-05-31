@@ -103,7 +103,7 @@ extension ConduitUI {
         @ViewBuilder
         private var header: some View {
             if let note = headerNote, !note.isEmpty {
-                // PLAN-LITTER-VISUAL-PARITY audit §A.5 / PR 5
+                // PLAN-CONDUIT-VISUAL-PARITY audit §A.5 / PR 5
                 // deferred — collapse the chunky tinted glass card
                 // around the "Paired with <host>" note to an inline
                 // caption. The agent buttons below are the action;
@@ -189,7 +189,7 @@ extension ConduitUI {
 
 // MARK: - DirectoryPicker
 //
-// Second step of the new-session flow (litter parity, task #36). After
+// Second step of the new-session flow (upstream parity, task #36). After
 // the agent is chosen the user lands here to pick a working directory:
 //   - "Recent" shortcut list (from `store.recentDirectories`, per-server)
 //   - a live browser over `store.listDirectories(path:)` — tap a folder

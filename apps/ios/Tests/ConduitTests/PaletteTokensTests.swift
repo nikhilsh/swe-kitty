@@ -2,7 +2,7 @@ import Testing
 import SwiftUI
 @testable import Conduit
 
-/// PLAN-LITTER-VISUAL-PARITY PR 1 — pins the token + corner-radius
+/// PLAN-CONDUIT-VISUAL-PARITY PR 1 — pins the token + corner-radius
 /// surface so subsequent visual-parity PRs can rely on a stable
 /// foundation. If anyone bumps `cardCornerRadius` back to 22 or
 /// drops `textSystem` / `codeBackground`, this catches it before the
@@ -30,7 +30,7 @@ struct PaletteTokensTests {
     }
 
     @Test func textSystemMatchesConduitReferenceHex() {
-        // Hex values copied verbatim from litter's `ConduitPalette.swift`
+        // Hex values copied verbatim from upstream's `ConduitPalette.swift`
         // (§B.1 of the audit). If we re-derive them here, this test
         // catches the drift.
         #expect(ConduitPalette.textSystem.light == "#3A4A3F")
@@ -45,7 +45,7 @@ struct PaletteTokensTests {
     // MARK: - Corner-radius shape tokens
 
     @Test func cardCornerRadiusIs14() {
-        // Reduced from 22 → 14 in PR 1 to match litter's flatter
+        // Reduced from 22 → 14 in PR 1 to match upstream's flatter
         // card shape. Hero-style cards that intentionally want the
         // larger radius should use `heroCardCornerRadius`.
         #expect(ConduitTheme.cardCornerRadius == 14)
@@ -68,7 +68,7 @@ struct PaletteTokensTests {
 
     @Test func glassSolidShadowIsHalved() {
         // 0.16 → 0.08 in PR 1. Without this, glass surfaces drop a
-        // "magazine" shadow that fights litter's near-flat treatment.
+        // "magazine" shadow that fights upstream's near-flat treatment.
         #expect(GlassConfig.solid.shadowOpacity == 0.08)
         #expect(GlassConfig.transient.shadowOpacity == 0.08)
     }

@@ -8,7 +8,7 @@ import androidx.compose.ui.unit.TextUnitType
 
 /**
  * Android mirror of iOS `ConduitMarkdownHeadingScaler.swift`
- * (PLAN-LITTER-VISUAL-PARITY PR 4 / audit §A.2.2 / §B.2).
+ * (PLAN-CONDUIT-VISUAL-PARITY PR 4 / audit §A.2.2 / §B.2).
  *
  * Compose's Text path doesn't tokenise markdown into runs the way
  * SwiftUI's `AttributedString(markdown:)` does, so the iOS approach

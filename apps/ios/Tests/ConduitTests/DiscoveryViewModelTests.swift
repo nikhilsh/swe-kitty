@@ -21,7 +21,7 @@ struct DiscoveryViewModelTests {
             mkSaved(name: "Laptop", url: "ws://10.0.0.5:1977"),
         ]
         let discovered = [
-            mkDiscovered(id: "kitty-7777", name: "kitty-7777", host: "10.0.0.99", port: 7777),
+            mkDiscovered(id: "conduit-7777", name: "conduit-7777", host: "10.0.0.99", port: 7777),
         ]
         let merged = DiscoveryMergePolicy.merge(
             saved: saved,
@@ -40,8 +40,8 @@ struct DiscoveryViewModelTests {
             mkSaved(name: "Studio", url: "ws://10.0.0.4:1977"),
         ]
         let discovered = [
-            mkDiscovered(id: "kitty-1977", name: "kitty-1977", host: "10.0.0.4", port: 1977),
-            mkDiscovered(id: "kitty-extra", name: "kitty-extra", host: "10.0.0.5", port: 1977),
+            mkDiscovered(id: "conduit-1977", name: "conduit-1977", host: "10.0.0.4", port: 1977),
+            mkDiscovered(id: "conduit-extra", name: "conduit-extra", host: "10.0.0.5", port: 1977),
         ]
         let merged = DiscoveryMergePolicy.merge(
             saved: saved,
@@ -118,7 +118,7 @@ struct DiscoveryViewModelTests {
         // Fresh install / forgot all saved servers: only the mDNS
         // results show. This is the empty-state path.
         let discovered = [
-            mkDiscovered(id: "kitty-1977", name: "kitty-1977", host: "10.0.0.4", port: 1977),
+            mkDiscovered(id: "conduit-1977", name: "conduit-1977", host: "10.0.0.4", port: 1977),
         ]
         let merged = DiscoveryMergePolicy.merge(
             saved: [],

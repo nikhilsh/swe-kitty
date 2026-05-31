@@ -21,7 +21,7 @@ import Network
 ///   provider's redirect lives in the same browser-app sandbox as the
 ///   user; only a same-device adversary could even attempt to race
 ///   the listener, and on iOS that's effectively the user themselves.
-/// - 600 s timeout matches litter's `callbackTimeout` and the codex
+/// - 600 s timeout matches upstream's `callbackTimeout` and the codex
 ///   CLI's own patience window on the broker side.
 /// - One-shot semantics: the first valid `GET /<path>?...` resolves
 ///   the listener and stops it. A second hit (browser retried) is

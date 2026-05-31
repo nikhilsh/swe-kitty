@@ -3,7 +3,7 @@
 //! `ProjectSessionState` (in `crate::session`) is the *live* session model
 //! the transport keeps in memory while the harness is paired. The moment
 //! the harness exits — or the user switches to a different server — that
-//! state is gone. The litter parity audit item **A.8** says we need a
+//! state is gone. The upstream parity audit item **A.8** says we need a
 //! separate, persistent "Sessions" screen: every thread we've ever seen
 //! across every server, including the ones that have already exited.
 //!

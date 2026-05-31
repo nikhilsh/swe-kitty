@@ -9,7 +9,7 @@ import org.robolectric.RobolectricTestRunner
 
 /**
  * Android mirror of `apps/ios/Tests/ConduitTests/AppearanceStoreTests.swift`
- * `bodyPointSize…` cases (PLAN-LITTER-VISUAL-PARITY PR 2). Locks down:
+ * `bodyPointSize…` cases (PLAN-CONDUIT-VISUAL-PARITY PR 2). Locks down:
  *   - fresh-install default sits at [AppearanceStore.DEFAULT_BODY_POINT_SIZE]
  *   - writes round-trip through SharedPreferences
  *   - out-of-range writes clamp into [AppearanceStore.BODY_POINT_SIZE_RANGE]

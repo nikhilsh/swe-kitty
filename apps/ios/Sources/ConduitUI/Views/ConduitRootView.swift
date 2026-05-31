@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - ConduitRootView
 //
 // Top-level shell for the ConduitUI tree — the single production root
-// after the litter-ui-cutover (PR #119 deleted the legacy `RootView`
+// after the upstream-ui-cutover (PR #119 deleted the legacy `RootView`
 // + its dependents).
 //
 // We branch on `horizontalSizeClass`:
@@ -14,7 +14,7 @@ import SwiftUI
 //     `ConduitUI.SessionsRail` sidebar + `ConduitUI.ProjectView`
 //     detail. Empty detail when nothing's selected.
 //
-// Per PLAN-LITTER-UI Decisions row 3: iPad keeps NavigationSplitView,
+// Per PLAN-CONDUIT-UI Decisions row 3: iPad keeps NavigationSplitView,
 // the iPhone bottom bar is iPhone-shape only. The rail is the
 // sidebar variant of HomeView (no bottom bar; sessions tap drives
 // `SessionStore.switchTo(sessionID:)` which the detail observes).

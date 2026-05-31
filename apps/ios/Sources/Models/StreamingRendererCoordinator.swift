@@ -26,7 +26,7 @@ enum RenderState: Equatable, Sendable {
 }
 
 /// Pure-data state machine driving the streaming-render path
-/// (litter audit A.5). Owns no views and emits no side-effects beyond
+/// (upstream audit A.5). Owns no views and emits no side-effects beyond
 /// updating its own observable storage, so it can be exercised by
 /// unit tests without spinning up a SwiftUI host.
 ///

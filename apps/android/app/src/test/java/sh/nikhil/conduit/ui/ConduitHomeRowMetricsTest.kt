@@ -6,12 +6,12 @@ import org.junit.Test
 /**
  * Android mirror of `apps/ios/Tests/ConduitTests/ConduitHomeRowGeometryTests.swift`.
  *
- * Pins the litter-faithful home row metrics chosen in
- * `PLAN-LITTER-VISUAL-PARITY` PR 3. Before this PR the home row was
+ * Pins the upstream-faithful home row metrics chosen in
+ * `PLAN-CONDUIT-VISUAL-PARITY` PR 3. Before this PR the home row was
  * rendered at `titleSmall` / 16dp icon / 14dp horizontal / 12dp
- * vertical, which produced a list ~2.8× looser than litter's actual
+ * vertical, which produced a list ~2.8× looser than upstream's actual
  * row density (audit §A.1.1 / §A.1.2). If a refactor accidentally
- * restores any of the loose values, the row stops matching litter's
+ * restores any of the loose values, the row stops matching upstream's
  * reference — this catches it.
  */
 class ConduitHomeRowMetricsTest {

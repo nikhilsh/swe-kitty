@@ -3,7 +3,7 @@ import SwiftUI
 @testable import Conduit
 
 /// Pins the heading multipliers used by `ConduitMarkdownHeadingScaler`
-/// (PLAN-LITTER-VISUAL-PARITY PR 4, audit §A.2.2 / §B.2). Before this
+/// (PLAN-CONDUIT-VISUAL-PARITY PR 4, audit §A.2.2 / §B.2). Before this
 /// PR our `Text(AttributedString(markdown:))` rendered `# H1` … `####
 /// H4` at the body size — markdown headers produced no visual
 /// hierarchy. Conduit ramps headings at 1.07× / 1.15× / 1.30× / 1.43×.

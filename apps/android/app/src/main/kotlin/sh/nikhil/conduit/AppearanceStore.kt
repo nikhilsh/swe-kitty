@@ -89,7 +89,7 @@ class AppearanceStore : ViewModel() {
     /**
      * Body point size for the chat typography ramp (Android mirror of
      * iOS [AppearanceStore.bodyPointSize], landed alongside the
-     * Settings → Font Size slider in PLAN-LITTER-VISUAL-PARITY PR 2).
+     * Settings → Font Size slider in PLAN-CONDUIT-VISUAL-PARITY PR 2).
      * Range is [BODY_POINT_SIZE_RANGE]; setters clamp out-of-range
      * writes so corrupted prefs cannot blow out the layout.
      */

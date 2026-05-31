@@ -3,7 +3,7 @@ import UIKit
 
 // MARK: - ConduitChatView
 //
-// Conduit-faithful chat surface. Mirrors litter's ConversationView:
+// Conduit-faithful chat surface. Mirrors upstream's ConversationView:
 //   - Full-width assistant messages (no bubble, body weight, mono
 //     when the user picks the mono body font)
 //   - Right-aligned user messages, flat (no bubble), brand color
@@ -165,7 +165,7 @@ extension ConduitUI {
         /// guarantees we reach the absolute bottom — below the typing
         /// indicator and any trailing padding — so tap-to-bottom and
         /// stream-follow never land a few pixels short.
-        private static let bottomAnchorID = "litter-chat-bottom-anchor"
+        private static let bottomAnchorID = "conduit-chat-bottom-anchor"
 
         /// Scroll to the true bottom, then re-scroll on the next runloop.
         /// A single `scrollTo` can land short while content is still
@@ -1064,7 +1064,7 @@ private struct ConduitStructuredMarkdownView: View {
     }
 
     private static func inlineAttributed(_ raw: String) -> AttributedString {
-        let key = "litter-md-inline:\(raw.hashValue)"
+        let key = "conduit-md-inline:\(raw.hashValue)"
         if let hit = MessageRenderCache.shared.get(itemID: key, revision: 0) {
             return hit
         }
@@ -1188,8 +1188,8 @@ private struct ConduitToolSummaryBlock: View {
 
 // MARK: - Tool card
 
-/// Visual constants for the litter-faithful tool card surface (PLAN-
-/// LITTER-VISUAL-PARITY PR 4, audit §A.2.3 / §A.2.8). Extracted so
+/// Visual constants for the upstream-faithful tool card surface (PLAN-
+/// CONDUIT-VISUAL-PARITY PR 4, audit §A.2.3 / §A.2.8). Extracted so
 /// `ConduitToolCardSurfaceTests` can pin the rebuild — without that pin
 /// the next "tweak this card" PR could quietly restore the glass +
 /// status-tint overlay that the audit called out as too prominent.

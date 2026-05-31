@@ -9,7 +9,7 @@ import UIKit
 // strip into a slim segmented control directly under the title so it
 // reads as sub-nav rather than chrome.
 //
-// Header layout (litter-faithful):
+// Header layout (upstream-faithful):
 //   row 1: ← back · ● claude medium ▼ · ↻ refresh · ⓘ info
 //   row 2: path subtitle (truncated middle, mono)
 //   row 3: Terminal | Chat | Browser segmented picker

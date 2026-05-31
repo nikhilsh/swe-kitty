@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - ConduitAgentLoginSheet
 //
 // Native ConduitUI sign-in surface for per-user agent OAuth. Drives the
-// v2 (litter-pattern) flow via `AgentLoginCoordinator`:
+// v2 (upstream-pattern) flow via `AgentLoginCoordinator`:
 //
 //   1. Tap "Login with Claude" / "Login with ChatGPT"
 //   2. Sheet creates an `AgentLoginCoordinator`, registers it on
@@ -83,7 +83,7 @@ extension ConduitUI {
         private var intro: some View {
             VStack(alignment: .leading, spacing: 6) {
                 sectionLabel("Agent accounts")
-                Text("Sign in to the model providers you want to use through Conduit. Tokens are minted by the broker via the v2 OAuth flow (litter pattern) — credentials never live on your phone.")
+                Text("Sign in to the model providers you want to use through Conduit. Tokens are minted by the broker via the v2 OAuth flow — credentials never live on your phone.")
                     .font(.footnote)
                     .foregroundStyle(ConduitUI.Palette.textMuted.color)
             }

@@ -6,7 +6,7 @@ import SwiftUI
 // + agent chip), action row (appearance / fork / rename), stats grid
 // (six metrics in a 2-col LazyVGrid), and a small server-info card.
 // All rows + cards are ConduitGlass surfaces; the stats are big mono
-// values matching litter's number-forward stat treatment.
+// values matching upstream's number-forward stat treatment.
 
 extension ConduitUI {
 
@@ -48,7 +48,7 @@ extension ConduitUI {
                 .toolbar {
                     if !embedded {
                         ToolbarItem(placement: .confirmationAction) {
-                            // Plain Button per PLAN-LITTER-VISUAL-PARITY
+                            // Plain Button per PLAN-CONDUIT-VISUAL-PARITY
                             // audit §A.3.5 — drop the explicit brand
                             // overlay; the navigation `.tint(...)` below
                             // already paints the link in the accent.

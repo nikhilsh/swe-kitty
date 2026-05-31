@@ -2,7 +2,7 @@
 
 > **Archived 2026-05-23.** Both shipping priorities (Tokio runtime fix and
 > typed session-creation errors) landed on `main`; the iOS-UI convergence
-> priority lives on under `PLAN-LITTER-VISUAL-PARITY.md` now. Current
+> priority lives on under `PLAN-CONDUIT-VISUAL-PARITY.md` now. Current
 > release status lives in [`PLAN.md`](PLAN.md) Status Snapshot.
 
 Date: 2026-05-18 (updated 2026-05-19)

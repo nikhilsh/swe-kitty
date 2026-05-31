@@ -15,7 +15,7 @@ import UIKit
 // providers in May 2026.
 //
 // The replacement is `AgentLoginCoordinator` + `AgentLoginLoopbackServer`,
-// which mirrors litter's pattern: the broker spawns `codex login` /
+// which mirrors upstream's pattern: the broker spawns `codex login` /
 // `claude auth login` on the broker host, the phone hosts a tiny
 // HTTP listener on `127.0.0.1:<port>` to catch the provider's
 // redirect, and ships the captured query string back over WS. See
@@ -44,12 +44,12 @@ import UIKit
 /// Why `conduit://` custom scheme instead of loopback `http://127.0.0.1:1455/auth/callback`
 /// (which is what the codex CLI uses): `ASWebAuthenticationSession`
 /// requires a `callbackURLScheme:` that is a non-http custom scheme —
-/// it won't intercept http loopback URLs (litter works around this by
+/// it won't intercept http loopback URLs (upstream works around this by
 /// running its own loopback HTTP server on the phone, which we
 /// deliberately don't replicate, see §A.4 "Borrow vs diverge"). The
 /// risk this exposes — either provider may reject the custom-scheme
 /// redirect at `/oauth/authorize` — is documented in the PR; if so
-/// we'll fall back to litter's loopback server in a follow-up.
+/// we'll fall back to upstream's loopback server in a follow-up.
 enum OAuthProvider: String, Sendable {
     case openai
     case anthropic

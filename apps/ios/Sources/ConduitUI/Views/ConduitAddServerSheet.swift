@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - ConduitAddServerSheet
 //
 // Native ConduitUI Add-Server sheet. Replaces the legacy
-// `AddServerSheet` (now deleted) with a litter-faithful surface:
+// `AddServerSheet` (now deleted) with a upstream-faithful surface:
 //   - small-caps "WHERE" section label
 //   - .ultraThinMaterial cards with 14pt corners (ConduitCard)
 //   - footnote-sized row titles (matches AgentPickerSheet)

@@ -114,7 +114,7 @@ final class AppearanceStore {
         /// tree. When on, `ConduitApp` renders `ConduitUI.RootView`
         /// instead of the current `RootView`. Off by default for this
         /// PR — follow-up PRs flip the default and delete the old
-        /// views. See `docs/PLAN-LITTER-UI.md`.
+        /// views. See `docs/PLAN-CONDUIT-UI.md`.
         static let experimentalConduitUI = "conduit.experimental.litterUI"
         /// Body point size for the typography ramp
         /// (`ConduitTypography`). User-tunable within
@@ -148,7 +148,7 @@ final class AppearanceStore {
     /// readable; upper bound prevents headings from blowing out the
     /// composer / list rows.
     static let bodyPointSizeRange: ClosedRange<CGFloat> = 12...18
-    /// Default chosen to match litter's `ConduitFont.conversationBodyPointSize`
+    /// Default chosen to match upstream's `ConduitFont.conversationBodyPointSize`
     /// starting value at the centre of the slider's range.
     static let defaultBodyPointSize: CGFloat = 14
 
@@ -180,7 +180,7 @@ final class AppearanceStore {
     /// `ConduitUI` view tree rather than the legacy `RootView`. Default
     /// `false`; users opt in via Settings → Experimental → "Conduit UI
     /// (preview)". See `apps/ios/Sources/ConduitUI/` and
-    /// `docs/PLAN-LITTER-UI.md`.
+    /// `docs/PLAN-CONDUIT-UI.md`.
     var experimentalConduitUI: Bool {
         didSet { defaults.set(experimentalConduitUI, forKey: Keys.experimentalConduitUI) }
     }
@@ -251,7 +251,7 @@ final class AppearanceStore {
         self.collapseTurns = defaults.object(forKey: Keys.collapseTurns) as? Bool ?? false
         self.experimentalNativeTerminal =
             defaults.object(forKey: Keys.experimentalNativeTerminal) as? Bool ?? false
-        // Default flipped to `true` in the litter-ui-cutover (this PR):
+        // Default flipped to `true` in the upstream-ui-cutover (this PR):
         // ConduitUI is now the production tree. The flag is kept around
         // (rather than being deleted entirely) so an emergency revert
         // is one line — flip the default back to `false` and ship a

@@ -2,7 +2,7 @@ import Testing
 import Foundation
 @testable import Conduit
 
-/// Pure-data tests for the LRU render cache (litter audit A.5).
+/// Pure-data tests for the LRU render cache (upstream audit A.5).
 /// Covers the eviction policy contract and the `invalidate` API that
 /// the (not-yet-landed) `ConversationView` integration will call when
 /// an item is reset. Locked in here so the next PR can be reviewed

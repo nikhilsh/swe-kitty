@@ -2,30 +2,30 @@ import SwiftUI
 
 // MARK: - ConduitPalette
 //
-// Clean-room reimplementation of litter's `Models/ConduitPalette.swift`
-// color system. Hex values were extracted from the litter source via
+// Clean-room reimplementation of upstream's `Models/ConduitPalette.swift`
+// color system. Hex values were extracted from the upstream source via
 // the GitHub API (see the ConduitUI.swift header for the license +
 // research notes), then re-typed by hand here so we don't carry over
 // any GPLv3 source. Every named color is a (light, dark) pair, the
-// shape matches litter's `ConduitColor` indirection so callers in the
+// shape matches upstream's `ConduitColor` indirection so callers in the
 // ConduitUI views can write `.litterAccentStrong` etc. without
 // reaching into ConduitPalette.
 //
 // Mapping notes:
-//   - litter's `accentStrong` (00995D / 00FF9C) is litter's brand
+//   - upstream's `accentStrong` (00995D / 00FF9C) is upstream's brand
 //     hue — green. Conduit's brand accent is copper (#CC785C, decided
-//     in PR b22bd63). For visual parity with litter we keep litter's
+//     in PR b22bd63). For visual parity with upstream we keep upstream's
 //     green for `accentStrong`, but use Conduit's copper for the
 //     `brand` accent. Views that previously read `accentStrong` for
 //     the brand color (e.g. the "+" FAB) should switch to `.brand`.
-//   - "accent" in litter is a neutral gray, used for muted icon
+//   - "accent" in upstream is a neutral gray, used for muted icon
 //     buttons. We mirror that here.
 
 extension ConduitUI {
 
     /// Adaptive (light, dark) color pair. Helper that mirrors the
-    /// shape of litter's `ConduitColor` so ConduitUI call sites read
-    /// identically to litter's source.
+    /// shape of upstream's `ConduitColor` so ConduitUI call sites read
+    /// identically to upstream's source.
     struct AdaptiveColor: Sendable {
         let light: Color
         let dark: Color
@@ -68,7 +68,7 @@ extension ConduitUI {
             lightHex: 0x4A4A4A, darkHex: 0xB0B0B0
         )
         /// Conduit's brand "strong" accent (00995D / 00FF9C). Kept for
-        /// surfaces where we want to read as litter (e.g. status
+        /// surfaces where we want to read as upstream (e.g. status
         /// dots, success states). For the *Conduit* brand color
         /// (the "+" FAB, header active state) use `.brand`.
         static let accentStrong = AdaptiveColor(

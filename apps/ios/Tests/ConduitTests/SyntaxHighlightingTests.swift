@@ -5,7 +5,7 @@ import Testing
 /// `ConversationCodeBlock` (fenced code) and `ConversationDiffBlock`
 /// (per-line highlight). Kept SwiftUI-free on purpose — the HighlightSwift
 /// view wrappers can stall the SPM resolve, but this contract is what the
-/// renderer reads and what the litter-parity audit calls out as v1
+/// renderer reads and what the upstream-parity audit calls out as v1
 /// (`docs/PLAN-2026-05-19.md` "Code block view with syntax highlighting").
 ///
 /// Test surface mirrors the call sites:

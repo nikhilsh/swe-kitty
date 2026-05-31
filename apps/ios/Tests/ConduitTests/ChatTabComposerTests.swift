@@ -2,7 +2,7 @@ import Testing
 @testable import Conduit
 
 /// Composer placeholder + Unicode ellipsis assertions. The legacy
-/// `ChatTab` view was deleted in the litter-ui-cutover; the same
+/// `ChatTab` view was deleted in the upstream-ui-cutover; the same
 /// "Message <agent>…" rule is now expressed by
 /// `ConduitUI.ChatViewModel.composerPlaceholder(forAgent:)`. Tests are
 /// retargeted onto that surface so the rule keeps its anti-regression
@@ -32,7 +32,7 @@ struct ChatTabComposerTests {
     }
 
     @Test func placeholderUsesUnicodeHorizontalEllipsis() {
-        // litter uses the single-codepoint "…" (U+2026), not three
+        // upstream uses the single-codepoint "…" (U+2026), not three
         // ASCII dots. The visual is subtly different and the spec
         // calls it out — make sure we don't regress to "...".
         let placeholder = ConduitUI.ChatViewModel.composerPlaceholder(forAgent: "claude")

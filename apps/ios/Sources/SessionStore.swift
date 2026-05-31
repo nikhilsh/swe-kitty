@@ -1336,7 +1336,7 @@ final class SessionStore {
         return string
     }
 
-    // MARK: - Agent OAuth v2 (litter pattern) transport
+    // MARK: - Agent OAuth v2 (upstream pattern) transport
     //
     // The v2 flow (docs/PLAN-AGENT-OAUTH.md "Approach v2") drives the
     // OAuth dance broker-side: the iOS app sends a `start_agent_login`
@@ -2073,7 +2073,7 @@ final class SessionStore {
     ///
     /// Lives here (not on a coordinator) so the multi-thread switcher
     /// in `ThreadSwitcherSheet` and any future "jump to thread" deep
-    /// link have one place to call. Mirrors litter's
+    /// link have one place to call. Mirrors upstream's
     /// `ConversationThreadSwitcher` semantics. PR H owns the reducer
     /// path; this is the navigation-level setter only.
     func switchTo(sessionID: String) {

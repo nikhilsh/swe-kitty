@@ -3,7 +3,7 @@ import SwiftUI
 @testable import Conduit
 
 /// `ios-splash-polish` — pure-data contract for the cold-start splash.
-/// Mirrors PR B's `ProjectHeaderModel` and the litter-multi-thread
+/// Mirrors PR B's `ProjectHeaderModel` and the upstream-multi-thread
 /// `InSessionBottomBarModel` pattern: lift timing + dismiss-trigger
 /// logic out of the SwiftUI view so it can be pinned without a host.
 ///

@@ -4,8 +4,8 @@ import SwiftUI
 //
 // Sectioned-settings row: leading SF Symbol in brand tint, title +
 // optional subtitle, trailing chevron / value / toggle. Structurally
-// mirrors litter's SettingsView row, our SettingsToggleRow shape, and
-// litter's NavLink rows.
+// mirrors upstream's SettingsView row, our SettingsToggleRow shape, and
+// upstream's NavLink rows.
 //
 // Three variants:
 //   - `.navigation(...)` - chevron trailing

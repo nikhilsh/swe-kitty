@@ -1,5 +1,5 @@
 // Package oauth implements the broker side of the v2 agent-login flow
-// described in docs/PLAN-AGENT-OAUTH.md "Approach v2 — litter-faithful
+// described in docs/PLAN-AGENT-OAUTH.md "Approach v2 — upstream-faithful
 // server-side login".
 //
 // The package owns the lifecycle of an active CLI login subprocess —
@@ -55,7 +55,7 @@ const (
 )
 
 // loginTimeout is how long the broker keeps the CLI subprocess alive
-// waiting for a `agent_login_callback`. 10 min mirrors litter's own
+// waiting for a `agent_login_callback`. 10 min mirrors upstream's own
 // callback timeout and the codex CLI's empirical patience window.
 const loginTimeout = 10 * time.Minute
 

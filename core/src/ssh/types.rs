@@ -1,6 +1,6 @@
 //! Public + crate-visible types for the SSH-bootstrap flow.
 //!
-//! Smaller than litter's equivalent because we drive a single remote
+//! Smaller than upstream's equivalent because we drive a single remote
 //! command (`scripts/remote-bootstrap.sh`) over a single transport
 //! (WebSocket on 1977 inside the docker container) — no shell detection,
 //! no app-server proxy / WebSocket-tunnel branching, no binary

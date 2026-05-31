@@ -4,10 +4,10 @@ import SwiftUI
 //
 // A small capsule chip with optional leading icon. Used for agent
 // labels ("claude", "medium"), tab segments, and inline metadata
-// badges. Modeled structurally after litter's ProjectChip /
+// badges. Modeled structurally after upstream's ProjectChip /
 // HomeModelChip; visual decisions:
 //   - Capsule background using ConduitGlass pill config
-//   - Mono caption text (matches litter's badge typography)
+//   - Mono caption text (matches upstream's badge typography)
 //   - Optional `tint`: when set, the capsule background carries the
 //     hue at low opacity (per-agent tinting)
 

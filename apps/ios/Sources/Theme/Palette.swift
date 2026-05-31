@@ -12,7 +12,7 @@ enum ConduitPalette {
 
     static let accent          = Pair(light: "#4A4A4A", dark: "#B0B0B0")
     // Brand accent — switched from green (#00A86B / #34C759) to
-    // Anthropic copper to match the litter visual reference (the
+    // Anthropic copper to match the upstream visual reference (the
     // entire UI in their screenshots tints orange — badges, +,
     // user bubble, status, stat numbers). Per-agent tints below
     // (`codexAccent`, `hermesAccent`, …) live alongside.
@@ -49,8 +49,8 @@ enum ConduitPalette {
     static let textMuted       = Pair(light: "#9E9E9E", dark: "#555555")
     static let textBody        = Pair(light: "#2D2D2D", dark: "#E0E0E0")
     /// Muted-green tone used by handoff / system-emitted bubble rendering
-    /// (mirrors litter's `ConduitPalette.textSystem`). Added in the
-    /// PLAN-LITTER-VISUAL-PARITY PR 1 foundation pass so non-ConduitUI
+    /// (mirrors upstream's `ConduitPalette.textSystem`). Added in the
+    /// PLAN-CONDUIT-VISUAL-PARITY PR 1 foundation pass so non-ConduitUI
     /// surfaces stop falling back to ad-hoc opacity tricks.
     static let textSystem      = Pair(light: "#3A4A3F", dark: "#C6D0CA")
     static let textOnAccent    = Pair(light: "#FFFFFF", dark: "#0D0D0D")
@@ -58,7 +58,7 @@ enum ConduitPalette {
     static let surfaceLight    = Pair(light: "#E5E5EA", dark: "#2A2A2A")
     static let border          = Pair(light: "#D1D1D6", dark: "#333333")
     static let separator       = Pair(light: "#E0E0E0", dark: "#1E1E1E")
-    /// Background tone for inline code / code blocks (mirrors litter's
+    /// Background tone for inline code / code blocks (mirrors upstream's
     /// `ConduitPalette.codeBackground`). Until PR 1 we used
     /// `surface.opacity(0.72)` ad-hoc, which read differently per scheme.
     static let codeBackground  = Pair(light: "#F0F0F5", dark: "#111111")
@@ -69,7 +69,7 @@ enum ConduitPalette {
 }
 
 extension Color {
-    /// Hex initializer mirroring litter's `Color(hex:)`. Accepts `#RRGGBB`
+    /// Hex initializer mirroring upstream's `Color(hex:)`. Accepts `#RRGGBB`
     /// or `RRGGBB`; ignores non-hex characters.
     init(hex: String) {
         let cleaned = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)

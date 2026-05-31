@@ -2,8 +2,8 @@ import Testing
 import SwiftUI
 @testable import Conduit
 
-/// Pins the home row metrics. Typography stays litter-faithful
-/// (`PLAN-LITTER-VISUAL-PARITY` PR 3, audit §A.1.1) — a refactor that
+/// Pins the home row metrics. Typography stays upstream-faithful
+/// (`PLAN-CONDUIT-VISUAL-PARITY` PR 3, audit §A.1.1) — a refactor that
 /// restores the old loose `.title3.bold` row would reintroduce the audit
 /// drift. The row chrome is the styling-polish card: the status dot now
 /// lives INSIDE a contained glass card (it used to float in the screen

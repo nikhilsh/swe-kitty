@@ -5,7 +5,7 @@ struct ConduitApp: App {
     @State private var store = SessionStore()
     @State private var appearance = AppearanceStore()
 
-    // Streaming render plumbing (litter audit A.5):
+    // Streaming render plumbing (upstream audit A.5):
     //   - `StreamingRendererCoordinator.shared` is `@Observable`, so it's
     //     injected through `.environment(...)` below — that's what
     //     subscribes the SwiftUI view tree to per-id state changes.

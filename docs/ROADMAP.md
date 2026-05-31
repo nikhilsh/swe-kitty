@@ -44,7 +44,7 @@ Device-bug **#28** ("main-menu buttons missing glass") is addressed on both
 platforms in #263/#264, pending device verification.
 
 > **Note:** `docs/MOBILE-PORT-MATRIX.md` currently exists only on the
-> unmerged worktree branch `docs-litter-progress` and should be reconciled to
+> unmerged worktree branch `docs-upstream-progress` and should be reconciled to
 > `main` once that branch merges.
 
 ---

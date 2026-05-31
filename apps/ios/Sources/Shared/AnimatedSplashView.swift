@@ -4,7 +4,7 @@ import UIKit
 /// Pure-data description of the cold-start splash. Lifted out of the
 /// SwiftUI view so timing + dismiss-trigger logic can be unit-tested
 /// without a host controller. Mirrors PR B's `ProjectHeaderModel`
-/// pattern (and `InSessionBottomBarModel` from the litter-multi-thread
+/// pattern (and `InSessionBottomBarModel` from the upstream-multi-thread
 /// PR): the view is dumb, the model is the contract.
 ///
 /// Audit item A.10 — iOS-only here, Android polish follows in a

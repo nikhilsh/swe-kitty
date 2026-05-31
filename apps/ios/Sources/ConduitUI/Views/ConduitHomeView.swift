@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - ConduitHomeView
 //
-// Conduit-faithful home screen. Mirrors litter's HomeDashboardView in
+// Conduit-faithful home screen. Mirrors upstream's HomeDashboardView in
 // structure (top row with chrome icons, server pill row, sessions list,
 // bottom action bar with mic/+/search) but uses our own data layer.
 //
@@ -64,7 +64,7 @@ extension ConduitUI {
                     .navigationDestination(isPresented: $showSessionsHistory) {
                         // Sessions-history surface is the legacy
                         // `SessionsScreen` (now in `Sources/Shared/`).
-                        // A litter-faithful rebuild is a follow-up;
+                        // A upstream-faithful rebuild is a follow-up;
                         // for now we expose the existing one as a
                         // navigation push so the affordance keeps
                         // working post-cutover.
@@ -325,7 +325,7 @@ extension ConduitUI {
                 // can carry `.swipeActions` for the delete affordance —
                 // SwiftUI only honours swipe gestures on List/Form rows.
                 // `listStyle(.plain)` + clear backgrounds preserve the
-                // litter-faithful flat look from the prior layout.
+                // upstream-faithful flat look from the prior layout.
                 List {
                     ForEach(rows) { row in
                         HomeRowView(row: row)
@@ -377,12 +377,12 @@ extension ConduitUI {
         }
 
         private var bottomBar: some View {
-            // PLAN-LITTER-VISUAL-PARITY PR 3, audit §A.1.5: litter wraps
+            // PLAN-CONDUIT-VISUAL-PARITY PR 3, audit §A.1.5: upstream wraps
             // the bottom bar in TWO `GlassMorphContainer`s so the `+`
             // can morph into a composer without the surrounding
             // mic / search merging into the same glass blob. All three
             // controls drop to a single 44pt — the prior 56pt copper-
-            // outlined plus was over-built relative to litter.
+            // outlined plus was over-built relative to upstream.
             HStack(spacing: 14) {
                 ConduitUI.GlassMorphContainer(spacing: 14) {
                     ConduitUI.PillButton(systemImage: "mic.fill", size: 44, tint: neon.accent) {
@@ -429,7 +429,7 @@ private struct PendingSessionDelete: Identifiable, Equatable {
 /// Row metrics extracted as named constants so `ConduitHomeRowGeometry
 /// Tests` can pin them. Changing any of these silently re-grows / re-
 /// shrinks the home list, which is exactly the drift the rebuild PR
-/// is trying to stop. Typography (title/subtitle) stays litter-faithful
+/// is trying to stop. Typography (title/subtitle) stays upstream-faithful
 /// (audit §A.1.1); the row chrome is a contained glass card (styling
 /// polish — the prior flat row left the status dot floating outside the
 /// row's content to the left and read as tall/empty).
@@ -468,7 +468,7 @@ private struct HomeRowView: View {
                 .frame(width: HomeRowMetrics.indicatorSize, height: HomeRowMetrics.indicatorSize)
             VStack(alignment: .leading, spacing: 3) {
                 // Prominent friendly name. 13pt semibold per audit §A.1.1
-                // (litter-faithful density); single line, truncating.
+                // (upstream-faithful density); single line, truncating.
                 Text(row.title)
                     .font(neon.sans(HomeRowMetrics.titlePointSize).weight(.semibold))
                     .foregroundStyle(neon.text)

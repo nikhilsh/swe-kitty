@@ -14,7 +14,7 @@ package sh.nikhil.conduit.ui
  *
  * Why this is a separate file instead of inline in [ChatPage]:
  * PLAN-2026-05-19 calls out "Code block view with syntax highlighting
- * (HighlightSwift on iOS, Prism4j on Android -- same libraries litter
+ * (HighlightSwift on iOS, Prism4j on Android -- same libraries upstream
  * uses)" as the v1 conversation parity gap. Shipping the detector
  * first lets the Rust core's classifier reuse the same canonical id
  * set (e.g. `"ts" -> "typescript"`) without anyone having to read the
@@ -29,7 +29,7 @@ object SyntaxLanguage {
 
     /**
      * Languages we explicitly recognize. Anything else falls back to
-     * monospace plain text in the renderer. The set tracks litter's
+     * monospace plain text in the renderer. The set tracks upstream's
      * Prism4j configuration: the highlight.js / Prism core langs plus
      * the ones our agent traffic actually carries (Swift / Go /
      * Kotlin / Rust / Python / TS / JS / Markdown).

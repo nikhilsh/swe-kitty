@@ -2,8 +2,8 @@ import Testing
 import SwiftUI
 @testable import Conduit
 
-/// Pins the litter-faithful tool-card surface chosen in
-/// `PLAN-LITTER-VISUAL-PARITY` PR 4. Before this PR `ConduitToolCard`
+/// Pins the upstream-faithful tool-card surface chosen in
+/// `PLAN-CONDUIT-VISUAL-PARITY` PR 4. Before this PR `ConduitToolCard`
 /// stacked `litterGlassRoundedRect(tint: statusTint.opacity(0.20))`
 /// over nested `ConduitLabeledOutputBlock` glass — once a code or diff
 /// sub-block landed inside, you got card-inside-card-inside-card

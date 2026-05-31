@@ -43,7 +43,7 @@ struct ServerPill: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            // PLAN-LITTER-VISUAL-PARITY PR 5, audit §A.5/A.4: drop the
+            // PLAN-CONDUIT-VISUAL-PARITY PR 5, audit §A.5/A.4: drop the
             // glass-capsule fill in favour of a transparent
             // background + accent / muted stroke. The prior treatment
             // gave every pill a "saved chip" look and made it hard to
@@ -88,7 +88,7 @@ struct ServerPill: View {
 }
 
 /// Stroke metrics for `ServerPill`'s active vs inactive treatment
-/// (PLAN-LITTER-VISUAL-PARITY PR 5, audit §A.5/A.4). Extracted so
+/// (PLAN-CONDUIT-VISUAL-PARITY PR 5, audit §A.5/A.4). Extracted so
 /// `ServerPillStrokeTests` can pin the values — the prior glass-
 /// capsule fill couldn't distinguish active vs idle at a glance, and
 /// the next pass at "tightening" the pill could quietly drop these

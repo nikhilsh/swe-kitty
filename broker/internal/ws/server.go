@@ -49,7 +49,7 @@ type Server struct {
 	// spawn path falls back to the legacy global host-mirror.
 	Credentials *credentials.Store
 	// OAuth drives the v2 server-side login flow (PLAN-AGENT-OAUTH.md
-	// "Approach v2 — litter-faithful"). Spawns `codex login` or
+	// "Approach v2 — upstream-faithful"). Spawns `codex login` or
 	// `claude auth login` on the broker host, ferries the phone's
 	// captured `?code=...` query string to the CLI's loopback. Nil-safe:
 	// when nil, start_agent_login / agent_login_callback /
@@ -647,7 +647,7 @@ func (c *client) handleText(payload []byte) {
 		c.handleSetAgentCredentials(env.Provider, env.Kind, env.Credential)
 	case "start_agent_login":
 		// v2 agent-login entry point (PLAN-AGENT-OAUTH.md "Approach
-		// v2 — litter-faithful"). Spawns the CLI's own login
+		// v2 — upstream-faithful"). Spawns the CLI's own login
 		// subcommand on the broker host, captures the authorize URL,
 		// and emits an `agent_login_url` view_event so the phone can
 		// open the URL in ASWebAuthenticationSession / CustomTabs.

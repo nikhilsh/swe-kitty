@@ -19,8 +19,8 @@ import SwiftUI
 /// downstream pick up the user's chosen family + base size.
 ///
 /// Heading scale (1.07× / 1.15× / 1.30× / 1.43× of base) is
-/// extracted from litter's `MessageBubbleView` markdown rendering —
-/// see `docs/PLAN-LITTER-VISUAL-PARITY.md` §B.2.
+/// extracted from upstream's `MessageBubbleView` markdown rendering —
+/// see `docs/PLAN-CONDUIT-VISUAL-PARITY.md` §B.2.
 enum ConduitTypography {
 
     /// Maps `AppearanceStore.fontFamily` to the SwiftUI design enum.
@@ -89,7 +89,7 @@ enum ConduitTypography {
     /// Always-monospaced caption — for paths, SHAs, branch labels.
     /// Bypasses the user's family preference because these strings
     /// are unreadable in serif and lose alignment in proportional
-    /// system. Mirror of litter's mono-locked metadata rows.
+    /// system. Mirror of upstream's mono-locked metadata rows.
     static func monoCaption() -> Font {
         .system(.caption, design: .monospaced)
     }

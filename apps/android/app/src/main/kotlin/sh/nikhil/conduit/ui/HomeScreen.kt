@@ -98,7 +98,7 @@ fun HomeScreen(
         // on the title — undiscoverable in practice (user feedback
         // 2026-05-23). Restore a visible gear in the leading slot; the
         // long-press stays as a secondary path. Trailing keeps the
-        // sessions-drawer affordance (litter has no remote multiplexer
+        // sessions-drawer affordance (upstream has no remote multiplexer
         // so this is conduit-specific).
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -440,7 +440,7 @@ fun HomeScreen(
 private data class SessionDeleteTarget(val id: String, val title: String)
 
 /**
- * Row metrics for the litter-faithful home list, mirror of iOS
+ * Row metrics for the upstream-faithful home list, mirror of iOS
  * `HomeRowMetrics`. Extracted as named constants so
  * `ConduitHomeRowMetricsTest` can pin them — silently regrowing any of
  * these would re-introduce the audit drift PR 3 is trying to stop

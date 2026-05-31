@@ -5,7 +5,7 @@
 #   ConduitCore.xcframework            consumed by xcodegen via project.yml
 #   Sources/ConduitCore.swift          UniFFI-generated Swift API
 #
-# Triple coverage (litter pattern):
+# Triple coverage (upstream pattern):
 #   - aarch64-apple-ios       device       (one slice)
 #   - aarch64-apple-ios-sim   sim arm64    \ lipo'd into one slice
 #   - x86_64-apple-ios        sim x86_64   /

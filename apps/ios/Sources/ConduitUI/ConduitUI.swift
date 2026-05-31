@@ -2,11 +2,11 @@ import SwiftUI
 
 // MARK: - ConduitUI namespace
 //
-// The ConduitUI tree is the litter-faithful UI rebuild — a parallel view
+// The ConduitUI tree is the upstream-faithful UI rebuild — a parallel view
 // surface that runs entirely off the existing `SessionStore` +
 // `AppearanceStore` data layer. We accumulated ~30 PRs of drift on the
 // legacy `RootView` / `HomeView` and the visual feel had stopped
-// resembling litter; the cleanest path forward was to retire those
+// resembling upstream; the cleanest path forward was to retire those
 // views (kept on disk, but behind `experimentalConduitUI` defaulting
 // OFF) and rebuild from scratch.
 //
@@ -16,16 +16,16 @@ import SwiftUI
 // (`HomeView`, `ProjectView`, `SettingsSheet`, etc.) — both trees ship
 // in the same binary while the flag-flip is staged.
 //
-// License posture: litter (`https://github.com/dnakov/litter`) is
+// License posture: upstream (`https://github.com/dnakov/upstream`) is
 // GPLv3 with an App Store additional permission (LICENSE checked
-// 2026-05-22 via `gh api repos/dnakov/litter/contents/LICENSE`).
-// Because Conduit is not GPLv3, we cannot copy litter source into
+// 2026-05-22 via `gh api repos/dnakov/upstream/contents/LICENSE`).
+// Because Conduit is not GPLv3, we cannot copy upstream source into
 // this tree. Every visual decision below is a clean-room
-// reimplementation: we studied litter's structural layout (Views,
+// reimplementation: we studied upstream's structural layout (Views,
 // Models/ConduitPalette, Extensions glass modifiers) via the
-// `dnakov/litter` GitHub API + raw.githubusercontent.com source
+// `dnakov/upstream` GitHub API + raw.githubusercontent.com source
 // reads, then wrote our own SwiftUI. File-level headers document
-// the litter file each new view structurally mirrors.
+// the upstream file each new view structurally mirrors.
 
 enum ConduitUI {
     /// Marker so other modules can detect the namespace exists at

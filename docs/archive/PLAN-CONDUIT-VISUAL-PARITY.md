@@ -7,7 +7,7 @@
 Date: 2026-05-22 (status block updated 2026-05-23)
 Author: research agent (audit only, no code changes)
 Reference: `github.com/dnakov/litter` @ main (Swift sources fetched 2026-05-22)
-Prior plan: `docs/PLAN-LITTER-UI.md` (staged structural rebuild — Stage 6 landed; visual drift remains)
+Prior plan: `docs/PLAN-CONDUIT-UI.md` (staged structural rebuild — Stage 6 landed; visual drift remains)
 Mobile port spec: `docs/MOBILE-PORT-MATRIX.md`
 
 ## Status (2026-05-23): rebuild plan shipped
@@ -492,7 +492,7 @@ Conduit's `accentStrong` is `#00FF9C` neon green — their brand. Ours is `#CC78
 
 ### F.2 — Terminal + Browser tabs under the chat area
 
-Conduit has only chat. We have Terminal / Chat / Browser. User has explicitly said keep tabs (per `docs/PLAN-LITTER-UI.md` decisions §1). The hairline-segmented-control treatment in Section D minimizes the visual cost, but the tabs themselves are non-negotiable — they are the main idea per session for conduit.
+Conduit has only chat. We have Terminal / Chat / Browser. User has explicitly said keep tabs (per `docs/PLAN-CONDUIT-UI.md` decisions §1). The hairline-segmented-control treatment in Section D minimizes the visual cost, but the tabs themselves are non-negotiable — they are the main idea per session for conduit.
 
 ### F.3 — Multi-agent picker + per-agent accents
 

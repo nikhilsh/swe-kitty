@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - ConduitGlass
 //
-// Glass primitives matching litter's Extensions.swift glass modifiers
+// Glass primitives matching upstream's Extensions.swift glass modifiers
 // (`GlassRectModifier`, `GlassRoundedRectModifier`, `GlassCapsuleModifier`,
 // `GlassCircleModifier`). Thin wrappers around iOS 26's `.glassEffect(_:in:)`
 // — the app's deployment target is 26.0, so there's no material+stroke
@@ -63,7 +63,7 @@ extension ConduitUI {
 }
 
 extension ConduitUI {
-    /// App-wide backdrop for the litter surfaces. A flat fill gives
+    /// App-wide backdrop for the upstream surfaces. A flat fill gives
     /// Liquid Glass nothing to refract, so the buttons read as flat dark
     /// discs (#28). We keep the dark `surface` base but float a few soft
     /// brand-tinted glows behind the header and bottom bar, so the glass
@@ -128,8 +128,8 @@ extension View {
 
 extension View {
     /// Conduit-style rounded-rect glass surface. Default corner radius
-    /// dropped from 16 → 14 in PLAN-LITTER-VISUAL-PARITY PR 2 to match
-    /// litter's flatter card shape (audit §A.3.2 / §B.3); hero surfaces
+    /// dropped from 16 → 14 in PLAN-CONDUIT-VISUAL-PARITY PR 2 to match
+    /// upstream's flatter card shape (audit §A.3.2 / §B.3); hero surfaces
     /// that want the previous chunkier radius pass an explicit value.
     func litterGlassRoundedRect(
         cornerRadius: CGFloat = 14,

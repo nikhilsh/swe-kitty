@@ -3,11 +3,11 @@ import SwiftUI
 
 /// Heading scale for assistant-rendered markdown inside the chat.
 /// Conduit ramps headings at `1.07× / 1.15× / 1.30× / 1.43×` of the
-/// base body size (see `PLAN-LITTER-VISUAL-PARITY` §B.2 / audit
+/// base body size (see `PLAN-CONDUIT-VISUAL-PARITY` §B.2 / audit
 /// §A.2.2). Before this PR our `Text(AttributedString(markdown:))`
 /// rendered `# H1` … `#### H4` at the body size — markdown headers
 /// produced no visual hierarchy at all, which is the single biggest
-/// difference between our transcripts and litter's.
+/// difference between our transcripts and upstream's.
 ///
 /// Kept as a pure-function module (no SwiftUI view) so it's trivially
 /// unit-testable and so the cache invariants in `ConduitMarkdownBlock`
@@ -16,7 +16,7 @@ import SwiftUI
 enum ConduitMarkdownHeadingScaler {
 
     /// Multiplier for `# h1` … `#### h4`. h5/h6 stay at body (1.0) —
-    /// in practice litter's transcripts never go deeper than h4 and
+    /// in practice upstream's transcripts never go deeper than h4 and
     /// six distinct sizes would make the chat read like a magazine
     /// spread.
     static let multipliers: [Int: CGFloat] = [

@@ -64,7 +64,7 @@ import sh.nikhil.conduit.SavedServer
 import sh.nikhil.conduit.SessionStore
 
 /**
- * Settings — sectioned IA matching the litter reference: Support /
+ * Settings — sectioned IA matching the upstream reference: Support /
  * Appearance / Font / Conversation / Servers / Harness / About /
  * Experimental. Adding a server lives in [AddServerSheet], opened via
  * the "Add server" CTA inside the Servers section.
@@ -168,7 +168,7 @@ fun SettingsScreen(
             }
 
             // Font Size — Android mirror of iOS ConduitSettingsView's
-            // Font Size slider (PLAN-LITTER-VISUAL-PARITY PR 2). Range
+            // Font Size slider (PLAN-CONDUIT-VISUAL-PARITY PR 2). Range
             // and default live in [AppearanceStore]; the setter
             // clamps so out-of-range writes can't blow out layout.
             SettingsSection("Font Size") {

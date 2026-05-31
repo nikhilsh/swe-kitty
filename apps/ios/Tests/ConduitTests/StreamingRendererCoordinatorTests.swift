@@ -1,7 +1,7 @@
 import Testing
 @testable import Conduit
 
-/// Pure-data tests for the streaming render coordinator (litter audit
+/// Pure-data tests for the streaming render coordinator (upstream audit
 /// A.5). The state machine is intentionally tiny so the tests can
 /// codify the full transition table — no SwiftUI host, no broker, no
 /// async — and the next PR (the `ConversationView` integration) can

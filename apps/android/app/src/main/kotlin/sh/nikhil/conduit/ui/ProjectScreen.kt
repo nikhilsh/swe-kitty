@@ -530,7 +530,7 @@ private fun HeaderCircleButton(icon: ImageVector, contentDescription: String, on
 }
 
 /**
- * Pure-data description of the litter Stage 2 Android header. Lifted
+ * Pure-data description of the upstream Stage 2 Android header. Lifted
  * out of the `ProjectScreen` composable so unit tests can assert the
  * three-row structure and the compound-dropdown contents without
  * standing up a Compose host. Mirrors `ProjectHeaderModel` in
@@ -543,7 +543,7 @@ data class ProjectHeaderModel(
     val captionLabel: String,
 ) {
     /** Three rows, in render order — matches iOS and the spec in
-     *  `docs/PLAN-LITTER-UI.md` Stage 2. */
+     *  `docs/PLAN-CONDUIT-UI.md` Stage 2. */
     enum class Row { Controls, Path, TabPicker }
 
     /** Centered compound-dropdown payload — asserts the one-compound-

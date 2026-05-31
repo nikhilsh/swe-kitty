@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Centralised semantic tokens for the app. Replaces the original ad-hoc
-/// enum in `DesignSystem.swift`. Mirrors litter's `ConduitTheme` shape:
+/// enum in `DesignSystem.swift`. Mirrors upstream's `ConduitTheme` shape:
 /// adaptive colors + corner radii + a background gradient builder.
 enum ConduitTheme {
     // MARK: - Adaptive colours
@@ -50,7 +50,7 @@ enum ConduitTheme {
     static var textSecondary: Color { ConduitPalette.textSecondary.color }
     static var textMuted: Color     { ConduitPalette.textMuted.color }
     static var textBody: Color      { ConduitPalette.textBody.color }
-    /// System/handoff text tone added in PLAN-LITTER-VISUAL-PARITY PR 1
+    /// System/handoff text tone added in PLAN-CONDUIT-VISUAL-PARITY PR 1
     /// (muted-green) so handoff/system rows can stop opacity-tinting
     /// `textSecondary` ad-hoc.
     static var textSystem: Color    { ConduitPalette.textSystem.color }
@@ -71,8 +71,8 @@ enum ConduitTheme {
 
     // MARK: - Shape tokens
 
-    /// Settings / list-panel card radius. PLAN-LITTER-VISUAL-PARITY
-    /// PR 1 reduced this from 22 → 14 to match litter's flatter card
+    /// Settings / list-panel card radius. PLAN-CONDUIT-VISUAL-PARITY
+    /// PR 1 reduced this from 22 → 14 to match upstream's flatter card
     /// shape; hero-style cards that intentionally want the larger
     /// radius should reach for [heroCardCornerRadius] instead.
     static let cardCornerRadius: CGFloat = 14
@@ -82,15 +82,15 @@ enum ConduitTheme {
     /// use [cardCornerRadius] = 14.
     static let heroCardCornerRadius: CGFloat = 22
     static let smallCornerRadius: CGFloat = 14
-    /// Hard-edged inline tag / status chip (matches litter).
+    /// Hard-edged inline tag / status chip (matches upstream).
     static let tagCornerRadius: CGFloat = 4
     /// Fenced + inline code block radius.
     static let codeBlockCornerRadius: CGFloat = 10
 
     // MARK: - Background gradient
 
-    /// Flat `surface` background (PLAN-LITTER-VISUAL-PARITY PR 1
-    /// dropped the brightness-shifted 3-stop gradient — litter renders
+    /// Flat `surface` background (PLAN-CONDUIT-VISUAL-PARITY PR 1
+    /// dropped the brightness-shifted 3-stop gradient — upstream renders
     /// a flat surface and the extra shimmer added noise without
     /// value). Returned as a `LinearGradient` with identical stops so
     /// call sites that expect the gradient type compile unchanged; the

@@ -33,7 +33,7 @@ packages:
     url: https://github.com/pointfreeco/swift-snapshot-testing
     from: 1.17.0
   HighlightSwift:
-    # SwiftUI wrapper around highlight.js. Matches litter's code-block
+    # SwiftUI wrapper around highlight.js. Matches upstream's code-block
     # rendering so fenced ``` swift / ts / py / ... blocks and diff
     # lines pick up syntax color instead of flat monospace. See
     # docs/PLAN-2026-05-19.md "Code block view with syntax

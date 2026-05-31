@@ -7,10 +7,10 @@ import SwiftUI
 // direction, but implement it with compile-safe material layering so CI and
 // release builds stay shippable.
 //
-// Stage 6 polish (litter):
+// Stage 6 polish (upstream):
 //   - Each modifier's `Material` is chosen by intent rather than uniformly
 //     `.thinMaterial`. Solid cards (`glassRoundedRect`, `glassCapsule`)
-//     use `.regularMaterial` so they read closer to litter's chunky
+//     use `.regularMaterial` so they read closer to upstream's chunky
 //     surfaces; transient affordances (`glassCircle` for floating FAB-ish
 //     buttons) stay on `.ultraThinMaterial` so they melt into whatever
 //     scrolls underneath.
@@ -23,8 +23,8 @@ import SwiftUI
 /// configurations without running SwiftUI.
 ///
 /// `shadowOpacity` values were halved (0.16 → 0.08) in
-/// `PLAN-LITTER-VISUAL-PARITY` PR 1 — the prior "magazine drop shadow"
-/// under every glass surface read heavy against litter's nearly-flat
+/// `PLAN-CONDUIT-VISUAL-PARITY` PR 1 — the prior "magazine drop shadow"
+/// under every glass surface read heavy against upstream's nearly-flat
 /// reference. `isInteractive` was added so the capsule path can opt
 /// into iOS 26's `.glassEffect(.regular.interactive(), …)` modifier
 /// (Liquid Glass press-deformation) without a separate config field.

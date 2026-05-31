@@ -634,7 +634,7 @@ class SessionStore : ViewModel(), ConduitDelegate {
     /**
      * Fork — create a new session with the same agent + branch, seed
      * the new conversation with a hand-off note. Fully client-side;
-     * docs/PLAN-LITTER-UI.md Stage 3 flagged a Rust `fork_session`
+     * docs/PLAN-CONDUIT-UI.md Stage 3 flagged a Rust `fork_session`
      * UDL method as a future optimization, but client-side is enough.
      */
     /**

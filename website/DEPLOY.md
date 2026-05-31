@@ -1,4 +1,4 @@
-# Deploying swe-kitty Website
+# Deploying Conduit Website
 
 This site is a static Next.js export deployed to Fyra.
 
@@ -26,7 +26,7 @@ Deploy from `out/`, not from the `website/` source directory.
 Current slug:
 
 ```sh
-swe-kitty
+conduit
 ```
 
 Set `custom_domain` in `.deploy.yaml` once you know the hostname you want to attach.

@@ -11,7 +11,7 @@
 
 - **Status Snapshot** below is the current reality and should drive execution.
 - **Part A onward** preserves the detailed target architecture and the original (2026-04) bootstrap plan, including framing that referenced upstream `swe-swe` as the harness for dev work. That dependency is gone — conduit ships its own `conduit-broker` binary now — but the historical text is preserved verbatim below so the design rationale isn't lost. The newer execution layer is [`PLAN-2026-05-19.md`](PLAN-2026-05-19.md).
-- If there is any mismatch, treat the Status Snapshot + newer focused docs (`RELEASE.md`, `PLAN-2026-05-19.md`, `PLAN-LITTER-VISUAL-PARITY.md`, `PLAN-AGENT-OAUTH.md`, `PLAN-TERMINAL-REWRITE.md`) as the source of truth for immediate work. (`NEXT-RELEASE.md` + `MOBILE-FEATURE-BACKLOG.md` archived 2026-05-23 — see `docs/archive/`.)
+- If there is any mismatch, treat the Status Snapshot + newer focused docs (`RELEASE.md`, `PLAN-2026-05-19.md`, `PLAN-CONDUIT-VISUAL-PARITY.md`, `PLAN-AGENT-OAUTH.md`, `PLAN-TERMINAL-REWRITE.md`) as the source of truth for immediate work. (`NEXT-RELEASE.md` + `MOBILE-FEATURE-BACKLOG.md` archived 2026-05-23 — see `docs/archive/`.)
 
 ## Status Snapshot (May 23, 2026 — late)
 
@@ -37,7 +37,7 @@
   - saved-server persistence scaffolding in settings
   - delete affordances: iOS swipe + context-menu (PR #128), Android dialog mirror (PR #136), both backed by `SessionStore.forgetServer` which also sweeps the per-id displayName override
 - **ConduitUI cutover (PR #118 → #127)**: parallel iOS view tree built clean-room from the litter reference, flipped from `experimentalConduitUI` flag-gated to default, legacy view tree deleted. iPad NavigationSplitView for regular size class (PR #122).
-- **Conduit visual-parity rebuild (PRs #139–#143 + polish #145 + Android mirror #146 + settings-gear restore #147)** — the 5-PR plan in `docs/PLAN-LITTER-VISUAL-PARITY.md` shipped end-to-end:
+- **Conduit visual-parity rebuild (PRs #139–#143 + polish #145 + Android mirror #146 + settings-gear restore #147)** — the 5-PR plan in `docs/PLAN-CONDUIT-VISUAL-PARITY.md` shipped end-to-end:
   - PR1 (#139) foundation: typography ramp, tokens, iOS 26 `glassEffect`, lighter shadows
   - PR2 (#140) settings: iOS 26 glass on ConduitUI, font-size slider, 14pt corners (iOS+Android)
   - PR3 (#141) home: footnote row density, 7pt indicator, 44pt bottom bar, dropped top-row gear (iOS+Android) — partially reverted by #147 which restores a discoverable settings entry

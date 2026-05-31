@@ -10,7 +10,7 @@ import Foundation
 
 extension ConduitUI {
 
-    /// One rendered chat message in litter's layout. Conduit renders
+    /// One rendered chat message in upstream's layout. Conduit renders
     /// assistant messages full-width with no bubble, and user
     /// messages right-aligned, flat (no bubble).
     struct ChatMessage: Equatable, Identifiable {
@@ -107,7 +107,7 @@ extension ConduitUI {
         }
 
         /// Placeholder text shown in the composer when the draft is
-        /// empty. Mirrors litter's "Message litter…" prompt.
+        /// empty. Mirrors upstream's "Message upstream…" prompt.
         static func composerPlaceholder(forAgent assistant: String?) -> String {
             if let assistant, !assistant.isEmpty {
                 return "Message \(assistant)…"

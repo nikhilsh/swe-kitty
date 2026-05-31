@@ -43,9 +43,9 @@ extension ConduitUI {
                             savedSection
                             nearbySection
                         }
-                        // PLAN-LITTER-VISUAL-PARITY audit §A.4 / PR 5
+                        // PLAN-CONDUIT-VISUAL-PARITY audit §A.4 / PR 5
                         // deferred — bump outer container to 20h/12v
-                        // so saved + nearby cards breathe like litter's
+                        // so saved + nearby cards breathe like upstream's
                         // discovery reference (vs the prior 14/16
                         // which had cards kissing the screen edge).
                         .padding(.horizontal, 20)

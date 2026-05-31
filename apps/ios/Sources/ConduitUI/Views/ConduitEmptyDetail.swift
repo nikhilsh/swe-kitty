@@ -4,7 +4,7 @@ import SwiftUI
 //
 // Detail placeholder for the iPad/regular split view when no session
 // is selected. Brand mark + a single line of guidance. Mirrors
-// litter's "no thread picked yet" pane.
+// upstream's "no thread picked yet" pane.
 
 extension ConduitUI {
 

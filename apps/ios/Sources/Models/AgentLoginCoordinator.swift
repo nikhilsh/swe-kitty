@@ -3,7 +3,7 @@ import Foundation
 import AuthenticationServices
 #endif
 
-/// State-machine driver for the v2 agent-login flow (litter-faithful,
+/// State-machine driver for the v2 agent-login flow (upstream-faithful,
 /// docs/PLAN-AGENT-OAUTH.md "Approach v2"). Orchestrates:
 ///
 ///   1. Send `start_agent_login` over WS.

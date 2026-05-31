@@ -32,7 +32,7 @@ internal data class AdaptiveColor(val light: Long, val dark: Long) {
 internal object ConduitPalette {
     val accent          = AdaptiveColor(0xFF4A4A4A, 0xFFB0B0B0)
     // Brand accent moved from green to Anthropic copper to match
-    // litter's visual reference (see iOS Palette.swift comment).
+    // upstream's visual reference (see iOS Palette.swift comment).
     val accentStrong    = AdaptiveColor(0xFFCC785C, 0xFFE89677)
     val claudeAccent    = AdaptiveColor(0xFFCC785C, 0xFFE89677)
     val claudeAccentStrong = AdaptiveColor(0xFFA85A3F, 0xFFCC785C)

@@ -48,7 +48,7 @@ struct SavedSession: Codable, Equatable, Identifiable {
 }
 
 /// Persisted index of every session the client has ever seen, across
-/// every server. Backs the "Resume an old thread" screen (litter parity
+/// every server. Backs the "Resume an old thread" screen (upstream parity
 /// audit item A.8). Mirrors `core/src/saved/mod.rs::SavedSessionStore`:
 ///
 /// * Persistence path: `Application Support/conduit/saved-sessions.json`.

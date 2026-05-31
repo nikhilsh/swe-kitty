@@ -194,7 +194,7 @@ struct ConversationRendererTests {
     // ConduitUI chat view (`ConduitUI.ChatViewModel.alignment(for:)` +
     // the row's foreground-color / background-style choices). The
     // legacy `ConversationStyle.userMessage` pin was deleted in the
-    // litter-ui-cutover along with `ConversationBubbleContainer`; the
+    // upstream-ui-cutover along with `ConversationBubbleContainer`; the
     // `alignment(for:)` rule has its own coverage in
     // `ConduitUI.ChatViewModel`-adjacent tests.
 }

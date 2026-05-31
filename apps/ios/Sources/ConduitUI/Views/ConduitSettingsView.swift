@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - ConduitSettingsView
 //
 // Conduit-faithful sectioned Settings screen, presented as a sheet from
-// the ConduitHomeView. Section order mirrors litter:
+// the ConduitHomeView. Section order mirrors upstream:
 //   Account · Theme · Font · Conversation · Servers · About
 //
 // Each section is a `ConduitCard` wrapping `ConduitListRow`s. Rows use
@@ -63,7 +63,7 @@ extension ConduitUI {
                     if !embedded {
                         ToolbarItem(placement: .confirmationAction) {
                             // Plain Button (no copper-tint overlay) per
-                            // PLAN-LITTER-VISUAL-PARITY audit §A.3.5 — litter
+                            // PLAN-CONDUIT-VISUAL-PARITY audit §A.3.5 — upstream
                             // uses a flat `.confirmationAction` link, not a
                             // tinted capsule. The surrounding NavigationStack
                             // `.tint(neon.accent)` still
@@ -124,7 +124,7 @@ extension ConduitUI {
                         ConduitUI.ListRow(
                             icon: "key.fill",
                             title: "Sign in to agent",
-                            subtitle: "OAuth for Claude / ChatGPT (v2, litter pattern)",
+                            subtitle: "OAuth for Claude / ChatGPT (v2)",
                             iconTint: neon.accent
                         ) {
                             Image(systemName: "chevron.right")
@@ -284,7 +284,7 @@ extension ConduitUI {
                     // height) so the surrounding scroll view continues to
                     // own vertical layout; the inner list itself never
                     // scrolls. `listStyle(.plain)` + clear backgrounds keep
-                    // the litter glass-card look from the prior VStack.
+                    // the upstream glass-card look from the prior VStack.
                     if !store.savedServers.isEmpty {
                         List {
                             ForEach(store.savedServers) { server in

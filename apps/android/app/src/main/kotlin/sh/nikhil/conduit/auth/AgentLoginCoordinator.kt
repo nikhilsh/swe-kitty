@@ -13,7 +13,7 @@ import java.net.URI
  * Android mirror of iOS `AgentLoginCoordinator.swift`
  * (PLAN-AGENT-OAUTH.md "Approach v2" / Stage 3).
  *
- * Orchestrates the litter-faithful agent-login flow:
+ * Orchestrates the upstream-faithful agent-login flow:
  *
  *   1. Send `start_agent_login` over WS.
  *   2. Wait for `agent_login_url` view_event from broker.

@@ -8,7 +8,7 @@ import uniffi.conduit_core.ChatEvent
 import uniffi.conduit_core.ConversationItem
 
 /**
- * `litter-ui-trash-rebuild` chat-ordering fix — pure-data assertions
+ * `upstream-ui-trash-rebuild` chat-ordering fix — pure-data assertions
  * against [mergedConversation]. Mirror of iOS
  * `ConduitUI.ChatViewModel.mergedEvents`: a single chronologically-sorted
  * stream, dedup raw chat events by role+content, and interleave user /
