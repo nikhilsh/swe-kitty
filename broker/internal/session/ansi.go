@@ -27,13 +27,13 @@ type ansiStripper struct {
 type stripState int
 
 const (
-	stripNormal stripState = iota
-	stripEsc               // saw 0x1B, deciding what kind of sequence
-	stripCSI               // CSI parameters/intermediates, awaiting final byte
-	stripOSC               // OSC string, awaits ST or BEL
-	stripDCS               // DCS string, awaits ST
-	stripStrTerm           // Saw ESC inside OSC/DCS, awaiting backslash (ST)
-	stripCharset           // single-byte G0/G1 designator follows
+	stripNormal  stripState = iota
+	stripEsc                // saw 0x1B, deciding what kind of sequence
+	stripCSI                // CSI parameters/intermediates, awaiting final byte
+	stripOSC                // OSC string, awaits ST or BEL
+	stripDCS                // DCS string, awaits ST
+	stripStrTerm            // Saw ESC inside OSC/DCS, awaiting backslash (ST)
+	stripCharset            // single-byte G0/G1 designator follows
 )
 
 // Write feeds a chunk of PTY bytes through the stripper and returns

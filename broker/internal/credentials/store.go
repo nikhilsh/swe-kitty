@@ -108,7 +108,7 @@ func (s *Store) identitySubdir() string {
 func (s *Store) dirSalt() string {
 	// Mix in a fixed namespace string so the subdirectory hash is
 	// distinct from any other sha256 we might compute over the key.
-	return "swekitty-credentials-v1:" + string(s.key)
+	return "conduit-credentials-v1:" + string(s.key)
 }
 
 // providerPath returns the on-disk path for a given provider's

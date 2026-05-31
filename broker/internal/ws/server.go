@@ -18,11 +18,11 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/nikhilsh/swe-kitty/broker/internal/auth"
-	"github.com/nikhilsh/swe-kitty/broker/internal/credentials"
-	"github.com/nikhilsh/swe-kitty/broker/internal/oauth"
-	"github.com/nikhilsh/swe-kitty/broker/internal/push"
-	"github.com/nikhilsh/swe-kitty/broker/internal/session"
+	"github.com/nikhilsh/conduit/broker/internal/auth"
+	"github.com/nikhilsh/conduit/broker/internal/credentials"
+	"github.com/nikhilsh/conduit/broker/internal/oauth"
+	"github.com/nikhilsh/conduit/broker/internal/push"
+	"github.com/nikhilsh/conduit/broker/internal/session"
 )
 
 const (
@@ -72,7 +72,7 @@ func New(a *auth.Store, m *session.Manager) *Server {
 }
 
 // WithCredentials wires the per-identity credential store into the
-// server. Called from cmd/swe-kitty-broker/main.go after the store is
+// server. Called from cmd/conduit-broker/main.go after the store is
 // constructed. Returning the same *Server keeps the call site fluent.
 func (s *Server) WithCredentials(store *credentials.Store) *Server {
 	s.Credentials = store

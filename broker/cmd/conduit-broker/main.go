@@ -1,8 +1,8 @@
-// Command swe-kitty-broker is the harness server entry point.
+// Command conduit-broker is the harness server entry point.
 //
 // Usage:
 //
-//	swe-kitty-broker up [--local] [--public-url URL] [--addr :1977]
+//	conduit-broker up [--local] [--public-url URL] [--addr :1977]
 //
 // On `up`, the harness mints a bearer token, starts the HTTP+WebSocket
 // server, and prints a connection URL to stdout. Sessions are managed
@@ -26,15 +26,15 @@ import (
 
 	"github.com/mdp/qrterminal/v3"
 
-	"github.com/nikhilsh/swe-kitty/broker/internal/agents"
-	"github.com/nikhilsh/swe-kitty/broker/internal/auth"
-	"github.com/nikhilsh/swe-kitty/broker/internal/credentials"
-	"github.com/nikhilsh/swe-kitty/broker/internal/discovery"
-	"github.com/nikhilsh/swe-kitty/broker/internal/oauth"
-	"github.com/nikhilsh/swe-kitty/broker/internal/push"
-	"github.com/nikhilsh/swe-kitty/broker/internal/replay"
-	"github.com/nikhilsh/swe-kitty/broker/internal/session"
-	"github.com/nikhilsh/swe-kitty/broker/internal/ws"
+	"github.com/nikhilsh/conduit/broker/internal/agents"
+	"github.com/nikhilsh/conduit/broker/internal/auth"
+	"github.com/nikhilsh/conduit/broker/internal/credentials"
+	"github.com/nikhilsh/conduit/broker/internal/discovery"
+	"github.com/nikhilsh/conduit/broker/internal/oauth"
+	"github.com/nikhilsh/conduit/broker/internal/push"
+	"github.com/nikhilsh/conduit/broker/internal/replay"
+	"github.com/nikhilsh/conduit/broker/internal/session"
+	"github.com/nikhilsh/conduit/broker/internal/ws"
 )
 
 func main() {
@@ -58,13 +58,13 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, `swe-kitty-broker — the swe-kitty server
+	fmt.Fprintln(os.Stderr, `conduit-broker — the conduit server
 
 Commands:
   up        start the HTTP+WebSocket harness
   memory    (task 005) per-session memory CLI
 
-Run "swe-kitty-broker up --help" for options.`)
+Run "conduit-broker up --help" for options.`)
 }
 
 func runUp(args []string) int {
@@ -72,17 +72,17 @@ func runUp(args []string) int {
 	addr := fs.String("addr", ":1977", "HTTP listen address")
 	local := fs.Bool("local", false, "advertise on LAN via mDNS")
 	publicURL := fs.String("public-url", "", "public-facing URL (for QR/UX hints)")
-	agentsDir := fs.String("agents-dir", "", "directory of agent adapter TOMLs (defaults: $XDG_CONFIG_HOME/swe-kitty/agents → ~/.swe-kitty/agents → ./agents → embedded)")
+	agentsDir := fs.String("agents-dir", "", "directory of agent adapter TOMLs (defaults: $XDG_CONFIG_HOME/conduit/agents → ~/.conduit/agents → ./agents → embedded)")
 	replayBase := fs.String("replay-base", defaultReplayBase(), "directory for per-session replay recordings; empty disables recording")
 	credentialsDir := fs.String("credentials-dir", defaultCredentialsDir(), "directory for per-identity OAuth credential blobs (docs/PLAN-AGENT-OAUTH.md); empty disables per-user OAuth materialization")
 	_ = fs.Parse(args)
 
 	store := auth.NewStore()
-	// SWE_KITTY_TOKEN lets the mobile-app SSH bootstrap (and any other
+	// CONDUIT_TOKEN lets the mobile-app SSH bootstrap (and any other
 	// upstream orchestrator) pre-pick the bearer so the pairing flow
 	// doesn't have to scrape `docker logs` after `docker run`. If the
 	// env var is missing or too short, mint a fresh one as before.
-	token := os.Getenv("SWE_KITTY_TOKEN")
+	token := os.Getenv("CONDUIT_TOKEN")
 	if !store.Adopt(token) {
 		token = store.Mint()
 	}
@@ -142,10 +142,10 @@ func runUp(args []string) int {
 	hostURL := resolveHostURL(*addr, *local, *publicURL)
 
 	// Pairing URL consumed by the mobile QR scanner (apps/{ios,android}).
-	// Format: swekitty://<host>[:port]?token=<bearer>
+	// Format: conduit://<host>[:port]?token=<bearer>
 	pairing := pairingURL(replaceScheme(hostURL), token)
 
-	fmt.Printf("swe-kitty-broker up\n  addr:    %s\n  url:     %s\n  token:   %s\n  pairing: %s\n",
+	fmt.Printf("conduit-broker up\n  addr:    %s\n  url:     %s\n  token:   %s\n  pairing: %s\n",
 		*addr, hostURL, token, pairing)
 	if mgr.ReplayBaseDir() != "" {
 		// Print a templated replay URL so the operator can plug in
@@ -155,7 +155,7 @@ func runUp(args []string) int {
 	}
 	fmt.Println()
 	qrterminal.GenerateHalfBlock(pairing, qrterminal.L, os.Stdout)
-	fmt.Printf("\nScan the QR above with the SweKitty app, or:\n  wscat -c \"%s/ws/$(uuidgen)?assistant=claude&token=%s\"\n",
+	fmt.Printf("\nScan the QR above with the Conduit app, or:\n  wscat -c \"%s/ws/$(uuidgen)?assistant=claude&token=%s\"\n",
 		replaceScheme(hostURL), token)
 
 	var mdnsShutdown func()
@@ -270,13 +270,13 @@ func firstLANIPv4() string {
 	return ""
 }
 
-// pairingURL builds the swekitty:// deep link encoded into the QR.
+// pairingURL builds the conduit:// deep link encoded into the QR.
 // `wsURL` is expected to be of the form ws[s]://host[:port].
 func pairingURL(wsURL, token string) string {
 	host := wsURL
 	host = strings.TrimPrefix(host, "ws://")
 	host = strings.TrimPrefix(host, "wss://")
-	return "swekitty://" + host + "?token=" + token
+	return "conduit://" + host + "?token=" + token
 }
 
 func parsePort(addr string) (int, error) {
@@ -291,7 +291,7 @@ func parsePort(addr string) (int, error) {
 func hostname() string {
 	h, err := os.Hostname()
 	if err != nil || h == "" {
-		return "swe-kitty"
+		return "conduit"
 	}
 	return h
 }
@@ -343,11 +343,11 @@ func loadAgentRegistry(explicit string) (*agents.Registry, string, error) {
 
 // userAgentsDir returns the user-scoped override directory if it
 // exists, else empty. Honours XDG_CONFIG_HOME but falls back to the
-// `~/.swe-kitty/agents` location documented in SELF-HOST.md.
+// `~/.conduit/agents` location documented in SELF-HOST.md.
 func userAgentsDir() string {
 	for _, dir := range []string{
-		envDir("XDG_CONFIG_HOME", "swe-kitty", "agents"),
-		homeDir(".swe-kitty", "agents"),
+		envDir("XDG_CONFIG_HOME", "conduit", "agents"),
+		homeDir(".conduit", "agents"),
 	} {
 		if dir == "" {
 			continue
@@ -388,7 +388,7 @@ func joinPath(parts ...string) string {
 }
 
 // defaultReplayBase returns the documented default replay directory
-// (`~/.swe-kitty/sessions/`). Returns an empty string when the home
+// (`~/.conduit/sessions/`). Returns an empty string when the home
 // directory can't be resolved — recording then defaults to disabled
 // rather than dumping into the cwd.
 func defaultReplayBase() string {
@@ -396,11 +396,11 @@ func defaultReplayBase() string {
 	if err != nil || home == "" {
 		return ""
 	}
-	return home + string(os.PathSeparator) + ".swe-kitty" + string(os.PathSeparator) + "sessions"
+	return home + string(os.PathSeparator) + ".conduit" + string(os.PathSeparator) + "sessions"
 }
 
 // defaultCredentialsDir returns the documented default per-identity
-// OAuth credential store root (`~/.swe-kitty/credentials/`, see
+// OAuth credential store root (`~/.conduit/credentials/`, see
 // docs/PLAN-AGENT-OAUTH.md §D.2). Returns an empty string when the
 // home directory can't be resolved so the broker boots without the
 // per-user OAuth path rather than dumping `.enc` files into the cwd.
@@ -409,7 +409,7 @@ func defaultCredentialsDir() string {
 	if err != nil || home == "" {
 		return ""
 	}
-	return home + string(os.PathSeparator) + ".swe-kitty" + string(os.PathSeparator) + "credentials"
+	return home + string(os.PathSeparator) + ".conduit" + string(os.PathSeparator) + "credentials"
 }
 
 // expandHome resolves a leading `~` in a path against the user's home

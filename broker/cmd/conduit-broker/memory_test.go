@@ -35,7 +35,7 @@ func TestRunMemoryCheckpointAndPromote(t *testing.T) {
 		"--agent", "codex",
 		"--created", "2026-05-17T12:00:00Z",
 		"--at", "2026-05-17T12:05:00Z",
-		"--task-brief", ".swe-kitty/tasks/005-memory-checkpoint.md",
+		"--task-brief", ".conduit/tasks/005-memory-checkpoint.md",
 		"--task-summary", "Implement memory CLI",
 	})
 	if code != 0 {

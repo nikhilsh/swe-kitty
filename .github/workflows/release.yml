@@ -122,10 +122,10 @@ jobs:
           for required in \
             SweKitty.ipa \
             app-release.apk \
-            swe-kitty-broker-linux-amd64 \
-            swe-kitty-broker-linux-arm64 \
-            swe-kitty-broker-darwin-amd64 \
-            swe-kitty-broker-darwin-arm64; do
+            conduit-broker-linux-amd64 \
+            conduit-broker-linux-arm64 \
+            conduit-broker-darwin-amd64 \
+            conduit-broker-darwin-arm64; do
             if ! jq -e --arg name "$required" '.assets[] | select(.name == $name)' >/dev/null <<<"$release_json"; then
               missing+=("$required")
             fi

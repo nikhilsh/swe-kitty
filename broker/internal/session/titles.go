@@ -36,7 +36,7 @@ import (
 // reopened/relisted session keeps the title without re-generating, and
 // re-emitted to a freshly attached client.
 //
-// Config: SWE_KITTY_AI_TITLES=0 (or false/off/no) disables it; default ON.
+// Config: CONDUIT_AI_TITLES=0 (or false/off/no) disables it; default ON.
 
 // titleTimeout caps the HTTP call. The title is a nicety, not the turn,
 // so we bail rather than linger; on timeout we emit nothing and the apps
@@ -66,9 +66,9 @@ const maxTitleGenerations = 2
 const titleRefineAfterChars = 1500
 
 // titlesEnabled reports whether AI session-title generation is on.
-// Default ON; SWE_KITTY_AI_TITLES=0 (or "false"/"off"/"no") disables it.
+// Default ON; CONDUIT_AI_TITLES=0 (or "false"/"off"/"no") disables it.
 func titlesEnabled() bool {
-	return aiFeatureEnabled("SWE_KITTY_AI_TITLES")
+	return aiFeatureEnabled("CONDUIT_AI_TITLES")
 }
 
 // titleGenerator produces an AI title for a session. It owns its own

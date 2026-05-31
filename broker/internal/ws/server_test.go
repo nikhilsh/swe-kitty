@@ -9,9 +9,9 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/nikhilsh/swe-kitty/broker/internal/auth"
-	"github.com/nikhilsh/swe-kitty/broker/internal/credentials"
-	"github.com/nikhilsh/swe-kitty/broker/internal/session"
+	"github.com/nikhilsh/conduit/broker/internal/auth"
+	"github.com/nikhilsh/conduit/broker/internal/credentials"
+	"github.com/nikhilsh/conduit/broker/internal/session"
 )
 
 // newTestServerWithCredentials mints a Server with a per-test

@@ -56,7 +56,7 @@ func TestTitlesEnabled(t *testing.T) {
 		"0": false, "false": false, "off": false, "OFF": false, "no": false,
 	}
 	for val, want := range cases {
-		t.Setenv("SWE_KITTY_AI_TITLES", val)
+		t.Setenv("CONDUIT_AI_TITLES", val)
 		if got := titlesEnabled(); got != want {
 			t.Errorf("titlesEnabled() with %q = %v, want %v", val, got, want)
 		}
@@ -78,7 +78,7 @@ func TestNewTitleGeneratorNilCases(t *testing.T) {
 	if g := newTitleGenerator("s", "claude", "/home", fp, nil); g != nil {
 		t.Error("expected nil when setTitle nil")
 	}
-	t.Setenv("SWE_KITTY_AI_TITLES", "0")
+	t.Setenv("CONDUIT_AI_TITLES", "0")
 	if g := newTitleGenerator("s", "claude", "/home", fp, st); g != nil {
 		t.Error("expected nil when feature disabled")
 	}

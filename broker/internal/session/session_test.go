@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nikhilsh/swe-kitty/broker/internal/agents"
+	"github.com/nikhilsh/conduit/broker/internal/agents"
 )
 
 func TestCheckpointPersistsSessionRails(t *testing.T) {
@@ -38,7 +38,7 @@ func TestCheckpointPersistsSessionRails(t *testing.T) {
 		t.Fatalf("Checkpoint: %v", err)
 	}
 
-	scrollback, err := os.ReadFile(filepath.Join(root, ".swe-kitty", "sessions", sess.ID, "scrollback.bin"))
+	scrollback, err := os.ReadFile(filepath.Join(root, ".conduit", "sessions", sess.ID, "scrollback.bin"))
 	if err != nil {
 		t.Fatalf("ReadFile(scrollback): %v", err)
 	}
@@ -46,7 +46,7 @@ func TestCheckpointPersistsSessionRails(t *testing.T) {
 		t.Fatalf("scrollback missing persisted output: %q", string(scrollback))
 	}
 
-	memoryDoc, err := os.ReadFile(filepath.Join(root, ".swe-kitty", "memory", "sessions", sess.ID+".html"))
+	memoryDoc, err := os.ReadFile(filepath.Join(root, ".conduit", "memory", "sessions", sess.ID+".html"))
 	if err != nil {
 		t.Fatalf("ReadFile(memory): %v", err)
 	}
@@ -78,7 +78,7 @@ func TestSwitchAdapterFallsBackToCheckpointAndKeepsSessionUsable(t *testing.T) {
 	}
 	waitForOutput(t, sess, "codex-ready")
 
-	handoffDoc, err := os.ReadFile(filepath.Join(root, ".swe-kitty", "sessions", sess.ID, "work", ".swe-kitty", "HANDOFF.html"))
+	handoffDoc, err := os.ReadFile(filepath.Join(root, ".conduit", "sessions", sess.ID, "work", ".conduit", "HANDOFF.html"))
 	if err != nil {
 		t.Fatalf("ReadFile(HANDOFF): %v", err)
 	}
@@ -307,10 +307,10 @@ func TestRecoverRestoresWorkspaceDir(t *testing.T) {
 func testRoot(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(root, ".swe-kitty"), 0o755); err != nil {
-		t.Fatalf("MkdirAll(.swe-kitty): %v", err)
+	if err := os.MkdirAll(filepath.Join(root, ".conduit"), 0o755); err != nil {
+		t.Fatalf("MkdirAll(.conduit): %v", err)
 	}
-	t.Setenv("SWE_KITTY_ROOT", filepath.Join(root, ".swe-kitty"))
+	t.Setenv("CONDUIT_ROOT", filepath.Join(root, ".conduit"))
 	t.Setenv("KITTY_SESSION_CHECKPOINT_INTERVAL_MS", "1000")
 	t.Setenv("KITTY_SESSION_WATCHDOG_INTERVAL_MS", "1000")
 	t.Setenv("KITTY_SESSION_STALL_AFTER_MS", "1000")
@@ -328,7 +328,7 @@ func testRegistry(t *testing.T, root string, scripts map[string]string) *agents.
 	for name, script := range scripts {
 		body := strings.Join([]string{
 			`name = "` + name + `"`,
-			`image = "swekitty/` + name + `:latest"`,
+			`image = "conduit/` + name + `:latest"`,
 			`command = ["sh"]`,
 			`args = ["-lc", ` + quoteTOML(script) + `]`,
 			`workdir = ` + quoteTOML(workspace),

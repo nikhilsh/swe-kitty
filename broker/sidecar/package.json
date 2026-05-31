@@ -1,8 +1,8 @@
 {
-  "name": "swe-kitty-sidecar",
+  "name": "conduit-sidecar",
   "version": "0.1.0",
   "private": true,
-  "description": "Headless xterm.js sidecar for the swe-kitty harness — keeps a server-side terminal grid per session so snapshots can be reflowed to the attaching client's viewport size.",
+  "description": "Headless xterm.js sidecar for the conduit harness — keeps a server-side terminal grid per session so snapshots can be reflowed to the attaching client's viewport size.",
   "type": "module",
   "main": "sidecar.js",
   "engines": {

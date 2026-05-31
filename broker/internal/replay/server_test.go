@@ -56,7 +56,7 @@ func TestServerServesHTMLWithToken(t *testing.T) {
 		t.Fatalf("status=%d want 200 (body=%q)", rec.Code, rec.Body.String())
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "swe-kitty replay") {
+	if !strings.Contains(body, "conduit replay") {
 		t.Fatalf("body missing title (got %q)", body[:min(120, len(body))])
 	}
 	// Embedded JSON config must contain session id + timeline URL

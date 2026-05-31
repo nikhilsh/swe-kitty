@@ -97,9 +97,9 @@ type Session struct {
 	doneCh     chan struct{}
 	httpClient *http.Client
 
-	mu       sync.Mutex
-	closed   bool
-	exitErr  error
+	mu      sync.Mutex
+	closed  bool
+	exitErr error
 }
 
 // Provider describes how to launch a CLI's login subcommand and how

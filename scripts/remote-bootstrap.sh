@@ -1,6 +1,6 @@
 #!/bin/sh
-# swe-kitty remote bootstrap — invoked by the mobile app over SSH to
-# stand up the swe-kitty-broker *binary* on a remote host, bare (no
+# conduit remote bootstrap — invoked by the mobile app over SSH to
+# stand up the conduit-broker *binary* on a remote host, bare (no
 # Docker). Installs the broker if missing, starts it detached, and prints
 # the pairing line the app parses.
 #
@@ -11,14 +11,14 @@
 # Exit codes:
 #   0   ok
 #   13  broker started but never became healthy
-#   14  port collision with a non-swe-kitty process
+#   14  port collision with a non-conduit process
 #   15  bad usage (missing / short token)
 #   16  could not download/install the broker binary
 #   17  no agent CLI (claude / codex) on PATH
 #   18  curl not available on the host
 #
 # Usage:
-#   remote-bootstrap.sh <SWE_KITTY_TOKEN> [ANTHROPIC_API_KEY] [OPENAI_API_KEY] [IGNORED]
+#   remote-bootstrap.sh <CONDUIT_TOKEN> [ANTHROPIC_API_KEY] [OPENAI_API_KEY] [IGNORED]
 #
 # The 4th argument (the legacy Docker IMAGE_REF) is accepted but ignored —
 # this deploys the bare binary, not a container.
@@ -30,10 +30,10 @@ ANTHROPIC="${2:-}"
 OPENAI="${3:-}"
 # arg 4 (legacy image ref) intentionally ignored — no Docker.
 
-HOST_PORT="${SWE_KITTY_HOST_PORT:-1977}"
-BIN_DIR="${SWE_KITTY_BIN_DIR:-$HOME/.swe-kitty/bin}"
-STATE_DIR="${SWE_KITTY_STATE_DIR:-$HOME/.swe-kitty}"
-BIN="$BIN_DIR/swe-kitty-broker"
+HOST_PORT="${CONDUIT_HOST_PORT:-1977}"
+BIN_DIR="${CONDUIT_BIN_DIR:-$HOME/.conduit/bin}"
+STATE_DIR="${CONDUIT_STATE_DIR:-$HOME/.conduit}"
+BIN="$BIN_DIR/conduit-broker"
 PIDFILE="$STATE_DIR/broker.pid"
 LOGFILE="$STATE_DIR/broker.log"
 HEALTH="http://127.0.0.1:$HOST_PORT/health"
@@ -69,7 +69,7 @@ if [ ! -x "$BIN" ]; then
   mkdir -p "$BIN_DIR" "$STATE_DIR"
   if ! curl -fsSL https://github.com/nikhilsh/swe-kitty/releases/latest/download/install.sh \
        | sh -s -- --bin-dir "$BIN_DIR" 1>&2; then
-    echo "ERR 16 could not install swe-kitty-broker binary"
+    echo "ERR 16 could not install conduit-broker binary"
     exit 16
   fi
 fi
@@ -85,7 +85,7 @@ fi
 # Only export the API keys when non-empty (the broker strips empty
 # ANTHROPIC_API_KEY / OPENAI_API_KEY, but leaving them unset is cleaner).
 mkdir -p "$STATE_DIR"
-export SWE_KITTY_TOKEN="$TOKEN"
+export CONDUIT_TOKEN="$TOKEN"
 if [ -n "$ANTHROPIC" ]; then export ANTHROPIC_API_KEY="$ANTHROPIC"; fi
 if [ -n "$OPENAI" ]; then export OPENAI_API_KEY="$OPENAI"; fi
 

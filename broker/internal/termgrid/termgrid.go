@@ -76,7 +76,7 @@ type response struct {
 // NewManager spawns the sidecar process. The sidecar.js path is
 // resolved in this order:
 //
-//  1. $SWE_KITTY_SIDECAR_PATH (full path to sidecar.js)
+//  1. $CONDUIT_SIDECAR_PATH (full path to sidecar.js)
 //  2. <dir-of-harness-binary>/sidecar/sidecar.js
 //  3. <cwd>/harness/sidecar/sidecar.js (dev tree)
 //
@@ -114,7 +114,7 @@ func NewManager() (*Manager, error) {
 }
 
 func resolveSidecarPath() (string, error) {
-	if p := strings.TrimSpace(os.Getenv("SWE_KITTY_SIDECAR_PATH")); p != "" {
+	if p := strings.TrimSpace(os.Getenv("CONDUIT_SIDECAR_PATH")); p != "" {
 		if _, err := os.Stat(p); err == nil {
 			return p, nil
 		}
@@ -145,7 +145,7 @@ func resolveSidecarPath() (string, error) {
 			cur = next
 		}
 	}
-	return "", errors.New("termgrid: sidecar.js not found (set SWE_KITTY_SIDECAR_PATH)")
+	return "", errors.New("termgrid: sidecar.js not found (set CONDUIT_SIDECAR_PATH)")
 }
 
 func (m *Manager) readLoop() {

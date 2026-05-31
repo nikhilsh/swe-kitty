@@ -24,10 +24,10 @@ import (
 
 	"github.com/creack/pty"
 
-	"github.com/nikhilsh/swe-kitty/broker/internal/agents"
-	"github.com/nikhilsh/swe-kitty/broker/internal/credentials"
-	"github.com/nikhilsh/swe-kitty/broker/internal/replay"
-	"github.com/nikhilsh/swe-kitty/broker/internal/termgrid"
+	"github.com/nikhilsh/conduit/broker/internal/agents"
+	"github.com/nikhilsh/conduit/broker/internal/credentials"
+	"github.com/nikhilsh/conduit/broker/internal/replay"
+	"github.com/nikhilsh/conduit/broker/internal/termgrid"
 )
 
 const ringSize = 256 * 1024 // 256 KB scrollback per session
@@ -310,7 +310,7 @@ func newSession(id string, adapter agents.Adapter, opts sessionOptions) (*Sessio
 	provider := providerForAssistant(adapter.Name)
 	// Keep the ephemeral HOME in the broker's per-session storage, NOT under
 	// s.workspaceDir — workspaceDir is now the user's selected project folder
-	// (cwd), and dropping a .swe-kitty/agent-home dir full of copied OAuth
+	// (cwd), and dropping a .conduit/agent-home dir full of copied OAuth
 	// credentials into their repo would both pollute the working tree and
 	// risk committing secrets.
 	ephemeral := filepath.Join(s.sessionDir, "agent-home")
@@ -594,7 +594,7 @@ func (s *Session) PublishText(payload []byte) {
 	// the JSON here is cheap relative to the JSON.Marshal that
 	// produced it, and keeps the recorder schema-stable (we record
 	// `event` not the WS envelope, so the replay player can render
-	// without re-decoding swe-kitty's WS shape).
+	// without re-decoding conduit's WS shape).
 	// Parse the view_event once and feed two sinks: the replay recorder
 	// (full PTY+event stream, debug/replay) and the conversation log
 	// (chat frames only, for reopening an exited session's transcript).
@@ -1002,7 +1002,7 @@ type Manager struct {
 	// replayBaseDir, when non-empty, is propagated to every session's
 	// recorder so PTY bytes + view_events are persisted under
 	// `<replayBaseDir>/<id>/replay.json`. Set via SetReplayBaseDir
-	// from cmd/swe-kitty-broker — empty in unit tests by default.
+	// from cmd/conduit-broker — empty in unit tests by default.
 	replayBaseDir string
 
 	// stopGC closes when Manager.Close is called; the background GC
@@ -1010,7 +1010,7 @@ type Manager struct {
 	stopGC chan struct{}
 
 	// credStore is the per-identity OAuth credential store wired in
-	// from cmd/swe-kitty-broker (see docs/PLAN-AGENT-OAUTH.md §G).
+	// from cmd/conduit-broker (see docs/PLAN-AGENT-OAUTH.md §G).
 	// nil-safe: when nil, every session spawn falls back to the
 	// legacy global host-mirror behaviour and no agent-home dir is
 	// created. Manager owns the pointer because the WS layer wires
@@ -1019,7 +1019,7 @@ type Manager struct {
 }
 
 // SetCredentialStore wires the per-identity OAuth credential store into
-// the manager. Called from cmd/swe-kitty-broker once the store is
+// the manager. Called from cmd/conduit-broker once the store is
 // constructed. nil clears it (mostly useful for tests).
 func (m *Manager) SetCredentialStore(s *credentials.Store) {
 	m.mu.Lock()
@@ -1063,7 +1063,7 @@ func NewManager(registry *agents.Registry) *Manager {
 		kittyRoot: kittyRoot,
 		stopGC:    make(chan struct{}),
 	}
-	if strings.TrimSpace(os.Getenv("SWE_KITTY_DISABLE_SIDECAR")) == "" {
+	if strings.TrimSpace(os.Getenv("CONDUIT_DISABLE_SIDECAR")) == "" {
 		tg, err := termgrid.NewManager()
 		if err != nil {
 			if errors.Is(err, termgrid.ErrNoNode) {
@@ -1327,8 +1327,8 @@ func (s *Session) applyPaths() {
 	s.scrollbackPath = filepath.Join(s.sessionDir, "scrollback.bin")
 	s.metaPath = filepath.Join(s.sessionDir, "meta.json")
 	s.memoryPath = filepath.Join(s.kittyRoot, "memory", "sessions", s.ID+".html")
-	s.handoffPath = filepath.Join(s.worktreeDir, ".swe-kitty", "HANDOFF.html")
-	s.handoffOutPath = filepath.Join(s.worktreeDir, ".swe-kitty", "HANDOFF-OUT.html")
+	s.handoffPath = filepath.Join(s.worktreeDir, ".conduit", "HANDOFF.html")
+	s.handoffOutPath = filepath.Join(s.worktreeDir, ".conduit", "HANDOFF-OUT.html")
 }
 
 func (s *Session) persistMetadata() error {
@@ -1361,7 +1361,7 @@ func atomicWriteJSON(path string, v any) error {
 }
 
 func resolveKittyRoots() (string, string, error) {
-	if root := strings.TrimSpace(os.Getenv("SWE_KITTY_ROOT")); root != "" {
+	if root := strings.TrimSpace(os.Getenv("CONDUIT_ROOT")); root != "" {
 		abs, err := filepath.Abs(root)
 		if err != nil {
 			return "", "", err
@@ -1374,12 +1374,12 @@ func resolveKittyRoots() (string, string, error) {
 	}
 	cur := wd
 	for {
-		if dirExists(filepath.Join(cur, ".git")) || dirExists(filepath.Join(cur, ".swe-kitty")) {
-			return cur, filepath.Join(cur, ".swe-kitty"), nil
+		if dirExists(filepath.Join(cur, ".git")) || dirExists(filepath.Join(cur, ".conduit")) {
+			return cur, filepath.Join(cur, ".conduit"), nil
 		}
 		next := filepath.Dir(cur)
 		if next == cur {
-			return wd, filepath.Join(wd, ".swe-kitty"), nil
+			return wd, filepath.Join(wd, ".conduit"), nil
 		}
 		cur = next
 	}

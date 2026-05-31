@@ -33,7 +33,7 @@ func TestDeleteSessionArchivesAndTerminates(t *testing.T) {
 		t.Fatalf("Checkpoint: %v", err)
 	}
 
-	sessionsDir := filepath.Join(root, ".swe-kitty", "sessions", sess.ID)
+	sessionsDir := filepath.Join(root, ".conduit", "sessions", sess.ID)
 	if _, err := os.Stat(sessionsDir); err != nil {
 		t.Fatalf("session dir should exist before delete: %v", err)
 	}
@@ -56,7 +56,7 @@ func TestDeleteSessionArchivesAndTerminates(t *testing.T) {
 	if _, err := os.Stat(sessionsDir); !os.IsNotExist(err) {
 		t.Fatalf("active session dir should be gone after delete, stat err=%v", err)
 	}
-	archivedDir := filepath.Join(root, ".swe-kitty", archivedSessionsDirName, sess.ID)
+	archivedDir := filepath.Join(root, ".conduit", archivedSessionsDirName, sess.ID)
 	if _, err := os.Stat(archivedDir); err != nil {
 		t.Fatalf("archived session dir missing: %v", err)
 	}

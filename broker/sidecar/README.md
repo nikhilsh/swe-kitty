@@ -1,6 +1,6 @@
-# swe-kitty sidecar
+# conduit sidecar
 
-Long-running Node process the swe-kitty harness spawns to maintain
+Long-running Node process the conduit harness spawns to maintain
 [`@xterm/headless`](https://www.npmjs.com/package/@xterm/headless) grids
 per session. Communicates with the Go harness over stdin/stdout
 line-delimited JSON-RPC.

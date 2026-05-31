@@ -263,7 +263,7 @@ func TestSanitizedEnv(t *testing.T) {
 		"ANTHROPIC_API_KEY=sk-ant-test",
 		"CODEX_ACCESS_TOKEN=oat-test",
 		"ANTHROPIC_AUTH_TOKEN=oat-ant-test",
-		"CODEX_HOME=/var/lib/swekitty/codex",
+		"CODEX_HOME=/var/lib/conduit/codex",
 		"USER=app",
 	}
 	out := sanitizedEnv(in)

@@ -144,7 +144,7 @@ var allowedDataFills = map[Scope][]string{
 }
 
 func DefaultPaths(root string) Paths {
-	memoryDir := filepath.Join(root, ".swe-kitty", "memory")
+	memoryDir := filepath.Join(root, ".conduit", "memory")
 	return Paths{
 		Root:         root,
 		MemoryDir:    memoryDir,
@@ -152,7 +152,7 @@ func DefaultPaths(root string) Paths {
 		ProjectFile:  filepath.Join(memoryDir, "index.html"),
 		TemplateFile: filepath.Join(memoryDir, "session-template.html"),
 		StylesFile:   filepath.Join(memoryDir, "memory.css"),
-		HandoffOut:   filepath.Join(root, ".swe-kitty", "HANDOFF-OUT.html"),
+		HandoffOut:   filepath.Join(root, ".conduit", "HANDOFF-OUT.html"),
 	}
 }
 
@@ -445,11 +445,11 @@ func renderSessionDocument(data SessionData, checkpointReason string) (string, e
 		return "", errors.New("render session requires session metadata")
 	}
 	return fmt.Sprintf(`<!doctype html>
-<html lang="en" data-swe-kitty-memory="%s" data-scope="session">
+<html lang="en" data-conduit-memory="%s" data-scope="session">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>swe-kitty session memory</title>
+  <title>conduit session memory</title>
   <link rel="stylesheet" href="../memory.css">
 </head>
 <body>
@@ -583,9 +583,9 @@ func inspect(doc string) (Scope, string, map[string]string, error) {
 	if scope != ScopeProject && scope != ScopeSession {
 		return "", "", nil, fmt.Errorf("invalid data-scope %q", attrs["data-scope"])
 	}
-	version := attrs["data-swe-kitty-memory"]
+	version := attrs["data-conduit-memory"]
 	if version == "" {
-		return "", "", nil, errors.New("missing data-swe-kitty-memory attribute")
+		return "", "", nil, errors.New("missing data-conduit-memory attribute")
 	}
 
 	sections := map[string]string{}
@@ -860,11 +860,11 @@ func (s *SessionData) updateFrom(next SessionData) {
 }
 
 const defaultProjectHTML = `<!doctype html>
-<html lang="en" data-swe-kitty-memory="v1" data-scope="project">
+<html lang="en" data-conduit-memory="v1" data-scope="project">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>swe-kitty project memory</title>
+  <title>conduit project memory</title>
   <link rel="stylesheet" href="memory.css">
 </head>
 <body>
@@ -916,11 +916,11 @@ const defaultProjectHTML = `<!doctype html>
 `
 
 const defaultSessionTemplateHTML = `<!doctype html>
-<html lang="en" data-swe-kitty-memory="v1" data-scope="session">
+<html lang="en" data-conduit-memory="v1" data-scope="session">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>swe-kitty session memory</title>
+  <title>conduit session memory</title>
   <link rel="stylesheet" href="../memory.css">
 </head>
 <body>

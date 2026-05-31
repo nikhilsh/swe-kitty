@@ -94,7 +94,7 @@ func TestQuickRepliesEnabled(t *testing.T) {
 		"no":    false,
 	}
 	for val, want := range cases {
-		t.Setenv("SWE_KITTY_AI_QUICKREPLIES", val)
+		t.Setenv("CONDUIT_AI_QUICKREPLIES", val)
 		if got := quickRepliesEnabled(); got != want {
 			t.Errorf("quickRepliesEnabled() with %q = %v, want %v", val, got, want)
 		}
@@ -112,7 +112,7 @@ func TestNewQuickReplyGeneratorNilCases(t *testing.T) {
 	if g := newQuickReplyGenerator("s", "", "/home", "/d", nil, pub); g != nil {
 		t.Error("expected nil when binary is empty")
 	}
-	t.Setenv("SWE_KITTY_AI_QUICKREPLIES", "0")
+	t.Setenv("CONDUIT_AI_QUICKREPLIES", "0")
 	if g := newQuickReplyGenerator("s", "claude", "/home", "/d", nil, pub); g != nil {
 		t.Error("expected nil when feature disabled")
 	}
