@@ -30,7 +30,7 @@ use parking_lot::Mutex;
 /// because the same advertiser was later seen on the LAN.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum DiscoverySource {
-    /// Observed via mDNS browse (`_swe-kitty._tcp.local`).
+    /// Observed via mDNS browse (`_conduit._tcp.local`).
     Mdns,
     /// Reached via QR pairing or `swekitty://` deeplink.
     Pairing,
@@ -49,7 +49,7 @@ impl DiscoverySource {
     }
 }
 
-/// Typed row for one discovered swe-kitty harness.
+/// Typed row for one discovered conduit harness.
 ///
 /// `id` is the dedupe key — pick the most stable thing the source
 /// can produce. For mDNS, that's the service instance name (e.g.

@@ -5,8 +5,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import uniffi.swe_kitty_core.ConversationItem
-import uniffi.swe_kitty_core.ProjectSession
+import uniffi.conduit_core.ConversationItem
+import uniffi.conduit_core.ProjectSession
 
 /**
  * Pure, Compose-free helpers for turning a raw session into a friendly,

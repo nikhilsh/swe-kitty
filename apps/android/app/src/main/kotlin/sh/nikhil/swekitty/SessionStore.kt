@@ -31,20 +31,20 @@ import java.net.URL
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.util.UUID
-import uniffi.swe_kitty_core.ChatEvent
-import uniffi.swe_kitty_core.ConnectionHealth
-import uniffi.swe_kitty_core.ConversationItem
-import uniffi.swe_kitty_core.PreviewInfo
-import uniffi.swe_kitty_core.ProjectSession
-import uniffi.swe_kitty_core.SessionStatus
-import uniffi.swe_kitty_core.SshCredentials
-import uniffi.swe_kitty_core.SshException
-import uniffi.swe_kitty_core.SshHostKeyDelegate
-import uniffi.swe_kitty_core.SweKittyClient
+import uniffi.conduit_core.ChatEvent
+import uniffi.conduit_core.ConnectionHealth
+import uniffi.conduit_core.ConversationItem
+import uniffi.conduit_core.PreviewInfo
+import uniffi.conduit_core.ProjectSession
+import uniffi.conduit_core.SessionStatus
+import uniffi.conduit_core.SshCredentials
+import uniffi.conduit_core.SshException
+import uniffi.conduit_core.SshHostKeyDelegate
+import uniffi.conduit_core.ConduitClient
 import sh.nikhil.swekitty.auth.AgentLoginCoordinator
-import uniffi.swe_kitty_core.SweKittyDelegate
-import uniffi.swe_kitty_core.ViewEventFile
-import uniffi.swe_kitty_core.sshBootstrap as ffiSshBootstrap
+import uniffi.conduit_core.ConduitDelegate
+import uniffi.conduit_core.ViewEventFile
+import uniffi.conduit_core.sshBootstrap as ffiSshBootstrap
 import java.util.concurrent.CountDownLatch
 
 /**
@@ -341,10 +341,10 @@ fun <T> List<T>.sortedByConversationTs(ts: (T) -> String): List<T> =
         .map { it.value }
 
 /**
- * v1 store: wraps SweKittyClient and bridges Rust delegate callbacks back onto
+ * v1 store: wraps ConduitClient and bridges Rust delegate callbacks back onto
  * the main dispatcher as StateFlow updates. Replaced by Hilt-style DI in v2.
  */
-class SessionStore : ViewModel(), SweKittyDelegate {
+class SessionStore : ViewModel(), ConduitDelegate {
 
     private val _endpoint = MutableStateFlow(Endpoint())
     val endpoint: StateFlow<Endpoint> = _endpoint.asStateFlow()
@@ -487,11 +487,11 @@ class SessionStore : ViewModel(), SweKittyDelegate {
     /**
      * Build the `set_agent_credentials` envelope (PLAN §D.1) and ship
      * it over the existing authenticated WS. Mirror of iOS
-     * `SweKittyClient.setAgentCredentials(_:blob:)`.
+     * `ConduitClient.setAgentCredentials(_:blob:)`.
      *
      * Status note (Stage 0/1 spike): the Rust core hasn't yet
      * exposed an arbitrary-control-message send path
-     * (`SweKittyClient.send_input` / `send_chat` are per-session
+     * (`ConduitClient.send_input` / `send_chat` are per-session
      * only — there's no `send_json` on the public surface). Until
      * that lands we log the envelope JSON to logcat so on-device
      * QA can eyeball the wire format. The envelope-builder + the
@@ -692,7 +692,7 @@ class SessionStore : ViewModel(), SweKittyDelegate {
 
     private var hostKeyTrustStore: SshHostKeyTrustStore? = null
 
-    private var client: SweKittyClient? = null
+    private var client: ConduitClient? = null
     private var prefs: android.content.SharedPreferences? = null
     private var reachability: NetworkReachabilityObserver? = null
     private val lifecycleObserver = object : DefaultLifecycleObserver {
@@ -868,7 +868,7 @@ class SessionStore : ViewModel(), SweKittyDelegate {
             return
         }
         _harness.value = HarnessState.Connecting
-        val c = SweKittyClient(e.url, e.token)
+        val c = ConduitClient(e.url, e.token)
         client = c
         viewModelScope.launch {
             try {
@@ -1931,7 +1931,7 @@ class SessionStore : ViewModel(), SweKittyDelegate {
         }
     }
 
-    // SweKittyDelegate — callbacks arrive on UniFFI worker threads; mutate
+    // ConduitDelegate — callbacks arrive on UniFFI worker threads; mutate
     // StateFlows directly (they're thread-safe) but no UI assumptions here.
 
     override fun onPtyData(sessionId: String, data: ByteArray) {

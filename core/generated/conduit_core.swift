@@ -7,8 +7,8 @@ import Foundation
 // Depending on the consumer's build setup, the low-level FFI code
 // might be in a separate module, or it might be compiled inline into
 // this module. This is a bit of light hackery to work with both.
-#if canImport(swe_kitty_coreFFI)
-import swe_kitty_coreFFI
+#if canImport(conduit_coreFFI)
+import conduit_coreFFI
 #endif
 
 fileprivate extension RustBuffer {
@@ -25,13 +25,13 @@ fileprivate extension RustBuffer {
     }
 
     static func from(_ ptr: UnsafeBufferPointer<UInt8>) -> RustBuffer {
-        try! rustCall { ffi_swe_kitty_core_rustbuffer_from_bytes(ForeignBytes(bufferPointer: ptr), $0) }
+        try! rustCall { ffi_conduit_core_rustbuffer_from_bytes(ForeignBytes(bufferPointer: ptr), $0) }
     }
 
     // Frees the buffer in place.
     // The buffer must not be used after this is called.
     func deallocate() {
-        try! rustCall { ffi_swe_kitty_core_rustbuffer_free(self, $0) }
+        try! rustCall { ffi_conduit_core_rustbuffer_free(self, $0) }
     }
 }
 
@@ -562,6 +562,437 @@ fileprivate struct FfiConverterData: FfiConverterRustBuffer {
 
 
 
+public protocol ConduitClientProtocol : AnyObject {
+    
+    func agentLoginCallback(sessionToken: String, queryString: String) async throws 
+    
+    func cancelAgentLogin(sessionToken: String) async throws 
+    
+    func connect(delegate: ConduitDelegate) async throws 
+    
+    func createSession(assistant: String, branch: String?, reasoningEffort: String?, model: String?, cwd: String?) async throws  -> String
+    
+    func disconnect() 
+    
+    func exitSession(sessionId: String) async throws 
+    
+    func getSession(sessionId: String) throws  -> ProjectSession
+    
+    func joinSession(sessionId: String, assistant: String?) async throws 
+    
+    func listConversationItems(sessionId: String) throws  -> [ConversationItem]
+    
+    func listSessions()  -> [ProjectSession]
+    
+    func notifyNetworkChange() 
+    
+    func refreshAccountUsage(sessionId: String) async throws 
+    
+    func resize(sessionId: String, rows: UInt16, cols: UInt16) async throws 
+    
+    func sendChat(sessionId: String, msg: String) async throws 
+    
+    func sendFile(sessionId: String, filename: String, mime: String, payload: Data) async throws 
+    
+    func sendInput(sessionId: String, data: Data) async throws 
+    
+    func setAgentCredentials(provider: String, credentialJson: String) async throws 
+    
+    func startAgentLogin(provider: String) async throws 
+    
+    func switchAgent(sessionId: String, assistant: String) async throws 
+    
+}
+
+open class ConduitClient:
+    ConduitClientProtocol {
+    fileprivate let pointer: UnsafeMutableRawPointer!
+
+    /// Used to instantiate a [FFIObject] without an actual pointer, for fakes in tests, mostly.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public struct NoPointer {
+        public init() {}
+    }
+
+    // TODO: We'd like this to be `private` but for Swifty reasons,
+    // we can't implement `FfiConverter` without making this `required` and we can't
+    // make it `required` without making it `public`.
+    required public init(unsafeFromRawPointer pointer: UnsafeMutableRawPointer) {
+        self.pointer = pointer
+    }
+
+    // This constructor can be used to instantiate a fake object.
+    // - Parameter noPointer: Placeholder value so we can have a constructor separate from the default empty one that may be implemented for classes extending [FFIObject].
+    //
+    // - Warning:
+    //     Any object instantiated with this constructor cannot be passed to an actual Rust-backed object. Since there isn't a backing [Pointer] the FFI lower functions will crash.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public init(noPointer: NoPointer) {
+        self.pointer = nil
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public func uniffiClonePointer() -> UnsafeMutableRawPointer {
+        return try! rustCall { uniffi_conduit_core_fn_clone_conduitclient(self.pointer, $0) }
+    }
+public convenience init(endpoint: String, bearerToken: String) {
+    let pointer =
+        try! rustCall() {
+    uniffi_conduit_core_fn_constructor_conduitclient_new(
+        FfiConverterString.lower(endpoint),
+        FfiConverterString.lower(bearerToken),$0
+    )
+}
+    self.init(unsafeFromRawPointer: pointer)
+}
+
+    deinit {
+        guard let pointer = pointer else {
+            return
+        }
+
+        try! rustCall { uniffi_conduit_core_fn_free_conduitclient(pointer, $0) }
+    }
+
+    
+
+    
+open func agentLoginCallback(sessionToken: String, queryString: String)async throws  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_conduit_core_fn_method_conduitclient_agent_login_callback(
+                    self.uniffiClonePointer(),
+                    FfiConverterString.lower(sessionToken),FfiConverterString.lower(queryString)
+                )
+            },
+            pollFunc: ffi_conduit_core_rust_future_poll_void,
+            completeFunc: ffi_conduit_core_rust_future_complete_void,
+            freeFunc: ffi_conduit_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeConduitError.lift
+        )
+}
+    
+open func cancelAgentLogin(sessionToken: String)async throws  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_conduit_core_fn_method_conduitclient_cancel_agent_login(
+                    self.uniffiClonePointer(),
+                    FfiConverterString.lower(sessionToken)
+                )
+            },
+            pollFunc: ffi_conduit_core_rust_future_poll_void,
+            completeFunc: ffi_conduit_core_rust_future_complete_void,
+            freeFunc: ffi_conduit_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeConduitError.lift
+        )
+}
+    
+open func connect(delegate: ConduitDelegate)async throws  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_conduit_core_fn_method_conduitclient_connect(
+                    self.uniffiClonePointer(),
+                    FfiConverterCallbackInterfaceConduitDelegate.lower(delegate)
+                )
+            },
+            pollFunc: ffi_conduit_core_rust_future_poll_void,
+            completeFunc: ffi_conduit_core_rust_future_complete_void,
+            freeFunc: ffi_conduit_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeConduitError.lift
+        )
+}
+    
+open func createSession(assistant: String, branch: String?, reasoningEffort: String?, model: String?, cwd: String?)async throws  -> String {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_conduit_core_fn_method_conduitclient_create_session(
+                    self.uniffiClonePointer(),
+                    FfiConverterString.lower(assistant),FfiConverterOptionString.lower(branch),FfiConverterOptionString.lower(reasoningEffort),FfiConverterOptionString.lower(model),FfiConverterOptionString.lower(cwd)
+                )
+            },
+            pollFunc: ffi_conduit_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_conduit_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_conduit_core_rust_future_free_rust_buffer,
+            liftFunc: FfiConverterString.lift,
+            errorHandler: FfiConverterTypeConduitError.lift
+        )
+}
+    
+open func disconnect() {try! rustCall() {
+    uniffi_conduit_core_fn_method_conduitclient_disconnect(self.uniffiClonePointer(),$0
+    )
+}
+}
+    
+open func exitSession(sessionId: String)async throws  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_conduit_core_fn_method_conduitclient_exit_session(
+                    self.uniffiClonePointer(),
+                    FfiConverterString.lower(sessionId)
+                )
+            },
+            pollFunc: ffi_conduit_core_rust_future_poll_void,
+            completeFunc: ffi_conduit_core_rust_future_complete_void,
+            freeFunc: ffi_conduit_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeConduitError.lift
+        )
+}
+    
+open func getSession(sessionId: String)throws  -> ProjectSession {
+    return try  FfiConverterTypeProjectSession.lift(try rustCallWithError(FfiConverterTypeConduitError.lift) {
+    uniffi_conduit_core_fn_method_conduitclient_get_session(self.uniffiClonePointer(),
+        FfiConverterString.lower(sessionId),$0
+    )
+})
+}
+    
+open func joinSession(sessionId: String, assistant: String?)async throws  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_conduit_core_fn_method_conduitclient_join_session(
+                    self.uniffiClonePointer(),
+                    FfiConverterString.lower(sessionId),FfiConverterOptionString.lower(assistant)
+                )
+            },
+            pollFunc: ffi_conduit_core_rust_future_poll_void,
+            completeFunc: ffi_conduit_core_rust_future_complete_void,
+            freeFunc: ffi_conduit_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeConduitError.lift
+        )
+}
+    
+open func listConversationItems(sessionId: String)throws  -> [ConversationItem] {
+    return try  FfiConverterSequenceTypeConversationItem.lift(try rustCallWithError(FfiConverterTypeConduitError.lift) {
+    uniffi_conduit_core_fn_method_conduitclient_list_conversation_items(self.uniffiClonePointer(),
+        FfiConverterString.lower(sessionId),$0
+    )
+})
+}
+    
+open func listSessions() -> [ProjectSession] {
+    return try!  FfiConverterSequenceTypeProjectSession.lift(try! rustCall() {
+    uniffi_conduit_core_fn_method_conduitclient_list_sessions(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+open func notifyNetworkChange() {try! rustCall() {
+    uniffi_conduit_core_fn_method_conduitclient_notify_network_change(self.uniffiClonePointer(),$0
+    )
+}
+}
+    
+open func refreshAccountUsage(sessionId: String)async throws  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_conduit_core_fn_method_conduitclient_refresh_account_usage(
+                    self.uniffiClonePointer(),
+                    FfiConverterString.lower(sessionId)
+                )
+            },
+            pollFunc: ffi_conduit_core_rust_future_poll_void,
+            completeFunc: ffi_conduit_core_rust_future_complete_void,
+            freeFunc: ffi_conduit_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeConduitError.lift
+        )
+}
+    
+open func resize(sessionId: String, rows: UInt16, cols: UInt16)async throws  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_conduit_core_fn_method_conduitclient_resize(
+                    self.uniffiClonePointer(),
+                    FfiConverterString.lower(sessionId),FfiConverterUInt16.lower(rows),FfiConverterUInt16.lower(cols)
+                )
+            },
+            pollFunc: ffi_conduit_core_rust_future_poll_void,
+            completeFunc: ffi_conduit_core_rust_future_complete_void,
+            freeFunc: ffi_conduit_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeConduitError.lift
+        )
+}
+    
+open func sendChat(sessionId: String, msg: String)async throws  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_conduit_core_fn_method_conduitclient_send_chat(
+                    self.uniffiClonePointer(),
+                    FfiConverterString.lower(sessionId),FfiConverterString.lower(msg)
+                )
+            },
+            pollFunc: ffi_conduit_core_rust_future_poll_void,
+            completeFunc: ffi_conduit_core_rust_future_complete_void,
+            freeFunc: ffi_conduit_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeConduitError.lift
+        )
+}
+    
+open func sendFile(sessionId: String, filename: String, mime: String, payload: Data)async throws  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_conduit_core_fn_method_conduitclient_send_file(
+                    self.uniffiClonePointer(),
+                    FfiConverterString.lower(sessionId),FfiConverterString.lower(filename),FfiConverterString.lower(mime),FfiConverterData.lower(payload)
+                )
+            },
+            pollFunc: ffi_conduit_core_rust_future_poll_void,
+            completeFunc: ffi_conduit_core_rust_future_complete_void,
+            freeFunc: ffi_conduit_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeConduitError.lift
+        )
+}
+    
+open func sendInput(sessionId: String, data: Data)async throws  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_conduit_core_fn_method_conduitclient_send_input(
+                    self.uniffiClonePointer(),
+                    FfiConverterString.lower(sessionId),FfiConverterData.lower(data)
+                )
+            },
+            pollFunc: ffi_conduit_core_rust_future_poll_void,
+            completeFunc: ffi_conduit_core_rust_future_complete_void,
+            freeFunc: ffi_conduit_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeConduitError.lift
+        )
+}
+    
+open func setAgentCredentials(provider: String, credentialJson: String)async throws  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_conduit_core_fn_method_conduitclient_set_agent_credentials(
+                    self.uniffiClonePointer(),
+                    FfiConverterString.lower(provider),FfiConverterString.lower(credentialJson)
+                )
+            },
+            pollFunc: ffi_conduit_core_rust_future_poll_void,
+            completeFunc: ffi_conduit_core_rust_future_complete_void,
+            freeFunc: ffi_conduit_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeConduitError.lift
+        )
+}
+    
+open func startAgentLogin(provider: String)async throws  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_conduit_core_fn_method_conduitclient_start_agent_login(
+                    self.uniffiClonePointer(),
+                    FfiConverterString.lower(provider)
+                )
+            },
+            pollFunc: ffi_conduit_core_rust_future_poll_void,
+            completeFunc: ffi_conduit_core_rust_future_complete_void,
+            freeFunc: ffi_conduit_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeConduitError.lift
+        )
+}
+    
+open func switchAgent(sessionId: String, assistant: String)async throws  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_conduit_core_fn_method_conduitclient_switch_agent(
+                    self.uniffiClonePointer(),
+                    FfiConverterString.lower(sessionId),FfiConverterString.lower(assistant)
+                )
+            },
+            pollFunc: ffi_conduit_core_rust_future_poll_void,
+            completeFunc: ffi_conduit_core_rust_future_complete_void,
+            freeFunc: ffi_conduit_core_rust_future_free_void,
+            liftFunc: { $0 },
+            errorHandler: FfiConverterTypeConduitError.lift
+        )
+}
+    
+
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeConduitClient: FfiConverter {
+
+    typealias FfiType = UnsafeMutableRawPointer
+    typealias SwiftType = ConduitClient
+
+    public static func lift(_ pointer: UnsafeMutableRawPointer) throws -> ConduitClient {
+        return ConduitClient(unsafeFromRawPointer: pointer)
+    }
+
+    public static func lower(_ value: ConduitClient) -> UnsafeMutableRawPointer {
+        return value.uniffiClonePointer()
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ConduitClient {
+        let v: UInt64 = try readInt(&buf)
+        // The Rust code won't compile if a pointer won't fit in a UInt64.
+        // We have to go via `UInt` because that's the thing that's the size of a pointer.
+        let ptr = UnsafeMutableRawPointer(bitPattern: UInt(truncatingIfNeeded: v))
+        if (ptr == nil) {
+            throw UniffiInternalError.unexpectedNullPointer
+        }
+        return try lift(ptr!)
+    }
+
+    public static func write(_ value: ConduitClient, into buf: inout [UInt8]) {
+        // This fiddling is because `Int` is the thing that's the same size as a pointer.
+        // The Rust code won't compile if a pointer won't fit in a `UInt64`.
+        writeInt(&buf, UInt64(bitPattern: Int64(Int(bitPattern: lower(value)))))
+    }
+}
+
+
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeConduitClient_lift(_ pointer: UnsafeMutableRawPointer) throws -> ConduitClient {
+    return try FfiConverterTypeConduitClient.lift(pointer)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeConduitClient_lower(_ value: ConduitClient) -> UnsafeMutableRawPointer {
+    return FfiConverterTypeConduitClient.lower(value)
+}
+
+
+
+
 public protocol SessionStoreCoreProtocol : AnyObject {
     
     func applyChat(sessionId: String, event: ChatEvent)  -> ProjectSessionState?
@@ -629,12 +1060,12 @@ open class SessionStoreCore:
     @_documentation(visibility: private)
 #endif
     public func uniffiClonePointer() -> UnsafeMutableRawPointer {
-        return try! rustCall { uniffi_swe_kitty_core_fn_clone_sessionstorecore(self.pointer, $0) }
+        return try! rustCall { uniffi_conduit_core_fn_clone_sessionstorecore(self.pointer, $0) }
     }
 public convenience init() {
     let pointer =
         try! rustCall() {
-    uniffi_swe_kitty_core_fn_constructor_sessionstorecore_new($0
+    uniffi_conduit_core_fn_constructor_sessionstorecore_new($0
     )
 }
     self.init(unsafeFromRawPointer: pointer)
@@ -645,7 +1076,7 @@ public convenience init() {
             return
         }
 
-        try! rustCall { uniffi_swe_kitty_core_fn_free_sessionstorecore(pointer, $0) }
+        try! rustCall { uniffi_conduit_core_fn_free_sessionstorecore(pointer, $0) }
     }
 
     
@@ -653,7 +1084,7 @@ public convenience init() {
     
 open func applyChat(sessionId: String, event: ChatEvent) -> ProjectSessionState? {
     return try!  FfiConverterOptionTypeProjectSessionState.lift(try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_chat(self.uniffiClonePointer(),
+    uniffi_conduit_core_fn_method_sessionstorecore_apply_chat(self.uniffiClonePointer(),
         FfiConverterString.lower(sessionId),
         FfiConverterTypeChatEvent.lower(event),$0
     )
@@ -662,7 +1093,7 @@ open func applyChat(sessionId: String, event: ChatEvent) -> ProjectSessionState?
     
 open func applyExit(sessionId: String, code: Int32) -> ProjectSessionState? {
     return try!  FfiConverterOptionTypeProjectSessionState.lift(try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_exit(self.uniffiClonePointer(),
+    uniffi_conduit_core_fn_method_sessionstorecore_apply_exit(self.uniffiClonePointer(),
         FfiConverterString.lower(sessionId),
         FfiConverterInt32.lower(code),$0
     )
@@ -670,7 +1101,7 @@ open func applyExit(sessionId: String, code: Int32) -> ProjectSessionState? {
 }
     
 open func applyLifecycle(sessionId: String, lifecycle: SessionLifecycleCore) {try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_lifecycle(self.uniffiClonePointer(),
+    uniffi_conduit_core_fn_method_sessionstorecore_apply_lifecycle(self.uniffiClonePointer(),
         FfiConverterString.lower(sessionId),
         FfiConverterTypeSessionLifecycleCore.lower(lifecycle),$0
     )
@@ -679,7 +1110,7 @@ open func applyLifecycle(sessionId: String, lifecycle: SessionLifecycleCore) {tr
     
 open func applyPreview(sessionId: String, preview: PreviewInfo) -> ProjectSessionState? {
     return try!  FfiConverterOptionTypeProjectSessionState.lift(try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_preview(self.uniffiClonePointer(),
+    uniffi_conduit_core_fn_method_sessionstorecore_apply_preview(self.uniffiClonePointer(),
         FfiConverterString.lower(sessionId),
         FfiConverterTypePreviewInfo.lower(preview),$0
     )
@@ -688,7 +1119,7 @@ open func applyPreview(sessionId: String, preview: PreviewInfo) -> ProjectSessio
     
 open func applyPtyData(sessionId: String, data: Data) -> ProjectSessionState? {
     return try!  FfiConverterOptionTypeProjectSessionState.lift(try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_pty_data(self.uniffiClonePointer(),
+    uniffi_conduit_core_fn_method_sessionstorecore_apply_pty_data(self.uniffiClonePointer(),
         FfiConverterString.lower(sessionId),
         FfiConverterData.lower(data),$0
     )
@@ -697,7 +1128,7 @@ open func applyPtyData(sessionId: String, data: Data) -> ProjectSessionState? {
     
 open func applySnapshot(sessionId: String, gunzipped: Data) -> ProjectSessionState? {
     return try!  FfiConverterOptionTypeProjectSessionState.lift(try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_snapshot(self.uniffiClonePointer(),
+    uniffi_conduit_core_fn_method_sessionstorecore_apply_snapshot(self.uniffiClonePointer(),
         FfiConverterString.lower(sessionId),
         FfiConverterData.lower(gunzipped),$0
     )
@@ -706,7 +1137,7 @@ open func applySnapshot(sessionId: String, gunzipped: Data) -> ProjectSessionSta
     
 open func applyStatus(status: SessionStatus) -> ProjectSessionState {
     return try!  FfiConverterTypeProjectSessionState.lift(try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_status(self.uniffiClonePointer(),
+    uniffi_conduit_core_fn_method_sessionstorecore_apply_status(self.uniffiClonePointer(),
         FfiConverterTypeSessionStatus.lower(status),$0
     )
 })
@@ -714,7 +1145,7 @@ open func applyStatus(status: SessionStatus) -> ProjectSessionState {
     
 open func contains(sessionId: String) -> Bool {
     return try!  FfiConverterBool.lift(try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_sessionstorecore_contains(self.uniffiClonePointer(),
+    uniffi_conduit_core_fn_method_sessionstorecore_contains(self.uniffiClonePointer(),
         FfiConverterString.lower(sessionId),$0
     )
 })
@@ -722,14 +1153,14 @@ open func contains(sessionId: String) -> Bool {
     
 open func conversation(sessionId: String) -> [ConversationItem] {
     return try!  FfiConverterSequenceTypeConversationItem.lift(try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_sessionstorecore_conversation(self.uniffiClonePointer(),
+    uniffi_conduit_core_fn_method_sessionstorecore_conversation(self.uniffiClonePointer(),
         FfiConverterString.lower(sessionId),$0
     )
 })
 }
     
 open func forgetSession(sessionId: String) {try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_sessionstorecore_forget_session(self.uniffiClonePointer(),
+    uniffi_conduit_core_fn_method_sessionstorecore_forget_session(self.uniffiClonePointer(),
         FfiConverterString.lower(sessionId),$0
     )
 }
@@ -737,7 +1168,7 @@ open func forgetSession(sessionId: String) {try! rustCall() {
     
 open func get(sessionId: String) -> ProjectSessionState? {
     return try!  FfiConverterOptionTypeProjectSessionState.lift(try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_sessionstorecore_get(self.uniffiClonePointer(),
+    uniffi_conduit_core_fn_method_sessionstorecore_get(self.uniffiClonePointer(),
         FfiConverterString.lower(sessionId),$0
     )
 })
@@ -745,14 +1176,14 @@ open func get(sessionId: String) -> ProjectSessionState? {
     
 open func lifecycle(sessionId: String) -> SessionLifecycleCore? {
     return try!  FfiConverterOptionTypeSessionLifecycleCore.lift(try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_sessionstorecore_lifecycle(self.uniffiClonePointer(),
+    uniffi_conduit_core_fn_method_sessionstorecore_lifecycle(self.uniffiClonePointer(),
         FfiConverterString.lower(sessionId),$0
     )
 })
 }
     
 open func registerSession(session: ProjectSession) {try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_sessionstorecore_register_session(self.uniffiClonePointer(),
+    uniffi_conduit_core_fn_method_sessionstorecore_register_session(self.uniffiClonePointer(),
         FfiConverterTypeProjectSession.lower(session),$0
     )
 }
@@ -760,7 +1191,7 @@ open func registerSession(session: ProjectSession) {try! rustCall() {
     
 open func sessions() -> [ProjectSession] {
     return try!  FfiConverterSequenceTypeProjectSession.lift(try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_sessionstorecore_sessions(self.uniffiClonePointer(),$0
+    uniffi_conduit_core_fn_method_sessionstorecore_sessions(self.uniffiClonePointer(),$0
     )
 })
 }
@@ -817,437 +1248,6 @@ public func FfiConverterTypeSessionStoreCore_lift(_ pointer: UnsafeMutableRawPoi
 #endif
 public func FfiConverterTypeSessionStoreCore_lower(_ value: SessionStoreCore) -> UnsafeMutableRawPointer {
     return FfiConverterTypeSessionStoreCore.lower(value)
-}
-
-
-
-
-public protocol SweKittyClientProtocol : AnyObject {
-    
-    func agentLoginCallback(sessionToken: String, queryString: String) async throws 
-    
-    func cancelAgentLogin(sessionToken: String) async throws 
-    
-    func connect(delegate: SweKittyDelegate) async throws 
-    
-    func createSession(assistant: String, branch: String?, reasoningEffort: String?, model: String?, cwd: String?) async throws  -> String
-    
-    func disconnect() 
-    
-    func exitSession(sessionId: String) async throws 
-    
-    func getSession(sessionId: String) throws  -> ProjectSession
-    
-    func joinSession(sessionId: String, assistant: String?) async throws 
-    
-    func listConversationItems(sessionId: String) throws  -> [ConversationItem]
-    
-    func listSessions()  -> [ProjectSession]
-    
-    func notifyNetworkChange() 
-    
-    func refreshAccountUsage(sessionId: String) async throws 
-    
-    func resize(sessionId: String, rows: UInt16, cols: UInt16) async throws 
-    
-    func sendChat(sessionId: String, msg: String) async throws 
-    
-    func sendFile(sessionId: String, filename: String, mime: String, payload: Data) async throws 
-    
-    func sendInput(sessionId: String, data: Data) async throws 
-    
-    func setAgentCredentials(provider: String, credentialJson: String) async throws 
-    
-    func startAgentLogin(provider: String) async throws 
-    
-    func switchAgent(sessionId: String, assistant: String) async throws 
-    
-}
-
-open class SweKittyClient:
-    SweKittyClientProtocol {
-    fileprivate let pointer: UnsafeMutableRawPointer!
-
-    /// Used to instantiate a [FFIObject] without an actual pointer, for fakes in tests, mostly.
-#if swift(>=5.8)
-    @_documentation(visibility: private)
-#endif
-    public struct NoPointer {
-        public init() {}
-    }
-
-    // TODO: We'd like this to be `private` but for Swifty reasons,
-    // we can't implement `FfiConverter` without making this `required` and we can't
-    // make it `required` without making it `public`.
-    required public init(unsafeFromRawPointer pointer: UnsafeMutableRawPointer) {
-        self.pointer = pointer
-    }
-
-    // This constructor can be used to instantiate a fake object.
-    // - Parameter noPointer: Placeholder value so we can have a constructor separate from the default empty one that may be implemented for classes extending [FFIObject].
-    //
-    // - Warning:
-    //     Any object instantiated with this constructor cannot be passed to an actual Rust-backed object. Since there isn't a backing [Pointer] the FFI lower functions will crash.
-#if swift(>=5.8)
-    @_documentation(visibility: private)
-#endif
-    public init(noPointer: NoPointer) {
-        self.pointer = nil
-    }
-
-#if swift(>=5.8)
-    @_documentation(visibility: private)
-#endif
-    public func uniffiClonePointer() -> UnsafeMutableRawPointer {
-        return try! rustCall { uniffi_swe_kitty_core_fn_clone_swekittyclient(self.pointer, $0) }
-    }
-public convenience init(endpoint: String, bearerToken: String) {
-    let pointer =
-        try! rustCall() {
-    uniffi_swe_kitty_core_fn_constructor_swekittyclient_new(
-        FfiConverterString.lower(endpoint),
-        FfiConverterString.lower(bearerToken),$0
-    )
-}
-    self.init(unsafeFromRawPointer: pointer)
-}
-
-    deinit {
-        guard let pointer = pointer else {
-            return
-        }
-
-        try! rustCall { uniffi_swe_kitty_core_fn_free_swekittyclient(pointer, $0) }
-    }
-
-    
-
-    
-open func agentLoginCallback(sessionToken: String, queryString: String)async throws  {
-    return
-        try  await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_swe_kitty_core_fn_method_swekittyclient_agent_login_callback(
-                    self.uniffiClonePointer(),
-                    FfiConverterString.lower(sessionToken),FfiConverterString.lower(queryString)
-                )
-            },
-            pollFunc: ffi_swe_kitty_core_rust_future_poll_void,
-            completeFunc: ffi_swe_kitty_core_rust_future_complete_void,
-            freeFunc: ffi_swe_kitty_core_rust_future_free_void,
-            liftFunc: { $0 },
-            errorHandler: FfiConverterTypeSweKittyError.lift
-        )
-}
-    
-open func cancelAgentLogin(sessionToken: String)async throws  {
-    return
-        try  await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_swe_kitty_core_fn_method_swekittyclient_cancel_agent_login(
-                    self.uniffiClonePointer(),
-                    FfiConverterString.lower(sessionToken)
-                )
-            },
-            pollFunc: ffi_swe_kitty_core_rust_future_poll_void,
-            completeFunc: ffi_swe_kitty_core_rust_future_complete_void,
-            freeFunc: ffi_swe_kitty_core_rust_future_free_void,
-            liftFunc: { $0 },
-            errorHandler: FfiConverterTypeSweKittyError.lift
-        )
-}
-    
-open func connect(delegate: SweKittyDelegate)async throws  {
-    return
-        try  await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_swe_kitty_core_fn_method_swekittyclient_connect(
-                    self.uniffiClonePointer(),
-                    FfiConverterCallbackInterfaceSweKittyDelegate.lower(delegate)
-                )
-            },
-            pollFunc: ffi_swe_kitty_core_rust_future_poll_void,
-            completeFunc: ffi_swe_kitty_core_rust_future_complete_void,
-            freeFunc: ffi_swe_kitty_core_rust_future_free_void,
-            liftFunc: { $0 },
-            errorHandler: FfiConverterTypeSweKittyError.lift
-        )
-}
-    
-open func createSession(assistant: String, branch: String?, reasoningEffort: String?, model: String?, cwd: String?)async throws  -> String {
-    return
-        try  await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_swe_kitty_core_fn_method_swekittyclient_create_session(
-                    self.uniffiClonePointer(),
-                    FfiConverterString.lower(assistant),FfiConverterOptionString.lower(branch),FfiConverterOptionString.lower(reasoningEffort),FfiConverterOptionString.lower(model),FfiConverterOptionString.lower(cwd)
-                )
-            },
-            pollFunc: ffi_swe_kitty_core_rust_future_poll_rust_buffer,
-            completeFunc: ffi_swe_kitty_core_rust_future_complete_rust_buffer,
-            freeFunc: ffi_swe_kitty_core_rust_future_free_rust_buffer,
-            liftFunc: FfiConverterString.lift,
-            errorHandler: FfiConverterTypeSweKittyError.lift
-        )
-}
-    
-open func disconnect() {try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_swekittyclient_disconnect(self.uniffiClonePointer(),$0
-    )
-}
-}
-    
-open func exitSession(sessionId: String)async throws  {
-    return
-        try  await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_swe_kitty_core_fn_method_swekittyclient_exit_session(
-                    self.uniffiClonePointer(),
-                    FfiConverterString.lower(sessionId)
-                )
-            },
-            pollFunc: ffi_swe_kitty_core_rust_future_poll_void,
-            completeFunc: ffi_swe_kitty_core_rust_future_complete_void,
-            freeFunc: ffi_swe_kitty_core_rust_future_free_void,
-            liftFunc: { $0 },
-            errorHandler: FfiConverterTypeSweKittyError.lift
-        )
-}
-    
-open func getSession(sessionId: String)throws  -> ProjectSession {
-    return try  FfiConverterTypeProjectSession.lift(try rustCallWithError(FfiConverterTypeSweKittyError.lift) {
-    uniffi_swe_kitty_core_fn_method_swekittyclient_get_session(self.uniffiClonePointer(),
-        FfiConverterString.lower(sessionId),$0
-    )
-})
-}
-    
-open func joinSession(sessionId: String, assistant: String?)async throws  {
-    return
-        try  await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_swe_kitty_core_fn_method_swekittyclient_join_session(
-                    self.uniffiClonePointer(),
-                    FfiConverterString.lower(sessionId),FfiConverterOptionString.lower(assistant)
-                )
-            },
-            pollFunc: ffi_swe_kitty_core_rust_future_poll_void,
-            completeFunc: ffi_swe_kitty_core_rust_future_complete_void,
-            freeFunc: ffi_swe_kitty_core_rust_future_free_void,
-            liftFunc: { $0 },
-            errorHandler: FfiConverterTypeSweKittyError.lift
-        )
-}
-    
-open func listConversationItems(sessionId: String)throws  -> [ConversationItem] {
-    return try  FfiConverterSequenceTypeConversationItem.lift(try rustCallWithError(FfiConverterTypeSweKittyError.lift) {
-    uniffi_swe_kitty_core_fn_method_swekittyclient_list_conversation_items(self.uniffiClonePointer(),
-        FfiConverterString.lower(sessionId),$0
-    )
-})
-}
-    
-open func listSessions() -> [ProjectSession] {
-    return try!  FfiConverterSequenceTypeProjectSession.lift(try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_swekittyclient_list_sessions(self.uniffiClonePointer(),$0
-    )
-})
-}
-    
-open func notifyNetworkChange() {try! rustCall() {
-    uniffi_swe_kitty_core_fn_method_swekittyclient_notify_network_change(self.uniffiClonePointer(),$0
-    )
-}
-}
-    
-open func refreshAccountUsage(sessionId: String)async throws  {
-    return
-        try  await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_swe_kitty_core_fn_method_swekittyclient_refresh_account_usage(
-                    self.uniffiClonePointer(),
-                    FfiConverterString.lower(sessionId)
-                )
-            },
-            pollFunc: ffi_swe_kitty_core_rust_future_poll_void,
-            completeFunc: ffi_swe_kitty_core_rust_future_complete_void,
-            freeFunc: ffi_swe_kitty_core_rust_future_free_void,
-            liftFunc: { $0 },
-            errorHandler: FfiConverterTypeSweKittyError.lift
-        )
-}
-    
-open func resize(sessionId: String, rows: UInt16, cols: UInt16)async throws  {
-    return
-        try  await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_swe_kitty_core_fn_method_swekittyclient_resize(
-                    self.uniffiClonePointer(),
-                    FfiConverterString.lower(sessionId),FfiConverterUInt16.lower(rows),FfiConverterUInt16.lower(cols)
-                )
-            },
-            pollFunc: ffi_swe_kitty_core_rust_future_poll_void,
-            completeFunc: ffi_swe_kitty_core_rust_future_complete_void,
-            freeFunc: ffi_swe_kitty_core_rust_future_free_void,
-            liftFunc: { $0 },
-            errorHandler: FfiConverterTypeSweKittyError.lift
-        )
-}
-    
-open func sendChat(sessionId: String, msg: String)async throws  {
-    return
-        try  await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_swe_kitty_core_fn_method_swekittyclient_send_chat(
-                    self.uniffiClonePointer(),
-                    FfiConverterString.lower(sessionId),FfiConverterString.lower(msg)
-                )
-            },
-            pollFunc: ffi_swe_kitty_core_rust_future_poll_void,
-            completeFunc: ffi_swe_kitty_core_rust_future_complete_void,
-            freeFunc: ffi_swe_kitty_core_rust_future_free_void,
-            liftFunc: { $0 },
-            errorHandler: FfiConverterTypeSweKittyError.lift
-        )
-}
-    
-open func sendFile(sessionId: String, filename: String, mime: String, payload: Data)async throws  {
-    return
-        try  await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_swe_kitty_core_fn_method_swekittyclient_send_file(
-                    self.uniffiClonePointer(),
-                    FfiConverterString.lower(sessionId),FfiConverterString.lower(filename),FfiConverterString.lower(mime),FfiConverterData.lower(payload)
-                )
-            },
-            pollFunc: ffi_swe_kitty_core_rust_future_poll_void,
-            completeFunc: ffi_swe_kitty_core_rust_future_complete_void,
-            freeFunc: ffi_swe_kitty_core_rust_future_free_void,
-            liftFunc: { $0 },
-            errorHandler: FfiConverterTypeSweKittyError.lift
-        )
-}
-    
-open func sendInput(sessionId: String, data: Data)async throws  {
-    return
-        try  await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_swe_kitty_core_fn_method_swekittyclient_send_input(
-                    self.uniffiClonePointer(),
-                    FfiConverterString.lower(sessionId),FfiConverterData.lower(data)
-                )
-            },
-            pollFunc: ffi_swe_kitty_core_rust_future_poll_void,
-            completeFunc: ffi_swe_kitty_core_rust_future_complete_void,
-            freeFunc: ffi_swe_kitty_core_rust_future_free_void,
-            liftFunc: { $0 },
-            errorHandler: FfiConverterTypeSweKittyError.lift
-        )
-}
-    
-open func setAgentCredentials(provider: String, credentialJson: String)async throws  {
-    return
-        try  await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_swe_kitty_core_fn_method_swekittyclient_set_agent_credentials(
-                    self.uniffiClonePointer(),
-                    FfiConverterString.lower(provider),FfiConverterString.lower(credentialJson)
-                )
-            },
-            pollFunc: ffi_swe_kitty_core_rust_future_poll_void,
-            completeFunc: ffi_swe_kitty_core_rust_future_complete_void,
-            freeFunc: ffi_swe_kitty_core_rust_future_free_void,
-            liftFunc: { $0 },
-            errorHandler: FfiConverterTypeSweKittyError.lift
-        )
-}
-    
-open func startAgentLogin(provider: String)async throws  {
-    return
-        try  await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_swe_kitty_core_fn_method_swekittyclient_start_agent_login(
-                    self.uniffiClonePointer(),
-                    FfiConverterString.lower(provider)
-                )
-            },
-            pollFunc: ffi_swe_kitty_core_rust_future_poll_void,
-            completeFunc: ffi_swe_kitty_core_rust_future_complete_void,
-            freeFunc: ffi_swe_kitty_core_rust_future_free_void,
-            liftFunc: { $0 },
-            errorHandler: FfiConverterTypeSweKittyError.lift
-        )
-}
-    
-open func switchAgent(sessionId: String, assistant: String)async throws  {
-    return
-        try  await uniffiRustCallAsync(
-            rustFutureFunc: {
-                uniffi_swe_kitty_core_fn_method_swekittyclient_switch_agent(
-                    self.uniffiClonePointer(),
-                    FfiConverterString.lower(sessionId),FfiConverterString.lower(assistant)
-                )
-            },
-            pollFunc: ffi_swe_kitty_core_rust_future_poll_void,
-            completeFunc: ffi_swe_kitty_core_rust_future_complete_void,
-            freeFunc: ffi_swe_kitty_core_rust_future_free_void,
-            liftFunc: { $0 },
-            errorHandler: FfiConverterTypeSweKittyError.lift
-        )
-}
-    
-
-}
-
-#if swift(>=5.8)
-@_documentation(visibility: private)
-#endif
-public struct FfiConverterTypeSweKittyClient: FfiConverter {
-
-    typealias FfiType = UnsafeMutableRawPointer
-    typealias SwiftType = SweKittyClient
-
-    public static func lift(_ pointer: UnsafeMutableRawPointer) throws -> SweKittyClient {
-        return SweKittyClient(unsafeFromRawPointer: pointer)
-    }
-
-    public static func lower(_ value: SweKittyClient) -> UnsafeMutableRawPointer {
-        return value.uniffiClonePointer()
-    }
-
-    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SweKittyClient {
-        let v: UInt64 = try readInt(&buf)
-        // The Rust code won't compile if a pointer won't fit in a UInt64.
-        // We have to go via `UInt` because that's the thing that's the size of a pointer.
-        let ptr = UnsafeMutableRawPointer(bitPattern: UInt(truncatingIfNeeded: v))
-        if (ptr == nil) {
-            throw UniffiInternalError.unexpectedNullPointer
-        }
-        return try lift(ptr!)
-    }
-
-    public static func write(_ value: SweKittyClient, into buf: inout [UInt8]) {
-        // This fiddling is because `Int` is the thing that's the same size as a pointer.
-        // The Rust code won't compile if a pointer won't fit in a `UInt64`.
-        writeInt(&buf, UInt64(bitPattern: Int64(Int(bitPattern: lower(value)))))
-    }
-}
-
-
-
-
-#if swift(>=5.8)
-@_documentation(visibility: private)
-#endif
-public func FfiConverterTypeSweKittyClient_lift(_ pointer: UnsafeMutableRawPointer) throws -> SweKittyClient {
-    return try FfiConverterTypeSweKittyClient.lift(pointer)
-}
-
-#if swift(>=5.8)
-@_documentation(visibility: private)
-#endif
-public func FfiConverterTypeSweKittyClient_lower(_ value: SweKittyClient) -> UnsafeMutableRawPointer {
-    return FfiConverterTypeSweKittyClient.lower(value)
 }
 
 
@@ -2748,6 +2748,101 @@ public func FfiConverterTypeViewEventFile_lower(_ value: ViewEventFile) -> RustB
     return FfiConverterTypeViewEventFile.lower(value)
 }
 
+
+public enum ConduitError {
+
+    
+    
+    case Connection(message: String)
+    
+    case Auth(message: String)
+    
+    case Protocol(message: String)
+    
+    case Json(message: String)
+    
+    case NotConnected(message: String)
+    
+    case UnknownSession(message: String)
+    
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeConduitError: FfiConverterRustBuffer {
+    typealias SwiftType = ConduitError
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ConduitError {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+
+        
+
+        
+        case 1: return .Connection(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 2: return .Auth(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 3: return .Protocol(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 4: return .Json(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 5: return .NotConnected(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+        case 6: return .UnknownSession(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
+
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: ConduitError, into buf: inout [UInt8]) {
+        switch value {
+
+        
+
+        
+        case .Connection(_ /* message is ignored*/):
+            writeInt(&buf, Int32(1))
+        case .Auth(_ /* message is ignored*/):
+            writeInt(&buf, Int32(2))
+        case .Protocol(_ /* message is ignored*/):
+            writeInt(&buf, Int32(3))
+        case .Json(_ /* message is ignored*/):
+            writeInt(&buf, Int32(4))
+        case .NotConnected(_ /* message is ignored*/):
+            writeInt(&buf, Int32(5))
+        case .UnknownSession(_ /* message is ignored*/):
+            writeInt(&buf, Int32(6))
+
+        
+        }
+    }
+}
+
+
+extension ConduitError: Equatable, Hashable {}
+
+extension ConduitError: Foundation.LocalizedError {
+    public var errorDescription: String? {
+        String(reflecting: self)
+    }
+}
+
 // Note that we don't yet support `indirect` for enums.
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 
@@ -3126,97 +3221,331 @@ extension SshError: Foundation.LocalizedError {
 }
 
 
-public enum SweKittyError {
 
+
+public protocol ConduitDelegate : AnyObject {
     
+    func onPtyData(sessionId: String, data: Data) 
     
-    case Connection(message: String)
+    func onChatEvent(sessionId: String, event: ChatEvent) 
     
-    case Auth(message: String)
+    func onPreviewReady(sessionId: String, preview: PreviewInfo) 
     
-    case Protocol(message: String)
+    func onStatus(status: SessionStatus) 
     
-    case Json(message: String)
+    func onSnapshot(sessionId: String, gunzipped: Data) 
     
-    case NotConnected(message: String)
+    func onExit(sessionId: String, code: Int32) 
     
-    case UnknownSession(message: String)
+    func onDisconnected(reason: String) 
+    
+    func onConnectionHealth(sessionId: String, health: ConnectionHealth) 
+    
+    func onViewEvent(sessionId: String, kind: String, payload: [String: String]) 
     
 }
 
+// Magic number for the Rust proxy to call using the same mechanism as every other method,
+// to free the callback once it's dropped by Rust.
+private let IDX_CALLBACK_FREE: Int32 = 0
+// Callback return codes
+private let UNIFFI_CALLBACK_SUCCESS: Int32 = 0
+private let UNIFFI_CALLBACK_ERROR: Int32 = 1
+private let UNIFFI_CALLBACK_UNEXPECTED_ERROR: Int32 = 2
+
+// Put the implementation in a struct so we don't pollute the top-level namespace
+fileprivate struct UniffiCallbackInterfaceConduitDelegate {
+
+    // Create the VTable using a series of closures.
+    // Swift automatically converts these into C callback functions.
+    static var vtable: UniffiVTableCallbackInterfaceConduitDelegate = UniffiVTableCallbackInterfaceConduitDelegate(
+        onPtyData: { (
+            uniffiHandle: UInt64,
+            sessionId: RustBuffer,
+            data: RustBuffer,
+            uniffiOutReturn: UnsafeMutableRawPointer,
+            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
+        ) in
+            let makeCall = {
+                () throws -> () in
+                guard let uniffiObj = try? FfiConverterCallbackInterfaceConduitDelegate.handleMap.get(handle: uniffiHandle) else {
+                    throw UniffiInternalError.unexpectedStaleHandle
+                }
+                return uniffiObj.onPtyData(
+                     sessionId: try FfiConverterString.lift(sessionId),
+                     data: try FfiConverterData.lift(data)
+                )
+            }
+
+            
+            let writeReturn = { () }
+            uniffiTraitInterfaceCall(
+                callStatus: uniffiCallStatus,
+                makeCall: makeCall,
+                writeReturn: writeReturn
+            )
+        },
+        onChatEvent: { (
+            uniffiHandle: UInt64,
+            sessionId: RustBuffer,
+            event: RustBuffer,
+            uniffiOutReturn: UnsafeMutableRawPointer,
+            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
+        ) in
+            let makeCall = {
+                () throws -> () in
+                guard let uniffiObj = try? FfiConverterCallbackInterfaceConduitDelegate.handleMap.get(handle: uniffiHandle) else {
+                    throw UniffiInternalError.unexpectedStaleHandle
+                }
+                return uniffiObj.onChatEvent(
+                     sessionId: try FfiConverterString.lift(sessionId),
+                     event: try FfiConverterTypeChatEvent.lift(event)
+                )
+            }
+
+            
+            let writeReturn = { () }
+            uniffiTraitInterfaceCall(
+                callStatus: uniffiCallStatus,
+                makeCall: makeCall,
+                writeReturn: writeReturn
+            )
+        },
+        onPreviewReady: { (
+            uniffiHandle: UInt64,
+            sessionId: RustBuffer,
+            preview: RustBuffer,
+            uniffiOutReturn: UnsafeMutableRawPointer,
+            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
+        ) in
+            let makeCall = {
+                () throws -> () in
+                guard let uniffiObj = try? FfiConverterCallbackInterfaceConduitDelegate.handleMap.get(handle: uniffiHandle) else {
+                    throw UniffiInternalError.unexpectedStaleHandle
+                }
+                return uniffiObj.onPreviewReady(
+                     sessionId: try FfiConverterString.lift(sessionId),
+                     preview: try FfiConverterTypePreviewInfo.lift(preview)
+                )
+            }
+
+            
+            let writeReturn = { () }
+            uniffiTraitInterfaceCall(
+                callStatus: uniffiCallStatus,
+                makeCall: makeCall,
+                writeReturn: writeReturn
+            )
+        },
+        onStatus: { (
+            uniffiHandle: UInt64,
+            status: RustBuffer,
+            uniffiOutReturn: UnsafeMutableRawPointer,
+            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
+        ) in
+            let makeCall = {
+                () throws -> () in
+                guard let uniffiObj = try? FfiConverterCallbackInterfaceConduitDelegate.handleMap.get(handle: uniffiHandle) else {
+                    throw UniffiInternalError.unexpectedStaleHandle
+                }
+                return uniffiObj.onStatus(
+                     status: try FfiConverterTypeSessionStatus.lift(status)
+                )
+            }
+
+            
+            let writeReturn = { () }
+            uniffiTraitInterfaceCall(
+                callStatus: uniffiCallStatus,
+                makeCall: makeCall,
+                writeReturn: writeReturn
+            )
+        },
+        onSnapshot: { (
+            uniffiHandle: UInt64,
+            sessionId: RustBuffer,
+            gunzipped: RustBuffer,
+            uniffiOutReturn: UnsafeMutableRawPointer,
+            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
+        ) in
+            let makeCall = {
+                () throws -> () in
+                guard let uniffiObj = try? FfiConverterCallbackInterfaceConduitDelegate.handleMap.get(handle: uniffiHandle) else {
+                    throw UniffiInternalError.unexpectedStaleHandle
+                }
+                return uniffiObj.onSnapshot(
+                     sessionId: try FfiConverterString.lift(sessionId),
+                     gunzipped: try FfiConverterData.lift(gunzipped)
+                )
+            }
+
+            
+            let writeReturn = { () }
+            uniffiTraitInterfaceCall(
+                callStatus: uniffiCallStatus,
+                makeCall: makeCall,
+                writeReturn: writeReturn
+            )
+        },
+        onExit: { (
+            uniffiHandle: UInt64,
+            sessionId: RustBuffer,
+            code: Int32,
+            uniffiOutReturn: UnsafeMutableRawPointer,
+            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
+        ) in
+            let makeCall = {
+                () throws -> () in
+                guard let uniffiObj = try? FfiConverterCallbackInterfaceConduitDelegate.handleMap.get(handle: uniffiHandle) else {
+                    throw UniffiInternalError.unexpectedStaleHandle
+                }
+                return uniffiObj.onExit(
+                     sessionId: try FfiConverterString.lift(sessionId),
+                     code: try FfiConverterInt32.lift(code)
+                )
+            }
+
+            
+            let writeReturn = { () }
+            uniffiTraitInterfaceCall(
+                callStatus: uniffiCallStatus,
+                makeCall: makeCall,
+                writeReturn: writeReturn
+            )
+        },
+        onDisconnected: { (
+            uniffiHandle: UInt64,
+            reason: RustBuffer,
+            uniffiOutReturn: UnsafeMutableRawPointer,
+            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
+        ) in
+            let makeCall = {
+                () throws -> () in
+                guard let uniffiObj = try? FfiConverterCallbackInterfaceConduitDelegate.handleMap.get(handle: uniffiHandle) else {
+                    throw UniffiInternalError.unexpectedStaleHandle
+                }
+                return uniffiObj.onDisconnected(
+                     reason: try FfiConverterString.lift(reason)
+                )
+            }
+
+            
+            let writeReturn = { () }
+            uniffiTraitInterfaceCall(
+                callStatus: uniffiCallStatus,
+                makeCall: makeCall,
+                writeReturn: writeReturn
+            )
+        },
+        onConnectionHealth: { (
+            uniffiHandle: UInt64,
+            sessionId: RustBuffer,
+            health: RustBuffer,
+            uniffiOutReturn: UnsafeMutableRawPointer,
+            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
+        ) in
+            let makeCall = {
+                () throws -> () in
+                guard let uniffiObj = try? FfiConverterCallbackInterfaceConduitDelegate.handleMap.get(handle: uniffiHandle) else {
+                    throw UniffiInternalError.unexpectedStaleHandle
+                }
+                return uniffiObj.onConnectionHealth(
+                     sessionId: try FfiConverterString.lift(sessionId),
+                     health: try FfiConverterTypeConnectionHealth.lift(health)
+                )
+            }
+
+            
+            let writeReturn = { () }
+            uniffiTraitInterfaceCall(
+                callStatus: uniffiCallStatus,
+                makeCall: makeCall,
+                writeReturn: writeReturn
+            )
+        },
+        onViewEvent: { (
+            uniffiHandle: UInt64,
+            sessionId: RustBuffer,
+            kind: RustBuffer,
+            payload: RustBuffer,
+            uniffiOutReturn: UnsafeMutableRawPointer,
+            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
+        ) in
+            let makeCall = {
+                () throws -> () in
+                guard let uniffiObj = try? FfiConverterCallbackInterfaceConduitDelegate.handleMap.get(handle: uniffiHandle) else {
+                    throw UniffiInternalError.unexpectedStaleHandle
+                }
+                return uniffiObj.onViewEvent(
+                     sessionId: try FfiConverterString.lift(sessionId),
+                     kind: try FfiConverterString.lift(kind),
+                     payload: try FfiConverterDictionaryStringString.lift(payload)
+                )
+            }
+
+            
+            let writeReturn = { () }
+            uniffiTraitInterfaceCall(
+                callStatus: uniffiCallStatus,
+                makeCall: makeCall,
+                writeReturn: writeReturn
+            )
+        },
+        uniffiFree: { (uniffiHandle: UInt64) -> () in
+            let result = try? FfiConverterCallbackInterfaceConduitDelegate.handleMap.remove(handle: uniffiHandle)
+            if result == nil {
+                print("Uniffi callback interface ConduitDelegate: handle missing in uniffiFree")
+            }
+        }
+    )
+}
+
+private func uniffiCallbackInitConduitDelegate() {
+    uniffi_conduit_core_fn_init_callback_vtable_conduitdelegate(&UniffiCallbackInterfaceConduitDelegate.vtable)
+}
+
+// FfiConverter protocol for callback interfaces
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterCallbackInterfaceConduitDelegate {
+    fileprivate static var handleMap = UniffiHandleMap<ConduitDelegate>()
+}
 
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
-public struct FfiConverterTypeSweKittyError: FfiConverterRustBuffer {
-    typealias SwiftType = SweKittyError
+extension FfiConverterCallbackInterfaceConduitDelegate : FfiConverter {
+    typealias SwiftType = ConduitDelegate
+    typealias FfiType = UInt64
 
-    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SweKittyError {
-        let variant: Int32 = try readInt(&buf)
-        switch variant {
-
-        
-
-        
-        case 1: return .Connection(
-            message: try FfiConverterString.read(from: &buf)
-        )
-        
-        case 2: return .Auth(
-            message: try FfiConverterString.read(from: &buf)
-        )
-        
-        case 3: return .Protocol(
-            message: try FfiConverterString.read(from: &buf)
-        )
-        
-        case 4: return .Json(
-            message: try FfiConverterString.read(from: &buf)
-        )
-        
-        case 5: return .NotConnected(
-            message: try FfiConverterString.read(from: &buf)
-        )
-        
-        case 6: return .UnknownSession(
-            message: try FfiConverterString.read(from: &buf)
-        )
-        
-
-        default: throw UniffiInternalError.unexpectedEnumCase
-        }
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public static func lift(_ handle: UInt64) throws -> SwiftType {
+        try handleMap.get(handle: handle)
     }
 
-    public static func write(_ value: SweKittyError, into buf: inout [UInt8]) {
-        switch value {
-
-        
-
-        
-        case .Connection(_ /* message is ignored*/):
-            writeInt(&buf, Int32(1))
-        case .Auth(_ /* message is ignored*/):
-            writeInt(&buf, Int32(2))
-        case .Protocol(_ /* message is ignored*/):
-            writeInt(&buf, Int32(3))
-        case .Json(_ /* message is ignored*/):
-            writeInt(&buf, Int32(4))
-        case .NotConnected(_ /* message is ignored*/):
-            writeInt(&buf, Int32(5))
-        case .UnknownSession(_ /* message is ignored*/):
-            writeInt(&buf, Int32(6))
-
-        
-        }
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        let handle: UInt64 = try readInt(&buf)
+        return try lift(handle)
     }
-}
 
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public static func lower(_ v: SwiftType) -> UInt64 {
+        return handleMap.insert(obj: v)
+    }
 
-extension SweKittyError: Equatable, Hashable {}
-
-extension SweKittyError: Foundation.LocalizedError {
-    public var errorDescription: String? {
-        String(reflecting: self)
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public static func write(_ v: SwiftType, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(v))
     }
 }
 
@@ -3229,13 +3558,7 @@ public protocol SshHostKeyDelegate : AnyObject {
     
 }
 
-// Magic number for the Rust proxy to call using the same mechanism as every other method,
-// to free the callback once it's dropped by Rust.
-private let IDX_CALLBACK_FREE: Int32 = 0
-// Callback return codes
-private let UNIFFI_CALLBACK_SUCCESS: Int32 = 0
-private let UNIFFI_CALLBACK_ERROR: Int32 = 1
-private let UNIFFI_CALLBACK_UNEXPECTED_ERROR: Int32 = 2
+
 
 // Put the implementation in a struct so we don't pollute the top-level namespace
 fileprivate struct UniffiCallbackInterfaceSshHostKeyDelegate {
@@ -3277,7 +3600,7 @@ fileprivate struct UniffiCallbackInterfaceSshHostKeyDelegate {
 }
 
 private func uniffiCallbackInitSshHostKeyDelegate() {
-    uniffi_swe_kitty_core_fn_init_callback_vtable_sshhostkeydelegate(&UniffiCallbackInterfaceSshHostKeyDelegate.vtable)
+    uniffi_conduit_core_fn_init_callback_vtable_sshhostkeydelegate(&UniffiCallbackInterfaceSshHostKeyDelegate.vtable)
 }
 
 // FfiConverter protocol for callback interfaces
@@ -3293,329 +3616,6 @@ fileprivate struct FfiConverterCallbackInterfaceSshHostKeyDelegate {
 #endif
 extension FfiConverterCallbackInterfaceSshHostKeyDelegate : FfiConverter {
     typealias SwiftType = SshHostKeyDelegate
-    typealias FfiType = UInt64
-
-#if swift(>=5.8)
-    @_documentation(visibility: private)
-#endif
-    public static func lift(_ handle: UInt64) throws -> SwiftType {
-        try handleMap.get(handle: handle)
-    }
-
-#if swift(>=5.8)
-    @_documentation(visibility: private)
-#endif
-    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
-        let handle: UInt64 = try readInt(&buf)
-        return try lift(handle)
-    }
-
-#if swift(>=5.8)
-    @_documentation(visibility: private)
-#endif
-    public static func lower(_ v: SwiftType) -> UInt64 {
-        return handleMap.insert(obj: v)
-    }
-
-#if swift(>=5.8)
-    @_documentation(visibility: private)
-#endif
-    public static func write(_ v: SwiftType, into buf: inout [UInt8]) {
-        writeInt(&buf, lower(v))
-    }
-}
-
-
-
-
-public protocol SweKittyDelegate : AnyObject {
-    
-    func onPtyData(sessionId: String, data: Data) 
-    
-    func onChatEvent(sessionId: String, event: ChatEvent) 
-    
-    func onPreviewReady(sessionId: String, preview: PreviewInfo) 
-    
-    func onStatus(status: SessionStatus) 
-    
-    func onSnapshot(sessionId: String, gunzipped: Data) 
-    
-    func onExit(sessionId: String, code: Int32) 
-    
-    func onDisconnected(reason: String) 
-    
-    func onConnectionHealth(sessionId: String, health: ConnectionHealth) 
-    
-    func onViewEvent(sessionId: String, kind: String, payload: [String: String]) 
-    
-}
-
-
-
-// Put the implementation in a struct so we don't pollute the top-level namespace
-fileprivate struct UniffiCallbackInterfaceSweKittyDelegate {
-
-    // Create the VTable using a series of closures.
-    // Swift automatically converts these into C callback functions.
-    static var vtable: UniffiVTableCallbackInterfaceSweKittyDelegate = UniffiVTableCallbackInterfaceSweKittyDelegate(
-        onPtyData: { (
-            uniffiHandle: UInt64,
-            sessionId: RustBuffer,
-            data: RustBuffer,
-            uniffiOutReturn: UnsafeMutableRawPointer,
-            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
-        ) in
-            let makeCall = {
-                () throws -> () in
-                guard let uniffiObj = try? FfiConverterCallbackInterfaceSweKittyDelegate.handleMap.get(handle: uniffiHandle) else {
-                    throw UniffiInternalError.unexpectedStaleHandle
-                }
-                return uniffiObj.onPtyData(
-                     sessionId: try FfiConverterString.lift(sessionId),
-                     data: try FfiConverterData.lift(data)
-                )
-            }
-
-            
-            let writeReturn = { () }
-            uniffiTraitInterfaceCall(
-                callStatus: uniffiCallStatus,
-                makeCall: makeCall,
-                writeReturn: writeReturn
-            )
-        },
-        onChatEvent: { (
-            uniffiHandle: UInt64,
-            sessionId: RustBuffer,
-            event: RustBuffer,
-            uniffiOutReturn: UnsafeMutableRawPointer,
-            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
-        ) in
-            let makeCall = {
-                () throws -> () in
-                guard let uniffiObj = try? FfiConverterCallbackInterfaceSweKittyDelegate.handleMap.get(handle: uniffiHandle) else {
-                    throw UniffiInternalError.unexpectedStaleHandle
-                }
-                return uniffiObj.onChatEvent(
-                     sessionId: try FfiConverterString.lift(sessionId),
-                     event: try FfiConverterTypeChatEvent.lift(event)
-                )
-            }
-
-            
-            let writeReturn = { () }
-            uniffiTraitInterfaceCall(
-                callStatus: uniffiCallStatus,
-                makeCall: makeCall,
-                writeReturn: writeReturn
-            )
-        },
-        onPreviewReady: { (
-            uniffiHandle: UInt64,
-            sessionId: RustBuffer,
-            preview: RustBuffer,
-            uniffiOutReturn: UnsafeMutableRawPointer,
-            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
-        ) in
-            let makeCall = {
-                () throws -> () in
-                guard let uniffiObj = try? FfiConverterCallbackInterfaceSweKittyDelegate.handleMap.get(handle: uniffiHandle) else {
-                    throw UniffiInternalError.unexpectedStaleHandle
-                }
-                return uniffiObj.onPreviewReady(
-                     sessionId: try FfiConverterString.lift(sessionId),
-                     preview: try FfiConverterTypePreviewInfo.lift(preview)
-                )
-            }
-
-            
-            let writeReturn = { () }
-            uniffiTraitInterfaceCall(
-                callStatus: uniffiCallStatus,
-                makeCall: makeCall,
-                writeReturn: writeReturn
-            )
-        },
-        onStatus: { (
-            uniffiHandle: UInt64,
-            status: RustBuffer,
-            uniffiOutReturn: UnsafeMutableRawPointer,
-            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
-        ) in
-            let makeCall = {
-                () throws -> () in
-                guard let uniffiObj = try? FfiConverterCallbackInterfaceSweKittyDelegate.handleMap.get(handle: uniffiHandle) else {
-                    throw UniffiInternalError.unexpectedStaleHandle
-                }
-                return uniffiObj.onStatus(
-                     status: try FfiConverterTypeSessionStatus.lift(status)
-                )
-            }
-
-            
-            let writeReturn = { () }
-            uniffiTraitInterfaceCall(
-                callStatus: uniffiCallStatus,
-                makeCall: makeCall,
-                writeReturn: writeReturn
-            )
-        },
-        onSnapshot: { (
-            uniffiHandle: UInt64,
-            sessionId: RustBuffer,
-            gunzipped: RustBuffer,
-            uniffiOutReturn: UnsafeMutableRawPointer,
-            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
-        ) in
-            let makeCall = {
-                () throws -> () in
-                guard let uniffiObj = try? FfiConverterCallbackInterfaceSweKittyDelegate.handleMap.get(handle: uniffiHandle) else {
-                    throw UniffiInternalError.unexpectedStaleHandle
-                }
-                return uniffiObj.onSnapshot(
-                     sessionId: try FfiConverterString.lift(sessionId),
-                     gunzipped: try FfiConverterData.lift(gunzipped)
-                )
-            }
-
-            
-            let writeReturn = { () }
-            uniffiTraitInterfaceCall(
-                callStatus: uniffiCallStatus,
-                makeCall: makeCall,
-                writeReturn: writeReturn
-            )
-        },
-        onExit: { (
-            uniffiHandle: UInt64,
-            sessionId: RustBuffer,
-            code: Int32,
-            uniffiOutReturn: UnsafeMutableRawPointer,
-            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
-        ) in
-            let makeCall = {
-                () throws -> () in
-                guard let uniffiObj = try? FfiConverterCallbackInterfaceSweKittyDelegate.handleMap.get(handle: uniffiHandle) else {
-                    throw UniffiInternalError.unexpectedStaleHandle
-                }
-                return uniffiObj.onExit(
-                     sessionId: try FfiConverterString.lift(sessionId),
-                     code: try FfiConverterInt32.lift(code)
-                )
-            }
-
-            
-            let writeReturn = { () }
-            uniffiTraitInterfaceCall(
-                callStatus: uniffiCallStatus,
-                makeCall: makeCall,
-                writeReturn: writeReturn
-            )
-        },
-        onDisconnected: { (
-            uniffiHandle: UInt64,
-            reason: RustBuffer,
-            uniffiOutReturn: UnsafeMutableRawPointer,
-            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
-        ) in
-            let makeCall = {
-                () throws -> () in
-                guard let uniffiObj = try? FfiConverterCallbackInterfaceSweKittyDelegate.handleMap.get(handle: uniffiHandle) else {
-                    throw UniffiInternalError.unexpectedStaleHandle
-                }
-                return uniffiObj.onDisconnected(
-                     reason: try FfiConverterString.lift(reason)
-                )
-            }
-
-            
-            let writeReturn = { () }
-            uniffiTraitInterfaceCall(
-                callStatus: uniffiCallStatus,
-                makeCall: makeCall,
-                writeReturn: writeReturn
-            )
-        },
-        onConnectionHealth: { (
-            uniffiHandle: UInt64,
-            sessionId: RustBuffer,
-            health: RustBuffer,
-            uniffiOutReturn: UnsafeMutableRawPointer,
-            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
-        ) in
-            let makeCall = {
-                () throws -> () in
-                guard let uniffiObj = try? FfiConverterCallbackInterfaceSweKittyDelegate.handleMap.get(handle: uniffiHandle) else {
-                    throw UniffiInternalError.unexpectedStaleHandle
-                }
-                return uniffiObj.onConnectionHealth(
-                     sessionId: try FfiConverterString.lift(sessionId),
-                     health: try FfiConverterTypeConnectionHealth.lift(health)
-                )
-            }
-
-            
-            let writeReturn = { () }
-            uniffiTraitInterfaceCall(
-                callStatus: uniffiCallStatus,
-                makeCall: makeCall,
-                writeReturn: writeReturn
-            )
-        },
-        onViewEvent: { (
-            uniffiHandle: UInt64,
-            sessionId: RustBuffer,
-            kind: RustBuffer,
-            payload: RustBuffer,
-            uniffiOutReturn: UnsafeMutableRawPointer,
-            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
-        ) in
-            let makeCall = {
-                () throws -> () in
-                guard let uniffiObj = try? FfiConverterCallbackInterfaceSweKittyDelegate.handleMap.get(handle: uniffiHandle) else {
-                    throw UniffiInternalError.unexpectedStaleHandle
-                }
-                return uniffiObj.onViewEvent(
-                     sessionId: try FfiConverterString.lift(sessionId),
-                     kind: try FfiConverterString.lift(kind),
-                     payload: try FfiConverterDictionaryStringString.lift(payload)
-                )
-            }
-
-            
-            let writeReturn = { () }
-            uniffiTraitInterfaceCall(
-                callStatus: uniffiCallStatus,
-                makeCall: makeCall,
-                writeReturn: writeReturn
-            )
-        },
-        uniffiFree: { (uniffiHandle: UInt64) -> () in
-            let result = try? FfiConverterCallbackInterfaceSweKittyDelegate.handleMap.remove(handle: uniffiHandle)
-            if result == nil {
-                print("Uniffi callback interface SweKittyDelegate: handle missing in uniffiFree")
-            }
-        }
-    )
-}
-
-private func uniffiCallbackInitSweKittyDelegate() {
-    uniffi_swe_kitty_core_fn_init_callback_vtable_swekittydelegate(&UniffiCallbackInterfaceSweKittyDelegate.vtable)
-}
-
-// FfiConverter protocol for callback interfaces
-#if swift(>=5.8)
-@_documentation(visibility: private)
-#endif
-fileprivate struct FfiConverterCallbackInterfaceSweKittyDelegate {
-    fileprivate static var handleMap = UniffiHandleMap<SweKittyDelegate>()
-}
-
-#if swift(>=5.8)
-@_documentation(visibility: private)
-#endif
-extension FfiConverterCallbackInterfaceSweKittyDelegate : FfiConverter {
-    typealias SwiftType = SweKittyDelegate
     typealias FfiType = UInt64
 
 #if swift(>=5.8)
@@ -4089,12 +4089,12 @@ public func sshBootstrap(credentials: SshCredentials, preAllocatedToken: String,
     return
         try  await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_swe_kitty_core_fn_func_ssh_bootstrap(FfiConverterTypeSshCredentials.lower(credentials),FfiConverterString.lower(preAllocatedToken),FfiConverterString.lower(anthropicApiKey),FfiConverterString.lower(openaiApiKey),FfiConverterOptionString.lower(imageRef),FfiConverterCallbackInterfaceSshHostKeyDelegate.lower(hostKeyDelegate)
+                uniffi_conduit_core_fn_func_ssh_bootstrap(FfiConverterTypeSshCredentials.lower(credentials),FfiConverterString.lower(preAllocatedToken),FfiConverterString.lower(anthropicApiKey),FfiConverterString.lower(openaiApiKey),FfiConverterOptionString.lower(imageRef),FfiConverterCallbackInterfaceSshHostKeyDelegate.lower(hostKeyDelegate)
                 )
             },
-            pollFunc: ffi_swe_kitty_core_rust_future_poll_rust_buffer,
-            completeFunc: ffi_swe_kitty_core_rust_future_complete_rust_buffer,
-            freeFunc: ffi_swe_kitty_core_rust_future_free_rust_buffer,
+            pollFunc: ffi_conduit_core_rust_future_poll_rust_buffer,
+            completeFunc: ffi_conduit_core_rust_future_complete_rust_buffer,
+            freeFunc: ffi_conduit_core_rust_future_free_rust_buffer,
             liftFunc: FfiConverterTypeSshBootstrapResult.lift,
             errorHandler: FfiConverterTypeSshError.lift
         )
@@ -4111,151 +4111,151 @@ private var initializationResult: InitializationResult = {
     // Get the bindings contract version from our ComponentInterface
     let bindings_contract_version = 26
     // Get the scaffolding contract version by calling the into the dylib
-    let scaffolding_contract_version = ffi_swe_kitty_core_uniffi_contract_version()
+    let scaffolding_contract_version = ffi_conduit_core_uniffi_contract_version()
     if bindings_contract_version != scaffolding_contract_version {
         return InitializationResult.contractVersionMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_func_ssh_bootstrap() != 48558) {
+    if (uniffi_conduit_core_checksum_func_ssh_bootstrap() != 50145) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_chat() != 29883) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_agent_login_callback() != 4395) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_exit() != 9217) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_cancel_agent_login() != 33194) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_lifecycle() != 7472) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_connect() != 37807) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_preview() != 42811) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_create_session() != 40358) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_pty_data() != 7509) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_disconnect() != 13038) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_snapshot() != 4787) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_exit_session() != 30010) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_status() != 16189) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_get_session() != 51831) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_sessionstorecore_contains() != 6085) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_join_session() != 62798) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_sessionstorecore_conversation() != 30178) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_list_conversation_items() != 37717) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_sessionstorecore_forget_session() != 1093) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_list_sessions() != 23716) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_sessionstorecore_get() != 10131) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_notify_network_change() != 14476) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_sessionstorecore_lifecycle() != 33662) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_refresh_account_usage() != 21233) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_sessionstorecore_register_session() != 64048) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_resize() != 29584) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_sessionstorecore_sessions() != 42007) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_send_chat() != 26919) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_agent_login_callback() != 23627) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_send_file() != 22550) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_cancel_agent_login() != 59927) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_send_input() != 47735) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_connect() != 53401) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_set_agent_credentials() != 46985) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_create_session() != 59560) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_start_agent_login() != 62905) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_disconnect() != 65142) {
+    if (uniffi_conduit_core_checksum_method_conduitclient_switch_agent() != 60424) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_exit_session() != 22821) {
+    if (uniffi_conduit_core_checksum_method_sessionstorecore_apply_chat() != 34881) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_get_session() != 7402) {
+    if (uniffi_conduit_core_checksum_method_sessionstorecore_apply_exit() != 38220) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_join_session() != 56798) {
+    if (uniffi_conduit_core_checksum_method_sessionstorecore_apply_lifecycle() != 55851) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_list_conversation_items() != 3434) {
+    if (uniffi_conduit_core_checksum_method_sessionstorecore_apply_preview() != 15208) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_list_sessions() != 61787) {
+    if (uniffi_conduit_core_checksum_method_sessionstorecore_apply_pty_data() != 27720) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_notify_network_change() != 11625) {
+    if (uniffi_conduit_core_checksum_method_sessionstorecore_apply_snapshot() != 46253) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_refresh_account_usage() != 16851) {
+    if (uniffi_conduit_core_checksum_method_sessionstorecore_apply_status() != 47131) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_resize() != 62907) {
+    if (uniffi_conduit_core_checksum_method_sessionstorecore_contains() != 23953) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_send_chat() != 16214) {
+    if (uniffi_conduit_core_checksum_method_sessionstorecore_conversation() != 39927) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_send_file() != 19338) {
+    if (uniffi_conduit_core_checksum_method_sessionstorecore_forget_session() != 450) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_send_input() != 63479) {
+    if (uniffi_conduit_core_checksum_method_sessionstorecore_get() != 55581) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_set_agent_credentials() != 60700) {
+    if (uniffi_conduit_core_checksum_method_sessionstorecore_lifecycle() != 7494) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_start_agent_login() != 54101) {
+    if (uniffi_conduit_core_checksum_method_sessionstorecore_register_session() != 14460) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittyclient_switch_agent() != 23090) {
+    if (uniffi_conduit_core_checksum_method_sessionstorecore_sessions() != 26204) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_constructor_sessionstorecore_new() != 14689) {
+    if (uniffi_conduit_core_checksum_constructor_conduitclient_new() != 15956) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_constructor_swekittyclient_new() != 52948) {
+    if (uniffi_conduit_core_checksum_constructor_sessionstorecore_new() != 50977) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_sshhostkeydelegate_accept_host_key() != 58107) {
+    if (uniffi_conduit_core_checksum_method_conduitdelegate_on_pty_data() != 15867) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_pty_data() != 39005) {
+    if (uniffi_conduit_core_checksum_method_conduitdelegate_on_chat_event() != 33073) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_chat_event() != 63499) {
+    if (uniffi_conduit_core_checksum_method_conduitdelegate_on_preview_ready() != 21900) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_preview_ready() != 5242) {
+    if (uniffi_conduit_core_checksum_method_conduitdelegate_on_status() != 46073) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_status() != 35677) {
+    if (uniffi_conduit_core_checksum_method_conduitdelegate_on_snapshot() != 932) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_snapshot() != 62971) {
+    if (uniffi_conduit_core_checksum_method_conduitdelegate_on_exit() != 61653) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_exit() != 20531) {
+    if (uniffi_conduit_core_checksum_method_conduitdelegate_on_disconnected() != 35914) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_disconnected() != 59151) {
+    if (uniffi_conduit_core_checksum_method_conduitdelegate_on_connection_health() != 26560) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_connection_health() != 43974) {
+    if (uniffi_conduit_core_checksum_method_conduitdelegate_on_view_event() != 49914) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_view_event() != 27595) {
+    if (uniffi_conduit_core_checksum_method_sshhostkeydelegate_accept_host_key() != 16407) {
         return InitializationResult.apiChecksumMismatch
     }
 
+    uniffiCallbackInitConduitDelegate()
     uniffiCallbackInitSshHostKeyDelegate()
-    uniffiCallbackInitSweKittyDelegate()
     return InitializationResult.ok
 }()
 

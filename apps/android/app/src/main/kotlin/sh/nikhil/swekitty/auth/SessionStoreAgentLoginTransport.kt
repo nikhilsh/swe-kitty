@@ -5,7 +5,7 @@ import sh.nikhil.swekitty.SessionStore
 /**
  * Concrete [AgentLoginTransport] backed by [SessionStore]'s Rust client.
  * Android mirror of iOS `SessionStoreAgentLoginTransport`. The store
- * methods forward to `SweKittyClient.startAgentLogin` /
+ * methods forward to `ConduitClient.startAgentLogin` /
  * `agentLoginCallback` / `cancelAgentLogin` (bridged over UDL), carried
  * over any live session WS — identity-scoped, like set_agent_credentials.
  */

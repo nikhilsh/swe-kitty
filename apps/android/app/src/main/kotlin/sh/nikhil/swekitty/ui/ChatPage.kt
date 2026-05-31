@@ -84,10 +84,10 @@ import sh.nikhil.swekitty.PinnedContext
 import sh.nikhil.swekitty.SessionStore
 import sh.nikhil.swekitty.sortedByConversationTs
 import kotlinx.coroutines.launch
-import uniffi.swe_kitty_core.ChatEvent
-import uniffi.swe_kitty_core.ConversationItem
-import uniffi.swe_kitty_core.ProjectSession
-import uniffi.swe_kitty_core.ViewEventFile
+import uniffi.conduit_core.ChatEvent
+import uniffi.conduit_core.ConversationItem
+import uniffi.conduit_core.ProjectSession
+import uniffi.conduit_core.ViewEventFile
 
 /**
  * Lets the neon command card reach the live [SessionStore] + current

@@ -21,7 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import sh.nikhil.swekitty.SessionStore
-import uniffi.swe_kitty_core.ProjectSession
+import uniffi.conduit_core.ProjectSession
 
 enum class BrowserMode { Preview, Memory }
 

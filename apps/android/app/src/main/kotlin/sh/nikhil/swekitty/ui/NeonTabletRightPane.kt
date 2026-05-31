@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import sh.nikhil.swekitty.LocalAppearanceStore
 import sh.nikhil.swekitty.SessionStore
-import uniffi.swe_kitty_core.ProjectSession
+import uniffi.conduit_core.ProjectSession
 
 // Android mirror of iOS LitterUI.TabletRightPane — the design's tablet
 // Sessions right pane: a Terminal / Browser / Info tab row over the

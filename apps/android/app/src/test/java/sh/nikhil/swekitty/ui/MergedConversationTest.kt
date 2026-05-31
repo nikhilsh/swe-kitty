@@ -4,8 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import uniffi.swe_kitty_core.ChatEvent
-import uniffi.swe_kitty_core.ConversationItem
+import uniffi.conduit_core.ChatEvent
+import uniffi.conduit_core.ConversationItem
 
 /**
  * `litter-ui-trash-rebuild` chat-ordering fix — pure-data assertions

@@ -1,0 +1,4 @@
+module conduit_coreFFI {
+    header "conduit_coreFFI.h"
+    export *
+}

@@ -348,7 +348,7 @@ final class SessionStore {
         didSet { SessionStore.persistBrokerTitles(brokerTitles) }
     }
 
-    private var client: SweKittyClient?
+    private var client: ConduitClient?
     private var delegate: StoreDelegate?
     private var foregroundObserver: NSObjectProtocol?
     private var networkReachableObserver: NSObjectProtocol?
@@ -474,7 +474,7 @@ final class SessionStore {
             return
         }
         harness = .connecting
-        let newClient = SweKittyClient(endpoint: endpoint.url, bearerToken: endpoint.token)
+        let newClient = ConduitClient(endpoint: endpoint.url, bearerToken: endpoint.token)
         let newDelegate = StoreDelegate(store: self)
         self.client = newClient
         self.delegate = newDelegate
@@ -788,7 +788,7 @@ final class SessionStore {
         Self.persistSavedServers(savedServers)
         // Bug #1: tapping the active server pill used to call
         // `disconnect()`+`connect()` unconditionally. That tore down
-        // the live `SweKittyClient` and the subsequent `refreshSessions`
+        // the live `ConduitClient` and the subsequent `refreshSessions`
         // observed an empty `list_sessions()` (the fresh Rust client
         // has no `SessionStatus` deltas yet), wiping the visible
         // session list until status frames trickled back in. If the
@@ -1069,14 +1069,14 @@ final class SessionStore {
 
     /// Upload a composer attachment to the session's
     /// `<workspace>/uploads/<sessionID>/<filename>` via the core 0x01
-    /// binary frame (`SweKittyClient.sendFile`). Awaited by the chat
+    /// binary frame (`ConduitClient.sendFile`). Awaited by the chat
     /// composer BEFORE the outgoing message is sent, so the bytes have
     /// landed by the time the agent reads the referenced upload path.
     /// Throws when there's no live transport or the WS write fails, so
     /// the caller can surface "upload failed" instead of sending a
     /// message that references a file the broker never received.
     func sendFile(sessionID: String, filename: String, mime: String, bytes: Data) async throws {
-        guard let client else { throw SweKittyError.NotConnected(message: "no session transport") }
+        guard let client else { throw ConduitError.NotConnected(message: "no session transport") }
         try await client.sendFile(
             sessionId: sessionID,
             filename: filename,
@@ -1260,13 +1260,13 @@ final class SessionStore {
     /// staying byte-for-byte aligned with what the agent CLI writes to
     /// disk means the broker can pass it through without translation.
     ///
-    /// Throws `SweKittyError.NotConnected` if no session is live; the
+    /// Throws `ConduitError.NotConnected` if no session is live; the
     /// caller is expected to keep the Keychain copy and surface a
     /// retry affordance (the Settings → Agent accounts "Sync to broker"
     /// row, or wait for the next `createSession` to fire the resend).
     func sendAgentCredentials(provider: OAuthProvider, credential: OAuthCredential) async throws {
         guard let client else {
-            throw SweKittyError.NotConnected(message: "no active swe-kitty client")
+            throw ConduitError.NotConnected(message: "no active swe-kitty client")
         }
         let json = try Self.encodeCredentialAsJSONString(credential)
         try await client.setAgentCredentials(
@@ -1282,26 +1282,26 @@ final class SessionStore {
     // scoped, so the core carries each frame over any live session WS;
     // broker handlers are live (PR #114) and progress returns as
     // `agent_login_*` view-events routed by `routeAgentLoginViewEvent`.
-    // Throws `SweKittyError.NotConnected` if no session is live — the
+    // Throws `ConduitError.NotConnected` if no session is live — the
     // coordinator surfaces it to the sheet as `.failed`.
 
     func sendAgentLoginStart(provider: String) async throws {
         guard let client else {
-            throw SweKittyError.NotConnected(message: "no active swe-kitty client")
+            throw ConduitError.NotConnected(message: "no active swe-kitty client")
         }
         try await client.startAgentLogin(provider: provider)
     }
 
     func sendAgentLoginCallback(sessionToken: String, queryString: String) async throws {
         guard let client else {
-            throw SweKittyError.NotConnected(message: "no active swe-kitty client")
+            throw ConduitError.NotConnected(message: "no active swe-kitty client")
         }
         try await client.agentLoginCallback(sessionToken: sessionToken, queryString: queryString)
     }
 
     func sendAgentLoginCancel(sessionToken: String) async throws {
         guard let client else {
-            throw SweKittyError.NotConnected(message: "no active swe-kitty client")
+            throw ConduitError.NotConnected(message: "no active swe-kitty client")
         }
         try await client.cancelAgentLogin(sessionToken: sessionToken)
     }
@@ -1348,7 +1348,7 @@ final class SessionStore {
     // tokens and emits `agent_login_complete`.
     //
     // The send-side wiring requires UDL surface
-    // (`SweKittyClient.start_agent_login` etc.) that hasn't shipped in
+    // (`ConduitClient.start_agent_login` etc.) that hasn't shipped in
     // the SweKittyCore xcframework yet — the broker (PR #114) is live
     // but the Rust→Swift bridge is the missing link. Until that lands,
     // the transport methods throw a typed "not yet bridged" error so
@@ -2556,7 +2556,7 @@ final class SessionStoreAgentLoginTransport: AgentLoginTransport, @unchecked Sen
 }
 
 /// Bridges Rust-side callbacks (arbitrary thread) onto the MainActor store.
-private final class StoreDelegate: SweKittyDelegate {
+private final class StoreDelegate: ConduitDelegate {
     private weak var store: SessionStore?
     init(store: SessionStore) { self.store = store }
 

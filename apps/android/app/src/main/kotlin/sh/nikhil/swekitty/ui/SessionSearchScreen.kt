@@ -357,7 +357,7 @@ private fun SessionHistoryRow(
 
 private fun matchSnippet(
     needle: String,
-    events: List<uniffi.swe_kitty_core.ConversationItem>,
+    events: List<uniffi.conduit_core.ConversationItem>,
 ): String? {
     for (ev in events.asReversed()) {
         val lower = ev.content.lowercase()
@@ -373,7 +373,7 @@ private fun matchSnippet(
 
 /**
  * A normalized History candidate, sourced from either a live
- * [uniffi.swe_kitty_core.ProjectSession] or a persisted [SavedSession] so
+ * [uniffi.conduit_core.ProjectSession] or a persisted [SavedSession] so
  * the match/group/render path is source-agnostic.
  */
 private data class HistoryRow(

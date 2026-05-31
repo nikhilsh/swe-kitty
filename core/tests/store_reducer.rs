@@ -8,8 +8,8 @@
 //! Idempotency and ordering live here too because both platforms relied
 //! on ad-hoc deduplication; the store is now the single guard.
 
-use swe_kitty_core::store::{SessionLifecycleCore, SessionStoreCore};
-use swe_kitty_core::{ChatEvent, PreviewInfo, ProjectSession, SessionStatus, ViewEventFile};
+use conduit_core::store::{SessionLifecycleCore, SessionStoreCore};
+use conduit_core::{ChatEvent, PreviewInfo, ProjectSession, SessionStatus, ViewEventFile};
 
 fn project(id: &str, assistant: &str) -> ProjectSession {
     ProjectSession {

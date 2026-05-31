@@ -48,9 +48,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import sh.nikhil.swekitty.LocalAppearanceStore
 import sh.nikhil.swekitty.SessionStore
-import uniffi.swe_kitty_core.ConversationItem
-import uniffi.swe_kitty_core.PreviewInfo
-import uniffi.swe_kitty_core.ProjectSession
+import uniffi.conduit_core.ConversationItem
+import uniffi.conduit_core.PreviewInfo
+import uniffi.conduit_core.ProjectSession
 
 /**
  * Session "Info" screen — opened from the ⓘ button in the chat header.

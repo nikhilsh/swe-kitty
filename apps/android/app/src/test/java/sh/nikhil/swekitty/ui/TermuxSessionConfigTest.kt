@@ -6,7 +6,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import uniffi.swe_kitty_core.ProjectSession
+import uniffi.conduit_core.ProjectSession
 
 /**
  * Pure-data plumbing test for [TermuxSessionConfig.from] + the

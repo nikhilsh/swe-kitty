@@ -1,13 +1,13 @@
 [package]
-name = "swe-kitty-core"
+name = "conduit-core"
 version = "0.0.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 publish = false
-description = "Shared Rust core for the swe-kitty mobile apps (iOS + Android)."
+description = "Shared Rust core for the conduit mobile apps (iOS + Android)."
 
 [lib]
-name = "swe_kitty_core"
+name = "conduit_core"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]

@@ -40,7 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import sh.nikhil.swekitty.SessionStore
-import uniffi.swe_kitty_core.ProjectSession
+import uniffi.conduit_core.ProjectSession
 
 /**
  * Pure-data view-model for [ThreadSwitcherSheet]. Lifts the list

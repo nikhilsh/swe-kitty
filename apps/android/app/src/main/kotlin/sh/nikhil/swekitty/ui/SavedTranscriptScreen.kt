@@ -37,8 +37,8 @@ import androidx.compose.ui.unit.dp
 import sh.nikhil.swekitty.ConversationNotFoundException
 import sh.nikhil.swekitty.SavedSession
 import sh.nikhil.swekitty.SessionStore
-import uniffi.swe_kitty_core.ConversationItem
-import uniffi.swe_kitty_core.ProjectSession
+import uniffi.conduit_core.ConversationItem
+import uniffi.conduit_core.ProjectSession
 
 /**
  * Read-only viewer for an exited session's persisted transcript.

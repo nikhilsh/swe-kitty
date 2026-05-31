@@ -78,9 +78,9 @@ struct LitterAgentLoginSheetTests {
     }
 
     /// The production `SessionStoreAgentLoginTransport` now forwards
-    /// through the Rust UDL bridge (`SweKittyClient.startAgentLogin`).
+    /// through the Rust UDL bridge (`ConduitClient.startAgentLogin`).
     /// With no live session/client it surfaces
-    /// `SweKittyError.NotConnected` — the broker-bound send path is
+    /// `ConduitError.NotConnected` — the broker-bound send path is
     /// wired, it just needs a session to carry the control frame. (Was
     /// previously an `AgentLoginTransportError` "not yet bridged" stub.)
     @Test @MainActor
@@ -90,14 +90,14 @@ struct LitterAgentLoginSheetTests {
         do {
             try await transport.sendStartAgentLogin(provider: "openai")
             Issue.record("expected sendStartAgentLogin to throw without a live session")
-        } catch let error as SweKittyError {
+        } catch let error as ConduitError {
             if case .NotConnected = error {
                 // expected — bridge forwards, but there's no live session yet
             } else {
-                Issue.record("expected SweKittyError.NotConnected, got \(error)")
+                Issue.record("expected ConduitError.NotConnected, got \(error)")
             }
         } catch {
-            Issue.record("expected SweKittyError.NotConnected, got \(error)")
+            Issue.record("expected ConduitError.NotConnected, got \(error)")
         }
     }
 }

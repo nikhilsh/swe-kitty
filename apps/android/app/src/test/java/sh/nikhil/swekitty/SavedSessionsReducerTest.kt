@@ -5,7 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import uniffi.swe_kitty_core.ProjectSession
+import uniffi.conduit_core.ProjectSession
 
 /**
  * Pins the pure archived-index reducers that back the two-tier delete on

@@ -5,7 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import uniffi.swe_kitty_core.SessionStatus
+import uniffi.conduit_core.SessionStatus
 
 /**
  * Android mirror of
@@ -17,7 +17,7 @@ import uniffi.swe_kitty_core.SessionStatus
  *
  * The store is exercised without [SessionStore.hydrate] so we stay on
  * the JVM unit-test classpath. Status / exit state is seeded through
- * the public `SweKittyDelegate` callbacks ([SessionStore.onStatus] /
+ * the public `ConduitDelegate` callbacks ([SessionStore.onStatus] /
  * [SessionStore.onExit]) — the same in-memory StateFlow code paths the
  * live socket drives. `refreshSessions` no-ops with no client, so the
  * callbacks are safe off-device.

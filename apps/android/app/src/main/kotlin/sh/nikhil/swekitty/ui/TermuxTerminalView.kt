@@ -32,7 +32,7 @@ import com.termux.view.TerminalViewClient
 import sh.nikhil.swekitty.AppearanceStore
 import sh.nikhil.swekitty.LocalAppearanceStore
 import sh.nikhil.swekitty.SessionStore
-import uniffi.swe_kitty_core.ProjectSession
+import uniffi.conduit_core.ProjectSession
 
 /**
  * Android mirror of iOS [GhosttyTerminalView]. Stage 2 of the

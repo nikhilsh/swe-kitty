@@ -3,7 +3,7 @@ package sh.nikhil.swekitty
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import uniffi.swe_kitty_core.ConversationItem
+import uniffi.conduit_core.ConversationItem
 
 /**
  * Pins the home-card latest-activity preview (iOS #238 parity). Pure

@@ -1,8 +1,8 @@
 package sh.nikhil.swekitty
 
 import org.json.JSONObject
-import uniffi.swe_kitty_core.ProjectSession
-import uniffi.swe_kitty_core.SessionStatus
+import uniffi.conduit_core.ProjectSession
+import uniffi.conduit_core.SessionStatus
 
 /**
  * Lifecycle bucket for a persisted (archived) session row. Mirror of iOS

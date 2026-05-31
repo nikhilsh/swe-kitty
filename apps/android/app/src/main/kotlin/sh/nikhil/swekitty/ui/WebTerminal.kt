@@ -19,7 +19,7 @@ import org.json.JSONObject
 import sh.nikhil.swekitty.AppearanceStore
 import sh.nikhil.swekitty.LocalAppearanceStore
 import sh.nikhil.swekitty.SessionStore
-import uniffi.swe_kitty_core.ProjectSession
+import uniffi.conduit_core.ProjectSession
 
 /**
  * Compose entry point for the xterm.js-backed terminal tab. Ports the

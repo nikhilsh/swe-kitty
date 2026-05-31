@@ -176,7 +176,7 @@ interface SessionStoreCore {
 };
 
 [Error]
-enum SweKittyError {
+enum ConduitError {
     "Connection",
     "Auth",
     "Protocol",
@@ -226,7 +226,7 @@ callback interface SshHostKeyDelegate {
     boolean accept_host_key(string fingerprint);
 };
 
-namespace swe_kitty_core {
+namespace conduit_core {
     [Async, Throws=SshError]
     SshBootstrapResult ssh_bootstrap(
         SshCredentials credentials,
@@ -245,7 +245,7 @@ interface ConnectionHealth {
     Disconnected(string reason, boolean auth);
 };
 
-callback interface SweKittyDelegate {
+callback interface ConduitDelegate {
     void on_pty_data(string session_id, bytes data);
     void on_chat_event(string session_id, ChatEvent event);
     void on_preview_ready(string session_id, PreviewInfo preview);
@@ -261,38 +261,38 @@ callback interface SweKittyDelegate {
     void on_view_event(string session_id, string kind, record<string, string> payload);
 };
 
-interface SweKittyClient {
+interface ConduitClient {
     constructor(string endpoint, string bearer_token);
 
-    [Async, Throws=SweKittyError]
-    void connect(SweKittyDelegate delegate);
+    [Async, Throws=ConduitError]
+    void connect(ConduitDelegate delegate);
 
     void disconnect();
 
     void notify_network_change();
 
-    [Async, Throws=SweKittyError]
+    [Async, Throws=ConduitError]
     string create_session(string assistant, string? branch, string? reasoning_effort, string? model, string? cwd);
 
-    [Async, Throws=SweKittyError]
+    [Async, Throws=ConduitError]
     void join_session(string session_id, string? assistant);
 
-    [Async, Throws=SweKittyError]
+    [Async, Throws=ConduitError]
     void send_input(string session_id, bytes data);
 
-    [Async, Throws=SweKittyError]
+    [Async, Throws=ConduitError]
     void send_file(string session_id, string filename, string mime, bytes payload);
 
-    [Async, Throws=SweKittyError]
+    [Async, Throws=ConduitError]
     void send_chat(string session_id, string msg);
 
-    [Async, Throws=SweKittyError]
+    [Async, Throws=ConduitError]
     void refresh_account_usage(string session_id);
 
-    [Async, Throws=SweKittyError]
+    [Async, Throws=ConduitError]
     void resize(string session_id, u16 rows, u16 cols);
 
-    [Async, Throws=SweKittyError]
+    [Async, Throws=ConduitError]
     void switch_agent(string session_id, string assistant);
 
     // Ship a per-user agent OAuth credential to the broker over the
@@ -306,7 +306,7 @@ interface SweKittyClient {
     // token's identity, not per-session — but the WS itself is session-
     // scoped, so this method picks any active session handle to carry
     // the control frame. Returns `NotConnected` if no session is live.
-    [Async, Throws=SweKittyError]
+    [Async, Throws=ConduitError]
     void set_agent_credentials(string provider, string credential_json);
 
     // Agent OAuth login v2 (docs/PLAN-AGENT-OAUTH.md "Approach v2").
@@ -314,23 +314,23 @@ interface SweKittyClient {
     // broker's matching handlers (start_agent_login / agent_login_callback
     // / cancel_agent_login) are live, and progress comes back as
     // `agent_login_*` view-events the delegate surfaces.
-    [Async, Throws=SweKittyError]
+    [Async, Throws=ConduitError]
     void start_agent_login(string provider);
 
-    [Async, Throws=SweKittyError]
+    [Async, Throws=ConduitError]
     void agent_login_callback(string session_token, string query_string);
 
-    [Async, Throws=SweKittyError]
+    [Async, Throws=ConduitError]
     void cancel_agent_login(string session_token);
 
-    [Async, Throws=SweKittyError]
+    [Async, Throws=ConduitError]
     void exit_session(string session_id);
 
-    [Throws=SweKittyError]
+    [Throws=ConduitError]
     ProjectSession get_session(string session_id);
 
     sequence<ProjectSession> list_sessions();
 
-    [Throws=SweKittyError]
+    [Throws=ConduitError]
     sequence<ConversationItem> list_conversation_items(string session_id);
 };

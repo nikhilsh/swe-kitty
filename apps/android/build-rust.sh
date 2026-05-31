@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build core/ for the four Android ABIs and drop the .so files into
 # app/src/main/jniLibs/<abi>/. Also regenerates UniFFI Kotlin bindings into
-# core/generated/kotlin/uniffi/swe_kitty_core/ — referenced via the
+# core/generated/kotlin/uniffi/conduit_core/ — referenced via the
 # kotlin.srcDir entry in app/build.gradle.kts.
 #
 # Requires `cargo-ndk` (`cargo install cargo-ndk`) and an Android NDK
@@ -13,7 +13,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 CORE_DIR="$REPO_ROOT/core"
 JNI_DIR="$SCRIPT_DIR/app/src/main/jniLibs"
 KOTLIN_OUT="$CORE_DIR/generated/kotlin"
-UDL="$CORE_DIR/src/swe_kitty_core.udl"
+UDL="$CORE_DIR/src/conduit_core.udl"
 
 PROFILE="${RUST_PROFILE:-release}"
 CARGO_PROFILE_FLAG=$([ "$PROFILE" = "release" ] && echo "--release" || echo "")
@@ -45,13 +45,13 @@ mkdir -p "$JNI_DIR"
     build $CARGO_PROFILE_FLAG --lib )
 
 # UniFFI's generated Kotlin loader expects the component library name
-# `uniffi_swe_kitty_core`, while cargo names the cdylib from `[lib].name`
-# as `libswe_kitty_core.so`. Provide the UniFFI-expected filename in each
+# `uniffi_conduit_core`, while cargo names the cdylib from `[lib].name`
+# as `libconduit_core.so`. Provide the UniFFI-expected filename in each
 # ABI directory so the packaged APK can actually load the Rust core.
 for abi_dir in "$JNI_DIR"/*; do
   [[ -d "$abi_dir" ]] || continue
-  if [[ -f "$abi_dir/libswe_kitty_core.so" ]]; then
-    cp "$abi_dir/libswe_kitty_core.so" "$abi_dir/libuniffi_swe_kitty_core.so"
+  if [[ -f "$abi_dir/libconduit_core.so" ]]; then
+    cp "$abi_dir/libconduit_core.so" "$abi_dir/libuniffi_conduit_core.so"
   fi
 done
 
@@ -64,4 +64,4 @@ mkdir -p "$KOTLIN_OUT"
     --out-dir "$KOTLIN_OUT" )
 
 echo "==> done: jniLibs at $JNI_DIR"
-echo "==> bindings: $KOTLIN_OUT/uniffi/swe_kitty_core/swe_kitty_core.kt"
+echo "==> bindings: $KOTLIN_OUT/uniffi/conduit_core/conduit_core.kt"

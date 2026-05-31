@@ -132,7 +132,7 @@ struct SessionStoreTests {
 
     /// `selectSavedServer(autoConnect: true)` for the *current* endpoint
     /// used to call `disconnect()`+`connect()`, which clobbered the
-    /// visible `sessions` array because a fresh `SweKittyClient` returns
+    /// visible `sessions` array because a fresh `ConduitClient` returns
     /// `[]` from `list_sessions()` until status frames trickle in. The
     /// fix short-circuits when the endpoint hasn't changed (or when
     /// the harness is already reachable). This test pins that contract
@@ -151,7 +151,7 @@ struct SessionStoreTests {
 
         // Simulate "already linked": the user is on this server and
         // sessions have been listed. Direct set is the only seam — no
-        // public hook to manufacture a live `SweKittyClient` from the
+        // public hook to manufacture a live `ConduitClient` from the
         // test process. We're not asserting anything about `client`;
         // we just want to observe whether `selectSavedServer` flips
         // `harness` back to `.disconnected` (which is what would

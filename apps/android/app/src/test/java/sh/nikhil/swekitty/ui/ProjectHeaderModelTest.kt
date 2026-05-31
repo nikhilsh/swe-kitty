@@ -4,8 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import sh.nikhil.swekitty.SessionLifecycle
-import uniffi.swe_kitty_core.ProjectSession
-import uniffi.swe_kitty_core.SessionStatus
+import uniffi.conduit_core.ProjectSession
+import uniffi.conduit_core.SessionStatus
 
 /**
  * Android mirror of `apps/ios/Tests/SweKittyTests/ProjectViewHeaderTests.swift`.

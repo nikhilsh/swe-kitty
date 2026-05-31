@@ -25,9 +25,9 @@
 //! Replaying the same event twice is a no-op for the conversation log and
 //! lifecycle (idempotency tests in `core/tests/store_reducer.rs`).
 //!
-//! ### Why a separate type from `SweKittyClient`
+//! ### Why a separate type from `ConduitClient`
 //!
-//! `SweKittyClient` ([`crate::SweKittyClient`]) owns the network + delegate
+//! `ConduitClient` ([`crate::ConduitClient`]) owns the network + delegate
 //! plumbing and *internally* updates its own `HashMap<String,
 //! ProjectSessionState>` via [`ClientDelegate`](crate::ClientDelegate). That
 //! map is a private detail of the client today.

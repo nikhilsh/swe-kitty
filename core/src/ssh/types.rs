@@ -72,7 +72,7 @@ pub enum SshError {
     DockerMissing,
     #[error("remote user cannot run docker without sudo")]
     DockerPermission,
-    #[error("remote port {0} is already in use by a non-swe-kitty process")]
+    #[error("remote port {0} is already in use by a non-conduit process")]
     PortConflict(u16),
     #[error("harness container failed to become healthy within 30s")]
     HarnessStartTimeout,

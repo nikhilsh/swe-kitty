@@ -1,4 +1,4 @@
-//! Minimal CLI driver that exercises swe-kitty-core against a running
+//! Minimal CLI driver that exercises conduit-core against a running
 //! harness. Used for manual integration testing during task 002.
 //!
 //! Usage:
@@ -10,14 +10,14 @@
 
 use std::io::{self, Read, Write};
 
-use swe_kitty_core::{
-    ChatEvent, ConnectionHealth, PreviewInfo, SessionStatus, SweKittyClient, SweKittyDelegate,
+use conduit_core::{
+    ChatEvent, ConduitClient, ConduitDelegate, ConnectionHealth, PreviewInfo, SessionStatus,
 };
 use tokio::sync::mpsc;
 
 struct StdoutDelegate;
 
-impl SweKittyDelegate for StdoutDelegate {
+impl ConduitDelegate for StdoutDelegate {
     fn on_pty_data(&self, _session_id: String, data: Vec<u8>) {
         let _ = io::stdout().write_all(&data);
         let _ = io::stdout().flush();
@@ -68,7 +68,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = args[2].clone();
     let assistant = args.get(3).cloned().unwrap_or_else(|| "claude".to_string());
 
-    let client = SweKittyClient::new(endpoint, token);
+    let client = ConduitClient::new(endpoint, token);
     client.connect(Box::new(StdoutDelegate)).await?;
 
     let session_id = client

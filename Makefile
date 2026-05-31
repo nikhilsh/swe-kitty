@@ -6,10 +6,10 @@ core:
 
 bindings:
 	mkdir -p core/generated/.tmp/swift core/generated/.tmp/kotlin
-	cargo run --manifest-path core/Cargo.toml --bin uniffi-bindgen -- generate core/src/swe_kitty_core.udl --language swift --out-dir core/generated/.tmp/swift
-	cargo run --manifest-path core/Cargo.toml --bin uniffi-bindgen -- generate core/src/swe_kitty_core.udl --language kotlin --out-dir core/generated/.tmp/kotlin
-	cp core/generated/.tmp/swift/swe_kitty_core.swift core/generated/swe_kitty_core.swift
-	cp core/generated/.tmp/kotlin/uniffi/swe_kitty_core/swe_kitty_core.kt core/generated/sweKittyCore.kt
+	cargo run --manifest-path core/Cargo.toml --bin uniffi-bindgen -- generate core/src/conduit_core.udl --language swift --out-dir core/generated/.tmp/swift
+	cargo run --manifest-path core/Cargo.toml --bin uniffi-bindgen -- generate core/src/conduit_core.udl --language kotlin --out-dir core/generated/.tmp/kotlin
+	cp core/generated/.tmp/swift/conduit_core.swift core/generated/conduit_core.swift
+	cp core/generated/.tmp/kotlin/uniffi/conduit_core/conduit_core.kt core/generated/conduitCore.kt
 
 # Build the SweKittyCore xcframework + UniFFI Swift bindings, then regenerate
 # the Xcode project. Run before opening apps/ios/SweKitty.xcodeproj.

@@ -1,4 +1,4 @@
-//! WebSocket transport for swe-kitty-core.
+//! WebSocket transport for conduit-core.
 //!
 //! Implements the binary-tag demux from `docs/WEBSOCKET-PROTOCOL.md`
 //! §2.1 (0x00 resize / 0x01 upload / 0x02 snapshot / 0xFF escape / else
@@ -43,7 +43,7 @@ use url::Url;
 use std::collections::HashMap;
 
 use crate::views::{ChatEvent, PreviewInfo, SessionStatus, ViewEventFile};
-use crate::{SweKittyDelegate, SweKittyError};
+use crate::{ConduitDelegate, ConduitError};
 
 const TAG_RESIZE: u8 = 0x00;
 const TAG_UPLOAD: u8 = 0x01;
@@ -62,7 +62,7 @@ const RECONNECT_IDLE_RETRY: Duration = Duration::from_secs(20);
 const WS_REDIRECT_MAX_HOPS: usize = 3;
 
 /// Observable per-session connection state surfaced via
-/// [`SweKittyDelegate::on_connection_health`]. Apps render this in their
+/// [`ConduitDelegate::on_connection_health`]. Apps render this in their
 /// status banner so a transient blip looks like "Reconnecting (2/5)…"
 /// rather than "Offline".
 #[derive(Clone, Debug)]
@@ -100,7 +100,7 @@ impl SessionHandle {
         self.nudge.notify_one();
     }
 
-    pub async fn send_input(&self, data: Vec<u8>) -> Result<(), SweKittyError> {
+    pub async fn send_input(&self, data: Vec<u8>) -> Result<(), ConduitError> {
         let bytes = if data.first().is_some_and(|b| is_reserved_tag(*b)) {
             let mut v = Vec::with_capacity(data.len() + 1);
             v.push(TAG_ESCAPE);
@@ -112,17 +112,17 @@ impl SessionHandle {
         self.tx
             .send(Message::Binary(bytes))
             .await
-            .map_err(|e| SweKittyError::Connection(e.to_string()))
+            .map_err(|e| ConduitError::Connection(e.to_string()))
     }
 
-    pub async fn resize(&self, rows: u16, cols: u16) -> Result<(), SweKittyError> {
+    pub async fn resize(&self, rows: u16, cols: u16) -> Result<(), ConduitError> {
         let mut buf = [TAG_RESIZE, 0, 0, 0, 0];
         buf[1..3].copy_from_slice(&rows.to_be_bytes());
         buf[3..5].copy_from_slice(&cols.to_be_bytes());
         self.tx
             .send(Message::Binary(buf.to_vec()))
             .await
-            .map_err(|e| SweKittyError::Connection(e.to_string()))
+            .map_err(|e| ConduitError::Connection(e.to_string()))
     }
 
     /// Encode and send a 0x01 file-upload frame on this session.
@@ -150,24 +150,24 @@ impl SessionHandle {
         filename: &str,
         mime: &str,
         bytes: &[u8],
-    ) -> Result<(), SweKittyError> {
+    ) -> Result<(), ConduitError> {
         let frame = encode_upload_frame(session_id, filename, mime, bytes);
         self.tx
             .send(Message::Binary(frame))
             .await
-            .map_err(|e| SweKittyError::Connection(e.to_string()))
+            .map_err(|e| ConduitError::Connection(e.to_string()))
     }
 
-    pub async fn send_json(&self, v: &serde_json::Value) -> Result<(), SweKittyError> {
+    pub async fn send_json(&self, v: &serde_json::Value) -> Result<(), ConduitError> {
         let s = serde_json::to_string(v)?;
         self.send_message(Message::Text(s)).await
     }
 
-    async fn send_message(&self, message: Message) -> Result<(), SweKittyError> {
+    async fn send_message(&self, message: Message) -> Result<(), ConduitError> {
         self.tx
             .send(message)
             .await
-            .map_err(|e| SweKittyError::Connection(e.to_string()))
+            .map_err(|e| ConduitError::Connection(e.to_string()))
     }
 }
 
@@ -196,15 +196,15 @@ pub struct SpawnOverride {
 ///
 /// Callers must arrange for this future to be polled on a tokio runtime
 /// with the I/O and time reactors enabled (in practice: the
-/// `swe-kitty-core` runtime via the `run_on_core` helper in `lib.rs`).
+/// `conduit-core` runtime via the `run_on_core` helper in `lib.rs`).
 pub async fn connect(
     endpoint: String,
     session_id: String,
     assistant: String,
     token: String,
     override_: SpawnOverride,
-    delegate: Arc<dyn SweKittyDelegate>,
-) -> Result<SessionHandle, SweKittyError> {
+    delegate: Arc<dyn ConduitDelegate>,
+) -> Result<SessionHandle, ConduitError> {
     // First connect is synchronous from the caller's POV so auth
     // failures surface to the create-session UX. Subsequent reconnects
     // happen in the background.
@@ -247,7 +247,7 @@ struct WorkerArgs {
     rx: mpsc::Receiver<Message>,
     shutdown_rx: oneshot::Receiver<()>,
     nudge: Arc<Notify>,
-    delegate: Arc<dyn SweKittyDelegate>,
+    delegate: Arc<dyn ConduitDelegate>,
 }
 
 /// Long-lived worker for one session. Owns the outbound channel,
@@ -356,7 +356,7 @@ async fn reconnect(
     assistant: &str,
     token: &str,
     override_: &SpawnOverride,
-    delegate: &Arc<dyn SweKittyDelegate>,
+    delegate: &Arc<dyn ConduitDelegate>,
     shutdown_rx: &mut oneshot::Receiver<()>,
 ) -> ReconnectOutcome {
     for attempt in 1..=RECONNECT_MAX_ATTEMPTS {
@@ -383,7 +383,7 @@ async fn reconnect(
                 delegate.on_connection_health(session_id.to_string(), ConnectionHealth::Connected);
                 return ReconnectOutcome::Reconnected(Box::new(ws));
             }
-            Err(SweKittyError::Auth) => {
+            Err(ConduitError::Auth) => {
                 return ReconnectOutcome::AuthExpired;
             }
             Err(_) => {
@@ -418,7 +418,7 @@ async fn drive_socket(
     rx: &mut mpsc::Receiver<Message>,
     shutdown_rx: &mut oneshot::Receiver<()>,
     nudge: &Arc<Notify>,
-    delegate: &Arc<dyn SweKittyDelegate>,
+    delegate: &Arc<dyn ConduitDelegate>,
     session_id: &str,
 ) -> DriveOutcome {
     let (mut writer, mut reader) = ws.split();
@@ -510,7 +510,7 @@ async fn open_ws(
     assistant: &str,
     token: &str,
     override_: &SpawnOverride,
-) -> Result<WsStream, SweKittyError> {
+) -> Result<WsStream, ConduitError> {
     let base = normalize_ws_endpoint(endpoint)?;
     let mut target = build_initial_ws_url(&base, session_id, assistant, token, override_)?;
     let mut hops = 0usize;
@@ -519,17 +519,17 @@ async fn open_ws(
         let mut request = target
             .as_str()
             .into_client_request()
-            .map_err(|e| SweKittyError::Connection(e.to_string()))?;
+            .map_err(|e| ConduitError::Connection(e.to_string()))?;
         request.headers_mut().insert(
             "Authorization",
             HeaderValue::from_str(&format!("Bearer {token}"))
-                .map_err(|e| SweKittyError::Connection(e.to_string()))?,
+                .map_err(|e| ConduitError::Connection(e.to_string()))?,
         );
 
         match connect_async(request).await {
             Ok((ws, _resp)) => return Ok(ws),
             Err(WsError::Http(response)) if response.status() == StatusCode::UNAUTHORIZED => {
-                return Err(SweKittyError::Auth);
+                return Err(ConduitError::Auth);
             }
             Err(WsError::Http(response))
                 if is_redirect_status(response.status()) && hops < WS_REDIRECT_MAX_HOPS =>
@@ -539,7 +539,7 @@ async fn open_ws(
                     .get("Location")
                     .and_then(|h| h.to_str().ok())
                     .ok_or_else(|| {
-                        SweKittyError::Connection(format!(
+                        ConduitError::Connection(format!(
                             "HTTP error: {} (missing redirect location)",
                             response.status()
                         ))
@@ -555,12 +555,12 @@ async fn open_ws(
                 continue;
             }
             Err(WsError::Http(response)) => {
-                return Err(SweKittyError::Connection(format!(
+                return Err(ConduitError::Connection(format!(
                     "HTTP error: {}",
                     response.status()
                 )));
             }
-            Err(e) => return Err(SweKittyError::Connection(e.to_string())),
+            Err(e) => return Err(ConduitError::Connection(e.to_string())),
         }
     }
 }
@@ -571,7 +571,7 @@ fn build_initial_ws_url(
     assistant: &str,
     token: &str,
     override_: &SpawnOverride,
-) -> Result<Url, SweKittyError> {
+) -> Result<Url, ConduitError> {
     let mut raw = format!(
         "{}/ws/{}?assistant={}&token={}",
         base.as_str().trim_end_matches('/'),
@@ -601,26 +601,26 @@ fn build_initial_ws_url(
             raw.push_str(&urlencode(cwd));
         }
     }
-    Url::parse(&raw).map_err(|e| SweKittyError::Connection(e.to_string()))
+    Url::parse(&raw).map_err(|e| ConduitError::Connection(e.to_string()))
 }
 
 /// Resolve `location` relative to the previous target ws URL, then translate
 /// http(s) into ws(s) and make sure the bearer token still rides in the
 /// query string (some upstream proxies strip headers across a redirect).
-fn redirect_to_ws_url(current: &Url, location: &str, token: &str) -> Result<Url, SweKittyError> {
+fn redirect_to_ws_url(current: &Url, location: &str, token: &str) -> Result<Url, ConduitError> {
     let mut next = current
         .join(location)
-        .map_err(|e| SweKittyError::Connection(e.to_string()))?;
+        .map_err(|e| ConduitError::Connection(e.to_string()))?;
     match next.scheme() {
         "http" => next
             .set_scheme("ws")
-            .map_err(|_| SweKittyError::Connection("invalid ws redirect scheme".to_string()))?,
+            .map_err(|_| ConduitError::Connection("invalid ws redirect scheme".to_string()))?,
         "https" => next
             .set_scheme("wss")
-            .map_err(|_| SweKittyError::Connection("invalid wss redirect scheme".to_string()))?,
+            .map_err(|_| ConduitError::Connection("invalid wss redirect scheme".to_string()))?,
         "ws" | "wss" => {}
         other => {
-            return Err(SweKittyError::Connection(format!(
+            return Err(ConduitError::Connection(format!(
                 "unsupported redirect scheme: {other}"
             )))
         }
@@ -637,18 +637,18 @@ fn redirect_to_ws_url(current: &Url, location: &str, token: &str) -> Result<Url,
     Ok(next)
 }
 
-fn normalize_ws_endpoint(endpoint: &str) -> Result<Url, SweKittyError> {
-    let mut parsed = Url::parse(endpoint).map_err(|e| SweKittyError::Connection(e.to_string()))?;
+fn normalize_ws_endpoint(endpoint: &str) -> Result<Url, ConduitError> {
+    let mut parsed = Url::parse(endpoint).map_err(|e| ConduitError::Connection(e.to_string()))?;
     match parsed.scheme() {
         "http" => parsed
             .set_scheme("ws")
-            .map_err(|_| SweKittyError::Connection("invalid ws endpoint scheme".to_string()))?,
+            .map_err(|_| ConduitError::Connection("invalid ws endpoint scheme".to_string()))?,
         "https" => parsed
             .set_scheme("wss")
-            .map_err(|_| SweKittyError::Connection("invalid wss endpoint scheme".to_string()))?,
+            .map_err(|_| ConduitError::Connection("invalid wss endpoint scheme".to_string()))?,
         "ws" | "wss" => {}
         other => {
-            return Err(SweKittyError::Connection(format!(
+            return Err(ConduitError::Connection(format!(
                 "unsupported endpoint scheme: {other}"
             )))
         }
@@ -670,10 +670,10 @@ fn is_redirect_status(status: StatusCode) -> bool {
 
 fn handle_binary(
     session_id: &str,
-    delegate: &Arc<dyn SweKittyDelegate>,
+    delegate: &Arc<dyn ConduitDelegate>,
     snap: &mut SnapshotReassembler,
     payload: Vec<u8>,
-) -> Result<(), SweKittyError> {
+) -> Result<(), ConduitError> {
     if payload.is_empty() {
         return Ok(());
     }
@@ -698,10 +698,10 @@ fn handle_binary(
 
 async fn handle_text(
     session_id: &str,
-    delegate: &Arc<dyn SweKittyDelegate>,
+    delegate: &Arc<dyn ConduitDelegate>,
     writer: &mut futures_util::stream::SplitSink<WsStream, Message>,
     text: &str,
-) -> Result<(), SweKittyError> {
+) -> Result<(), ConduitError> {
     #[derive(Deserialize)]
     struct Envelope {
         #[serde(rename = "type")]
@@ -919,7 +919,7 @@ async fn handle_text(
                     serde_json::json!({ "type": "pong" }).to_string(),
                 ))
                 .await
-                .map_err(|e| SweKittyError::Connection(e.to_string()))?;
+                .map_err(|e| ConduitError::Connection(e.to_string()))?;
         }
         "pong" => {}
         _ => {}
@@ -940,7 +940,7 @@ impl SnapshotReassembler {
         }
     }
 
-    fn push(&mut self, frame: &[u8]) -> Result<Option<Vec<u8>>, SweKittyError> {
+    fn push(&mut self, frame: &[u8]) -> Result<Option<Vec<u8>>, ConduitError> {
         if frame.len() < 5 || frame[0] != TAG_SNAPSHOT {
             return Ok(None);
         }
@@ -949,7 +949,7 @@ impl SnapshotReassembler {
         if idx != self.expected_idx {
             self.gz_buf.clear();
             self.expected_idx = 0;
-            return Err(SweKittyError::Protocol(format!(
+            return Err(ConduitError::Protocol(format!(
                 "snapshot chunk out of order: expected {} got {}",
                 self.expected_idx, idx
             )));
@@ -960,7 +960,7 @@ impl SnapshotReassembler {
             let mut out = Vec::new();
             let mut dec = GzDecoder::new(self.gz_buf.as_slice());
             dec.read_to_end(&mut out)
-                .map_err(|e| SweKittyError::Protocol(e.to_string()))?;
+                .map_err(|e| ConduitError::Protocol(e.to_string()))?;
             self.gz_buf.clear();
             self.expected_idx = 0;
             Ok(Some(out))

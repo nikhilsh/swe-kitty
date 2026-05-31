@@ -30,8 +30,8 @@ import kotlinx.coroutines.launch
 import sh.nikhil.swekitty.LocalAppearanceStore
 import sh.nikhil.swekitty.SessionLifecycle
 import sh.nikhil.swekitty.SessionStore
-import uniffi.swe_kitty_core.ProjectSession
-import uniffi.swe_kitty_core.SessionStatus
+import uniffi.conduit_core.ProjectSession
+import uniffi.conduit_core.SessionStatus
 
 enum class ProjectTab(val label: String) { Terminal("Terminal"), Chat("Chat"), Browser("Browser") }
 

@@ -46,8 +46,8 @@ import sh.nikhil.swekitty.SavedSshCredential
 import sh.nikhil.swekitty.SessionStore
 import sh.nikhil.swekitty.SshBootstrapState
 import sh.nikhil.swekitty.SshCredentialStore
-import uniffi.swe_kitty_core.SshAuth
-import uniffi.swe_kitty_core.SshCredentials
+import uniffi.conduit_core.SshAuth
+import uniffi.conduit_core.SshCredentials
 
 /**
  * Modal bottom sheet that drives the SSH-bootstrap flow. The user supplies

@@ -3,7 +3,7 @@
 
 @file:Suppress("NAME_SHADOWING")
 
-package uniffi.swe_kitty_core
+package uniffi.conduit_core
 
 // Common helper code.
 //
@@ -66,7 +66,7 @@ open class RustBuffer : Structure() {
     companion object {
         internal fun alloc(size: ULong = 0UL) = uniffiRustCall() { status ->
             // Note: need to convert the size to a `Long` value to make this work with JVM.
-            UniffiLib.INSTANCE.ffi_swe_kitty_core_rustbuffer_alloc(size.toLong(), status)
+            UniffiLib.INSTANCE.ffi_conduit_core_rustbuffer_alloc(size.toLong(), status)
         }.also {
             if(it.data == null) {
                throw RuntimeException("RustBuffer.alloc() returned null data pointer (size=${size})")
@@ -82,7 +82,7 @@ open class RustBuffer : Structure() {
         }
 
         internal fun free(buf: RustBuffer.ByValue) = uniffiRustCall() { status ->
-            UniffiLib.INSTANCE.ffi_swe_kitty_core_rustbuffer_free(buf, status)
+            UniffiLib.INSTANCE.ffi_conduit_core_rustbuffer_free(buf, status)
         }
     }
 
@@ -382,7 +382,7 @@ private fun findLibraryName(componentName: String): String {
     if (libOverride != null) {
         return libOverride
     }
-    return "uniffi_swe_kitty_core"
+    return "uniffi_conduit_core"
 }
 
 private inline fun <reified Lib : Library> loadIndirect(
@@ -661,35 +661,75 @@ internal open class UniffiForeignFutureStructVoid(
 internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
     fun callback(`callbackData`: Long,`result`: UniffiForeignFutureStructVoid.UniffiByValue,)
 }
+internal interface UniffiCallbackInterfaceConduitDelegateMethod0 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`data`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceConduitDelegateMethod1 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`event`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceConduitDelegateMethod2 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`preview`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceConduitDelegateMethod3 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`status`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceConduitDelegateMethod4 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`gunzipped`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceConduitDelegateMethod5 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`code`: Int,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceConduitDelegateMethod6 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`reason`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceConduitDelegateMethod7 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`health`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceConduitDelegateMethod8 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`kind`: RustBuffer.ByValue,`payload`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
 internal interface UniffiCallbackInterfaceSshHostKeyDelegateMethod0 : com.sun.jna.Callback {
     fun callback(`uniffiHandle`: Long,`fingerprint`: RustBuffer.ByValue,`uniffiOutReturn`: ByteByReference,uniffiCallStatus: UniffiRustCallStatus,)
 }
-internal interface UniffiCallbackInterfaceSweKittyDelegateMethod0 : com.sun.jna.Callback {
-    fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`data`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
-}
-internal interface UniffiCallbackInterfaceSweKittyDelegateMethod1 : com.sun.jna.Callback {
-    fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`event`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
-}
-internal interface UniffiCallbackInterfaceSweKittyDelegateMethod2 : com.sun.jna.Callback {
-    fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`preview`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
-}
-internal interface UniffiCallbackInterfaceSweKittyDelegateMethod3 : com.sun.jna.Callback {
-    fun callback(`uniffiHandle`: Long,`status`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
-}
-internal interface UniffiCallbackInterfaceSweKittyDelegateMethod4 : com.sun.jna.Callback {
-    fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`gunzipped`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
-}
-internal interface UniffiCallbackInterfaceSweKittyDelegateMethod5 : com.sun.jna.Callback {
-    fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`code`: Int,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
-}
-internal interface UniffiCallbackInterfaceSweKittyDelegateMethod6 : com.sun.jna.Callback {
-    fun callback(`uniffiHandle`: Long,`reason`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
-}
-internal interface UniffiCallbackInterfaceSweKittyDelegateMethod7 : com.sun.jna.Callback {
-    fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`health`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
-}
-internal interface UniffiCallbackInterfaceSweKittyDelegateMethod8 : com.sun.jna.Callback {
-    fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`kind`: RustBuffer.ByValue,`payload`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+@Structure.FieldOrder("onPtyData", "onChatEvent", "onPreviewReady", "onStatus", "onSnapshot", "onExit", "onDisconnected", "onConnectionHealth", "onViewEvent", "uniffiFree")
+internal open class UniffiVTableCallbackInterfaceConduitDelegate(
+    @JvmField internal var `onPtyData`: UniffiCallbackInterfaceConduitDelegateMethod0? = null,
+    @JvmField internal var `onChatEvent`: UniffiCallbackInterfaceConduitDelegateMethod1? = null,
+    @JvmField internal var `onPreviewReady`: UniffiCallbackInterfaceConduitDelegateMethod2? = null,
+    @JvmField internal var `onStatus`: UniffiCallbackInterfaceConduitDelegateMethod3? = null,
+    @JvmField internal var `onSnapshot`: UniffiCallbackInterfaceConduitDelegateMethod4? = null,
+    @JvmField internal var `onExit`: UniffiCallbackInterfaceConduitDelegateMethod5? = null,
+    @JvmField internal var `onDisconnected`: UniffiCallbackInterfaceConduitDelegateMethod6? = null,
+    @JvmField internal var `onConnectionHealth`: UniffiCallbackInterfaceConduitDelegateMethod7? = null,
+    @JvmField internal var `onViewEvent`: UniffiCallbackInterfaceConduitDelegateMethod8? = null,
+    @JvmField internal var `uniffiFree`: UniffiCallbackInterfaceFree? = null,
+) : Structure() {
+    class UniffiByValue(
+        `onPtyData`: UniffiCallbackInterfaceConduitDelegateMethod0? = null,
+        `onChatEvent`: UniffiCallbackInterfaceConduitDelegateMethod1? = null,
+        `onPreviewReady`: UniffiCallbackInterfaceConduitDelegateMethod2? = null,
+        `onStatus`: UniffiCallbackInterfaceConduitDelegateMethod3? = null,
+        `onSnapshot`: UniffiCallbackInterfaceConduitDelegateMethod4? = null,
+        `onExit`: UniffiCallbackInterfaceConduitDelegateMethod5? = null,
+        `onDisconnected`: UniffiCallbackInterfaceConduitDelegateMethod6? = null,
+        `onConnectionHealth`: UniffiCallbackInterfaceConduitDelegateMethod7? = null,
+        `onViewEvent`: UniffiCallbackInterfaceConduitDelegateMethod8? = null,
+        `uniffiFree`: UniffiCallbackInterfaceFree? = null,
+    ): UniffiVTableCallbackInterfaceConduitDelegate(`onPtyData`,`onChatEvent`,`onPreviewReady`,`onStatus`,`onSnapshot`,`onExit`,`onDisconnected`,`onConnectionHealth`,`onViewEvent`,`uniffiFree`,), Structure.ByValue
+
+   internal fun uniffiSetValue(other: UniffiVTableCallbackInterfaceConduitDelegate) {
+        `onPtyData` = other.`onPtyData`
+        `onChatEvent` = other.`onChatEvent`
+        `onPreviewReady` = other.`onPreviewReady`
+        `onStatus` = other.`onStatus`
+        `onSnapshot` = other.`onSnapshot`
+        `onExit` = other.`onExit`
+        `onDisconnected` = other.`onDisconnected`
+        `onConnectionHealth` = other.`onConnectionHealth`
+        `onViewEvent` = other.`onViewEvent`
+        `uniffiFree` = other.`uniffiFree`
+    }
+
 }
 @Structure.FieldOrder("acceptHostKey", "uniffiFree")
 internal open class UniffiVTableCallbackInterfaceSshHostKeyDelegate(
@@ -703,46 +743,6 @@ internal open class UniffiVTableCallbackInterfaceSshHostKeyDelegate(
 
    internal fun uniffiSetValue(other: UniffiVTableCallbackInterfaceSshHostKeyDelegate) {
         `acceptHostKey` = other.`acceptHostKey`
-        `uniffiFree` = other.`uniffiFree`
-    }
-
-}
-@Structure.FieldOrder("onPtyData", "onChatEvent", "onPreviewReady", "onStatus", "onSnapshot", "onExit", "onDisconnected", "onConnectionHealth", "onViewEvent", "uniffiFree")
-internal open class UniffiVTableCallbackInterfaceSweKittyDelegate(
-    @JvmField internal var `onPtyData`: UniffiCallbackInterfaceSweKittyDelegateMethod0? = null,
-    @JvmField internal var `onChatEvent`: UniffiCallbackInterfaceSweKittyDelegateMethod1? = null,
-    @JvmField internal var `onPreviewReady`: UniffiCallbackInterfaceSweKittyDelegateMethod2? = null,
-    @JvmField internal var `onStatus`: UniffiCallbackInterfaceSweKittyDelegateMethod3? = null,
-    @JvmField internal var `onSnapshot`: UniffiCallbackInterfaceSweKittyDelegateMethod4? = null,
-    @JvmField internal var `onExit`: UniffiCallbackInterfaceSweKittyDelegateMethod5? = null,
-    @JvmField internal var `onDisconnected`: UniffiCallbackInterfaceSweKittyDelegateMethod6? = null,
-    @JvmField internal var `onConnectionHealth`: UniffiCallbackInterfaceSweKittyDelegateMethod7? = null,
-    @JvmField internal var `onViewEvent`: UniffiCallbackInterfaceSweKittyDelegateMethod8? = null,
-    @JvmField internal var `uniffiFree`: UniffiCallbackInterfaceFree? = null,
-) : Structure() {
-    class UniffiByValue(
-        `onPtyData`: UniffiCallbackInterfaceSweKittyDelegateMethod0? = null,
-        `onChatEvent`: UniffiCallbackInterfaceSweKittyDelegateMethod1? = null,
-        `onPreviewReady`: UniffiCallbackInterfaceSweKittyDelegateMethod2? = null,
-        `onStatus`: UniffiCallbackInterfaceSweKittyDelegateMethod3? = null,
-        `onSnapshot`: UniffiCallbackInterfaceSweKittyDelegateMethod4? = null,
-        `onExit`: UniffiCallbackInterfaceSweKittyDelegateMethod5? = null,
-        `onDisconnected`: UniffiCallbackInterfaceSweKittyDelegateMethod6? = null,
-        `onConnectionHealth`: UniffiCallbackInterfaceSweKittyDelegateMethod7? = null,
-        `onViewEvent`: UniffiCallbackInterfaceSweKittyDelegateMethod8? = null,
-        `uniffiFree`: UniffiCallbackInterfaceFree? = null,
-    ): UniffiVTableCallbackInterfaceSweKittyDelegate(`onPtyData`,`onChatEvent`,`onPreviewReady`,`onStatus`,`onSnapshot`,`onExit`,`onDisconnected`,`onConnectionHealth`,`onViewEvent`,`uniffiFree`,), Structure.ByValue
-
-   internal fun uniffiSetValue(other: UniffiVTableCallbackInterfaceSweKittyDelegate) {
-        `onPtyData` = other.`onPtyData`
-        `onChatEvent` = other.`onChatEvent`
-        `onPreviewReady` = other.`onPreviewReady`
-        `onStatus` = other.`onStatus`
-        `onSnapshot` = other.`onSnapshot`
-        `onExit` = other.`onExit`
-        `onDisconnected` = other.`onDisconnected`
-        `onConnectionHealth` = other.`onConnectionHealth`
-        `onViewEvent` = other.`onViewEvent`
         `uniffiFree` = other.`uniffiFree`
     }
 
@@ -899,12 +899,12 @@ internal open class UniffiVTableCallbackInterfaceSweKittyDelegate(
 internal interface UniffiLib : Library {
     companion object {
         internal val INSTANCE: UniffiLib by lazy {
-            loadIndirect<UniffiLib>(componentName = "swe_kitty_core")
+            loadIndirect<UniffiLib>(componentName = "conduit_core")
             .also { lib: UniffiLib ->
                 uniffiCheckContractApiVersion(lib)
                 uniffiCheckApiChecksums(lib)
+                uniffiCallbackInterfaceConduitDelegate.register(lib)
                 uniffiCallbackInterfaceSshHostKeyDelegate.register(lib)
-                uniffiCallbackInterfaceSweKittyDelegate.register(lib)
                 }
         }
         
@@ -914,295 +914,295 @@ internal interface UniffiLib : Library {
         }
     }
 
-    fun uniffi_swe_kitty_core_fn_clone_sessionstorecore(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_clone_conduitclient(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): Pointer
-    fun uniffi_swe_kitty_core_fn_free_sessionstorecore(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_free_conduitclient(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_swe_kitty_core_fn_constructor_sessionstorecore_new(uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_constructor_conduitclient_new(`endpoint`: RustBuffer.ByValue,`bearerToken`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Pointer
-    fun uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_chat(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`event`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): RustBuffer.ByValue
-    fun uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_exit(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`code`: Int,uniffi_out_err: UniffiRustCallStatus, 
-    ): RustBuffer.ByValue
-    fun uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_lifecycle(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`lifecycle`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_method_conduitclient_agent_login_callback(`ptr`: Pointer,`sessionToken`: RustBuffer.ByValue,`queryString`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_conduit_core_fn_method_conduitclient_cancel_agent_login(`ptr`: Pointer,`sessionToken`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_conduit_core_fn_method_conduitclient_connect(`ptr`: Pointer,`delegate`: Long,
+    ): Long
+    fun uniffi_conduit_core_fn_method_conduitclient_create_session(`ptr`: Pointer,`assistant`: RustBuffer.ByValue,`branch`: RustBuffer.ByValue,`reasoningEffort`: RustBuffer.ByValue,`model`: RustBuffer.ByValue,`cwd`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_conduit_core_fn_method_conduitclient_disconnect(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_preview(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`preview`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_method_conduitclient_exit_session(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_conduit_core_fn_method_conduitclient_get_session(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_pty_data(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`data`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_method_conduitclient_join_session(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`assistant`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_conduit_core_fn_method_conduitclient_list_conversation_items(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_snapshot(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`gunzipped`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_method_conduitclient_list_sessions(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_status(`ptr`: Pointer,`status`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_method_conduitclient_notify_network_change(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_conduit_core_fn_method_conduitclient_refresh_account_usage(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_conduit_core_fn_method_conduitclient_resize(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`rows`: Short,`cols`: Short,
+    ): Long
+    fun uniffi_conduit_core_fn_method_conduitclient_send_chat(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`msg`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_conduit_core_fn_method_conduitclient_send_file(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`filename`: RustBuffer.ByValue,`mime`: RustBuffer.ByValue,`payload`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_conduit_core_fn_method_conduitclient_send_input(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`data`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_conduit_core_fn_method_conduitclient_set_agent_credentials(`ptr`: Pointer,`provider`: RustBuffer.ByValue,`credentialJson`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_conduit_core_fn_method_conduitclient_start_agent_login(`ptr`: Pointer,`provider`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_conduit_core_fn_method_conduitclient_switch_agent(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`assistant`: RustBuffer.ByValue,
+    ): Long
+    fun uniffi_conduit_core_fn_clone_sessionstorecore(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): Pointer
+    fun uniffi_conduit_core_fn_free_sessionstorecore(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_conduit_core_fn_constructor_sessionstorecore_new(uniffi_out_err: UniffiRustCallStatus, 
+    ): Pointer
+    fun uniffi_conduit_core_fn_method_sessionstorecore_apply_chat(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`event`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_swe_kitty_core_fn_method_sessionstorecore_contains(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_method_sessionstorecore_apply_exit(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`code`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_conduit_core_fn_method_sessionstorecore_apply_lifecycle(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`lifecycle`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_conduit_core_fn_method_sessionstorecore_apply_preview(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`preview`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_conduit_core_fn_method_sessionstorecore_apply_pty_data(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`data`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_conduit_core_fn_method_sessionstorecore_apply_snapshot(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`gunzipped`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_conduit_core_fn_method_sessionstorecore_apply_status(`ptr`: Pointer,`status`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_conduit_core_fn_method_sessionstorecore_contains(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Byte
-    fun uniffi_swe_kitty_core_fn_method_sessionstorecore_conversation(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_method_sessionstorecore_conversation(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_swe_kitty_core_fn_method_sessionstorecore_forget_session(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_method_sessionstorecore_forget_session(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_swe_kitty_core_fn_method_sessionstorecore_get(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_method_sessionstorecore_get(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_swe_kitty_core_fn_method_sessionstorecore_lifecycle(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_method_sessionstorecore_lifecycle(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_swe_kitty_core_fn_method_sessionstorecore_register_session(`ptr`: Pointer,`session`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_method_sessionstorecore_register_session(`ptr`: Pointer,`session`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_swe_kitty_core_fn_method_sessionstorecore_sessions(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_method_sessionstorecore_sessions(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_swe_kitty_core_fn_clone_swekittyclient(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
-    ): Pointer
-    fun uniffi_swe_kitty_core_fn_free_swekittyclient(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_init_callback_vtable_conduitdelegate(`vtable`: UniffiVTableCallbackInterfaceConduitDelegate,
     ): Unit
-    fun uniffi_swe_kitty_core_fn_constructor_swekittyclient_new(`endpoint`: RustBuffer.ByValue,`bearerToken`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): Pointer
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_agent_login_callback(`ptr`: Pointer,`sessionToken`: RustBuffer.ByValue,`queryString`: RustBuffer.ByValue,
-    ): Long
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_cancel_agent_login(`ptr`: Pointer,`sessionToken`: RustBuffer.ByValue,
-    ): Long
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_connect(`ptr`: Pointer,`delegate`: Long,
-    ): Long
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_create_session(`ptr`: Pointer,`assistant`: RustBuffer.ByValue,`branch`: RustBuffer.ByValue,`reasoningEffort`: RustBuffer.ByValue,`model`: RustBuffer.ByValue,`cwd`: RustBuffer.ByValue,
-    ): Long
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_disconnect(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_conduit_core_fn_init_callback_vtable_sshhostkeydelegate(`vtable`: UniffiVTableCallbackInterfaceSshHostKeyDelegate,
     ): Unit
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_exit_session(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,
+    fun uniffi_conduit_core_fn_func_ssh_bootstrap(`credentials`: RustBuffer.ByValue,`preAllocatedToken`: RustBuffer.ByValue,`anthropicApiKey`: RustBuffer.ByValue,`openaiApiKey`: RustBuffer.ByValue,`imageRef`: RustBuffer.ByValue,`hostKeyDelegate`: Long,
     ): Long
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_get_session(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_join_session(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`assistant`: RustBuffer.ByValue,
-    ): Long
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_list_conversation_items(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_list_sessions(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rustbuffer_free(`buf`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun ffi_conduit_core_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_notify_network_change(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rust_future_poll_u8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_refresh_account_usage(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,
-    ): Long
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_resize(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`rows`: Short,`cols`: Short,
-    ): Long
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_send_chat(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`msg`: RustBuffer.ByValue,
-    ): Long
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_send_file(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`filename`: RustBuffer.ByValue,`mime`: RustBuffer.ByValue,`payload`: RustBuffer.ByValue,
-    ): Long
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_send_input(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`data`: RustBuffer.ByValue,
-    ): Long
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_set_agent_credentials(`ptr`: Pointer,`provider`: RustBuffer.ByValue,`credentialJson`: RustBuffer.ByValue,
-    ): Long
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_start_agent_login(`ptr`: Pointer,`provider`: RustBuffer.ByValue,
-    ): Long
-    fun uniffi_swe_kitty_core_fn_method_swekittyclient_switch_agent(`ptr`: Pointer,`sessionId`: RustBuffer.ByValue,`assistant`: RustBuffer.ByValue,
-    ): Long
-    fun uniffi_swe_kitty_core_fn_init_callback_vtable_sshhostkeydelegate(`vtable`: UniffiVTableCallbackInterfaceSshHostKeyDelegate,
+    fun ffi_conduit_core_rust_future_cancel_u8(`handle`: Long,
     ): Unit
-    fun uniffi_swe_kitty_core_fn_init_callback_vtable_swekittydelegate(`vtable`: UniffiVTableCallbackInterfaceSweKittyDelegate,
+    fun ffi_conduit_core_rust_future_free_u8(`handle`: Long,
     ): Unit
-    fun uniffi_swe_kitty_core_fn_func_ssh_bootstrap(`credentials`: RustBuffer.ByValue,`preAllocatedToken`: RustBuffer.ByValue,`anthropicApiKey`: RustBuffer.ByValue,`openaiApiKey`: RustBuffer.ByValue,`imageRef`: RustBuffer.ByValue,`hostKeyDelegate`: Long,
-    ): Long
-    fun ffi_swe_kitty_core_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): RustBuffer.ByValue
-    fun ffi_swe_kitty_core_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): RustBuffer.ByValue
-    fun ffi_swe_kitty_core_rustbuffer_free(`buf`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): Unit
-    fun ffi_swe_kitty_core_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): RustBuffer.ByValue
-    fun ffi_swe_kitty_core_rust_future_poll_u8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    fun ffi_swe_kitty_core_rust_future_cancel_u8(`handle`: Long,
-    ): Unit
-    fun ffi_swe_kitty_core_rust_future_free_u8(`handle`: Long,
-    ): Unit
-    fun ffi_swe_kitty_core_rust_future_complete_u8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rust_future_complete_u8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Byte
-    fun ffi_swe_kitty_core_rust_future_poll_i8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_conduit_core_rust_future_poll_i8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_cancel_i8(`handle`: Long,
+    fun ffi_conduit_core_rust_future_cancel_i8(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_free_i8(`handle`: Long,
+    fun ffi_conduit_core_rust_future_free_i8(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_complete_i8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rust_future_complete_i8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Byte
-    fun ffi_swe_kitty_core_rust_future_poll_u16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_conduit_core_rust_future_poll_u16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_cancel_u16(`handle`: Long,
+    fun ffi_conduit_core_rust_future_cancel_u16(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_free_u16(`handle`: Long,
+    fun ffi_conduit_core_rust_future_free_u16(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_complete_u16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rust_future_complete_u16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Short
-    fun ffi_swe_kitty_core_rust_future_poll_i16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_conduit_core_rust_future_poll_i16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_cancel_i16(`handle`: Long,
+    fun ffi_conduit_core_rust_future_cancel_i16(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_free_i16(`handle`: Long,
+    fun ffi_conduit_core_rust_future_free_i16(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_complete_i16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rust_future_complete_i16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Short
-    fun ffi_swe_kitty_core_rust_future_poll_u32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_conduit_core_rust_future_poll_u32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_cancel_u32(`handle`: Long,
+    fun ffi_conduit_core_rust_future_cancel_u32(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_free_u32(`handle`: Long,
+    fun ffi_conduit_core_rust_future_free_u32(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_complete_u32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rust_future_complete_u32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Int
-    fun ffi_swe_kitty_core_rust_future_poll_i32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_conduit_core_rust_future_poll_i32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_cancel_i32(`handle`: Long,
+    fun ffi_conduit_core_rust_future_cancel_i32(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_free_i32(`handle`: Long,
+    fun ffi_conduit_core_rust_future_free_i32(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_complete_i32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rust_future_complete_i32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Int
-    fun ffi_swe_kitty_core_rust_future_poll_u64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_conduit_core_rust_future_poll_u64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_cancel_u64(`handle`: Long,
+    fun ffi_conduit_core_rust_future_cancel_u64(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_free_u64(`handle`: Long,
+    fun ffi_conduit_core_rust_future_free_u64(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_complete_u64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rust_future_complete_u64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
-    fun ffi_swe_kitty_core_rust_future_poll_i64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_conduit_core_rust_future_poll_i64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_cancel_i64(`handle`: Long,
+    fun ffi_conduit_core_rust_future_cancel_i64(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_free_i64(`handle`: Long,
+    fun ffi_conduit_core_rust_future_free_i64(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_complete_i64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rust_future_complete_i64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
-    fun ffi_swe_kitty_core_rust_future_poll_f32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_conduit_core_rust_future_poll_f32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_cancel_f32(`handle`: Long,
+    fun ffi_conduit_core_rust_future_cancel_f32(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_free_f32(`handle`: Long,
+    fun ffi_conduit_core_rust_future_free_f32(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_complete_f32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rust_future_complete_f32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Float
-    fun ffi_swe_kitty_core_rust_future_poll_f64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_conduit_core_rust_future_poll_f64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_cancel_f64(`handle`: Long,
+    fun ffi_conduit_core_rust_future_cancel_f64(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_free_f64(`handle`: Long,
+    fun ffi_conduit_core_rust_future_free_f64(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_complete_f64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rust_future_complete_f64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Double
-    fun ffi_swe_kitty_core_rust_future_poll_pointer(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_conduit_core_rust_future_poll_pointer(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_cancel_pointer(`handle`: Long,
+    fun ffi_conduit_core_rust_future_cancel_pointer(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_free_pointer(`handle`: Long,
+    fun ffi_conduit_core_rust_future_free_pointer(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_complete_pointer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rust_future_complete_pointer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Pointer
-    fun ffi_swe_kitty_core_rust_future_poll_rust_buffer(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_conduit_core_rust_future_poll_rust_buffer(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_cancel_rust_buffer(`handle`: Long,
+    fun ffi_conduit_core_rust_future_cancel_rust_buffer(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_free_rust_buffer(`handle`: Long,
+    fun ffi_conduit_core_rust_future_free_rust_buffer(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_complete_rust_buffer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rust_future_complete_rust_buffer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun ffi_swe_kitty_core_rust_future_poll_void(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_conduit_core_rust_future_poll_void(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_cancel_void(`handle`: Long,
+    fun ffi_conduit_core_rust_future_cancel_void(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_free_void(`handle`: Long,
+    fun ffi_conduit_core_rust_future_free_void(`handle`: Long,
     ): Unit
-    fun ffi_swe_kitty_core_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_conduit_core_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_swe_kitty_core_checksum_func_ssh_bootstrap(
+    fun uniffi_conduit_core_checksum_func_ssh_bootstrap(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_chat(
+    fun uniffi_conduit_core_checksum_method_conduitclient_agent_login_callback(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_exit(
+    fun uniffi_conduit_core_checksum_method_conduitclient_cancel_agent_login(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_lifecycle(
+    fun uniffi_conduit_core_checksum_method_conduitclient_connect(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_preview(
+    fun uniffi_conduit_core_checksum_method_conduitclient_create_session(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_pty_data(
+    fun uniffi_conduit_core_checksum_method_conduitclient_disconnect(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_snapshot(
+    fun uniffi_conduit_core_checksum_method_conduitclient_exit_session(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_status(
+    fun uniffi_conduit_core_checksum_method_conduitclient_get_session(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_sessionstorecore_contains(
+    fun uniffi_conduit_core_checksum_method_conduitclient_join_session(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_sessionstorecore_conversation(
+    fun uniffi_conduit_core_checksum_method_conduitclient_list_conversation_items(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_sessionstorecore_forget_session(
+    fun uniffi_conduit_core_checksum_method_conduitclient_list_sessions(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_sessionstorecore_get(
+    fun uniffi_conduit_core_checksum_method_conduitclient_notify_network_change(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_sessionstorecore_lifecycle(
+    fun uniffi_conduit_core_checksum_method_conduitclient_refresh_account_usage(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_sessionstorecore_register_session(
+    fun uniffi_conduit_core_checksum_method_conduitclient_resize(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_sessionstorecore_sessions(
+    fun uniffi_conduit_core_checksum_method_conduitclient_send_chat(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_agent_login_callback(
+    fun uniffi_conduit_core_checksum_method_conduitclient_send_file(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_cancel_agent_login(
+    fun uniffi_conduit_core_checksum_method_conduitclient_send_input(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_connect(
+    fun uniffi_conduit_core_checksum_method_conduitclient_set_agent_credentials(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_create_session(
+    fun uniffi_conduit_core_checksum_method_conduitclient_start_agent_login(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_disconnect(
+    fun uniffi_conduit_core_checksum_method_conduitclient_switch_agent(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_exit_session(
+    fun uniffi_conduit_core_checksum_method_sessionstorecore_apply_chat(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_get_session(
+    fun uniffi_conduit_core_checksum_method_sessionstorecore_apply_exit(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_join_session(
+    fun uniffi_conduit_core_checksum_method_sessionstorecore_apply_lifecycle(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_list_conversation_items(
+    fun uniffi_conduit_core_checksum_method_sessionstorecore_apply_preview(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_list_sessions(
+    fun uniffi_conduit_core_checksum_method_sessionstorecore_apply_pty_data(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_notify_network_change(
+    fun uniffi_conduit_core_checksum_method_sessionstorecore_apply_snapshot(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_refresh_account_usage(
+    fun uniffi_conduit_core_checksum_method_sessionstorecore_apply_status(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_resize(
+    fun uniffi_conduit_core_checksum_method_sessionstorecore_contains(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_send_chat(
+    fun uniffi_conduit_core_checksum_method_sessionstorecore_conversation(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_send_file(
+    fun uniffi_conduit_core_checksum_method_sessionstorecore_forget_session(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_send_input(
+    fun uniffi_conduit_core_checksum_method_sessionstorecore_get(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_set_agent_credentials(
+    fun uniffi_conduit_core_checksum_method_sessionstorecore_lifecycle(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_start_agent_login(
+    fun uniffi_conduit_core_checksum_method_sessionstorecore_register_session(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittyclient_switch_agent(
+    fun uniffi_conduit_core_checksum_method_sessionstorecore_sessions(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_constructor_sessionstorecore_new(
+    fun uniffi_conduit_core_checksum_constructor_conduitclient_new(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_constructor_swekittyclient_new(
+    fun uniffi_conduit_core_checksum_constructor_sessionstorecore_new(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_sshhostkeydelegate_accept_host_key(
+    fun uniffi_conduit_core_checksum_method_conduitdelegate_on_pty_data(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_pty_data(
+    fun uniffi_conduit_core_checksum_method_conduitdelegate_on_chat_event(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_chat_event(
+    fun uniffi_conduit_core_checksum_method_conduitdelegate_on_preview_ready(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_preview_ready(
+    fun uniffi_conduit_core_checksum_method_conduitdelegate_on_status(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_status(
+    fun uniffi_conduit_core_checksum_method_conduitdelegate_on_snapshot(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_snapshot(
+    fun uniffi_conduit_core_checksum_method_conduitdelegate_on_exit(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_exit(
+    fun uniffi_conduit_core_checksum_method_conduitdelegate_on_disconnected(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_disconnected(
+    fun uniffi_conduit_core_checksum_method_conduitdelegate_on_connection_health(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_connection_health(
+    fun uniffi_conduit_core_checksum_method_conduitdelegate_on_view_event(
     ): Short
-    fun uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_view_event(
+    fun uniffi_conduit_core_checksum_method_sshhostkeydelegate_accept_host_key(
     ): Short
-    fun ffi_swe_kitty_core_uniffi_contract_version(
+    fun ffi_conduit_core_uniffi_contract_version(
     ): Int
     
 }
@@ -1211,7 +1211,7 @@ private fun uniffiCheckContractApiVersion(lib: UniffiLib) {
     // Get the bindings contract version from our ComponentInterface
     val bindings_contract_version = 26
     // Get the scaffolding contract version by calling the into the dylib
-    val scaffolding_contract_version = lib.ffi_swe_kitty_core_uniffi_contract_version()
+    val scaffolding_contract_version = lib.ffi_conduit_core_uniffi_contract_version()
     if (bindings_contract_version != scaffolding_contract_version) {
         throw RuntimeException("UniFFI contract version mismatch: try cleaning and rebuilding your project")
     }
@@ -1219,142 +1219,142 @@ private fun uniffiCheckContractApiVersion(lib: UniffiLib) {
 
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: UniffiLib) {
-    if (lib.uniffi_swe_kitty_core_checksum_func_ssh_bootstrap() != 48558.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_func_ssh_bootstrap() != 50145.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_chat() != 29883.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_agent_login_callback() != 4395.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_exit() != 9217.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_cancel_agent_login() != 33194.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_lifecycle() != 7472.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_connect() != 37807.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_preview() != 42811.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_create_session() != 40358.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_pty_data() != 7509.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_disconnect() != 13038.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_snapshot() != 4787.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_exit_session() != 30010.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_sessionstorecore_apply_status() != 16189.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_get_session() != 51831.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_sessionstorecore_contains() != 6085.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_join_session() != 62798.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_sessionstorecore_conversation() != 30178.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_list_conversation_items() != 37717.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_sessionstorecore_forget_session() != 1093.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_list_sessions() != 23716.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_sessionstorecore_get() != 10131.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_notify_network_change() != 14476.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_sessionstorecore_lifecycle() != 33662.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_refresh_account_usage() != 21233.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_sessionstorecore_register_session() != 64048.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_resize() != 29584.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_sessionstorecore_sessions() != 42007.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_send_chat() != 26919.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_agent_login_callback() != 23627.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_send_file() != 22550.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_cancel_agent_login() != 59927.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_send_input() != 47735.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_connect() != 53401.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_set_agent_credentials() != 46985.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_create_session() != 59560.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_start_agent_login() != 62905.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_disconnect() != 65142.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitclient_switch_agent() != 60424.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_exit_session() != 22821.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_sessionstorecore_apply_chat() != 34881.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_get_session() != 7402.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_sessionstorecore_apply_exit() != 38220.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_join_session() != 56798.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_sessionstorecore_apply_lifecycle() != 55851.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_list_conversation_items() != 3434.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_sessionstorecore_apply_preview() != 15208.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_list_sessions() != 61787.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_sessionstorecore_apply_pty_data() != 27720.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_notify_network_change() != 11625.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_sessionstorecore_apply_snapshot() != 46253.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_refresh_account_usage() != 16851.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_sessionstorecore_apply_status() != 47131.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_resize() != 62907.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_sessionstorecore_contains() != 23953.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_send_chat() != 16214.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_sessionstorecore_conversation() != 39927.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_send_file() != 19338.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_sessionstorecore_forget_session() != 450.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_send_input() != 63479.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_sessionstorecore_get() != 55581.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_set_agent_credentials() != 60700.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_sessionstorecore_lifecycle() != 7494.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_start_agent_login() != 54101.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_sessionstorecore_register_session() != 14460.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittyclient_switch_agent() != 23090.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_sessionstorecore_sessions() != 26204.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_constructor_sessionstorecore_new() != 14689.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_constructor_conduitclient_new() != 15956.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_constructor_swekittyclient_new() != 52948.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_constructor_sessionstorecore_new() != 50977.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_sshhostkeydelegate_accept_host_key() != 58107.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitdelegate_on_pty_data() != 15867.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_pty_data() != 39005.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitdelegate_on_chat_event() != 33073.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_chat_event() != 63499.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitdelegate_on_preview_ready() != 21900.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_preview_ready() != 5242.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitdelegate_on_status() != 46073.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_status() != 35677.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitdelegate_on_snapshot() != 932.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_snapshot() != 62971.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitdelegate_on_exit() != 61653.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_exit() != 20531.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitdelegate_on_disconnected() != 35914.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_disconnected() != 59151.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitdelegate_on_connection_health() != 26560.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_connection_health() != 43974.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_conduitdelegate_on_view_event() != 49914.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_swe_kitty_core_checksum_method_swekittydelegate_on_view_event() != 27595.toShort()) {
+    if (lib.uniffi_conduit_core_checksum_method_sshhostkeydelegate_accept_host_key() != 16407.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -1820,40 +1820,50 @@ private class JavaLangRefCleanable(
 ) : UniffiCleaner.Cleanable {
     override fun clean() = cleanable.clean()
 }
-public interface SessionStoreCoreInterface {
+public interface ConduitClientInterface {
     
-    fun `applyChat`(`sessionId`: kotlin.String, `event`: ChatEvent): ProjectSessionState?
+    suspend fun `agentLoginCallback`(`sessionToken`: kotlin.String, `queryString`: kotlin.String)
     
-    fun `applyExit`(`sessionId`: kotlin.String, `code`: kotlin.Int): ProjectSessionState?
+    suspend fun `cancelAgentLogin`(`sessionToken`: kotlin.String)
     
-    fun `applyLifecycle`(`sessionId`: kotlin.String, `lifecycle`: SessionLifecycleCore)
+    suspend fun `connect`(`delegate`: ConduitDelegate)
     
-    fun `applyPreview`(`sessionId`: kotlin.String, `preview`: PreviewInfo): ProjectSessionState?
+    suspend fun `createSession`(`assistant`: kotlin.String, `branch`: kotlin.String?, `reasoningEffort`: kotlin.String?, `model`: kotlin.String?, `cwd`: kotlin.String?): kotlin.String
     
-    fun `applyPtyData`(`sessionId`: kotlin.String, `data`: kotlin.ByteArray): ProjectSessionState?
+    fun `disconnect`()
     
-    fun `applySnapshot`(`sessionId`: kotlin.String, `gunzipped`: kotlin.ByteArray): ProjectSessionState?
+    suspend fun `exitSession`(`sessionId`: kotlin.String)
     
-    fun `applyStatus`(`status`: SessionStatus): ProjectSessionState
+    fun `getSession`(`sessionId`: kotlin.String): ProjectSession
     
-    fun `contains`(`sessionId`: kotlin.String): kotlin.Boolean
+    suspend fun `joinSession`(`sessionId`: kotlin.String, `assistant`: kotlin.String?)
     
-    fun `conversation`(`sessionId`: kotlin.String): List<ConversationItem>
+    fun `listConversationItems`(`sessionId`: kotlin.String): List<ConversationItem>
     
-    fun `forgetSession`(`sessionId`: kotlin.String)
+    fun `listSessions`(): List<ProjectSession>
     
-    fun `get`(`sessionId`: kotlin.String): ProjectSessionState?
+    fun `notifyNetworkChange`()
     
-    fun `lifecycle`(`sessionId`: kotlin.String): SessionLifecycleCore?
+    suspend fun `refreshAccountUsage`(`sessionId`: kotlin.String)
     
-    fun `registerSession`(`session`: ProjectSession)
+    suspend fun `resize`(`sessionId`: kotlin.String, `rows`: kotlin.UShort, `cols`: kotlin.UShort)
     
-    fun `sessions`(): List<ProjectSession>
+    suspend fun `sendChat`(`sessionId`: kotlin.String, `msg`: kotlin.String)
+    
+    suspend fun `sendFile`(`sessionId`: kotlin.String, `filename`: kotlin.String, `mime`: kotlin.String, `payload`: kotlin.ByteArray)
+    
+    suspend fun `sendInput`(`sessionId`: kotlin.String, `data`: kotlin.ByteArray)
+    
+    suspend fun `setAgentCredentials`(`provider`: kotlin.String, `credentialJson`: kotlin.String)
+    
+    suspend fun `startAgentLogin`(`provider`: kotlin.String)
+    
+    suspend fun `switchAgent`(`sessionId`: kotlin.String, `assistant`: kotlin.String)
     
     companion object
 }
 
-open class SessionStoreCore: Disposable, AutoCloseable, SessionStoreCoreInterface {
+open class ConduitClient: Disposable, AutoCloseable, ConduitClientInterface {
 
     constructor(pointer: Pointer) {
         this.pointer = pointer
@@ -1870,11 +1880,11 @@ open class SessionStoreCore: Disposable, AutoCloseable, SessionStoreCoreInterfac
         this.pointer = null
         this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
     }
-    constructor() :
+    constructor(`endpoint`: kotlin.String, `bearerToken`: kotlin.String) :
         this(
     uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_constructor_sessionstorecore_new(
-        _status)
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_constructor_conduitclient_new(
+        FfiConverterString.lower(`endpoint`),FfiConverterString.lower(`bearerToken`),_status)
 }
     )
 
@@ -1929,7 +1939,7 @@ open class SessionStoreCore: Disposable, AutoCloseable, SessionStoreCoreInterfac
         override fun run() {
             pointer?.let { ptr ->
                 uniffiRustCall { status ->
-                    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_free_sessionstorecore(ptr, status)
+                    UniffiLib.INSTANCE.uniffi_conduit_core_fn_free_conduitclient(ptr, status)
                 }
             }
         }
@@ -1937,98 +1947,136 @@ open class SessionStoreCore: Disposable, AutoCloseable, SessionStoreCoreInterfac
 
     fun uniffiClonePointer(): Pointer {
         return uniffiRustCall() { status ->
-            UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_clone_sessionstorecore(pointer!!, status)
+            UniffiLib.INSTANCE.uniffi_conduit_core_fn_clone_conduitclient(pointer!!, status)
         }
     }
 
-    override fun `applyChat`(`sessionId`: kotlin.String, `event`: ChatEvent): ProjectSessionState? {
-            return FfiConverterOptionalTypeProjectSessionState.lift(
-    callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_chat(
-        it, FfiConverterString.lower(`sessionId`),FfiConverterTypeChatEvent.lower(`event`),_status)
-}
-    }
+    
+    @Throws(ConduitException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `agentLoginCallback`(`sessionToken`: kotlin.String, `queryString`: kotlin.String) {
+        return uniffiRustCallAsync(
+        callWithPointer { thisPtr ->
+            UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_agent_login_callback(
+                thisPtr,
+                FfiConverterString.lower(`sessionToken`),FfiConverterString.lower(`queryString`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        ConduitException.ErrorHandler,
     )
     }
-    
 
-    override fun `applyExit`(`sessionId`: kotlin.String, `code`: kotlin.Int): ProjectSessionState? {
-            return FfiConverterOptionalTypeProjectSessionState.lift(
-    callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_exit(
-        it, FfiConverterString.lower(`sessionId`),FfiConverterInt.lower(`code`),_status)
-}
-    }
+    
+    @Throws(ConduitException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `cancelAgentLogin`(`sessionToken`: kotlin.String) {
+        return uniffiRustCallAsync(
+        callWithPointer { thisPtr ->
+            UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_cancel_agent_login(
+                thisPtr,
+                FfiConverterString.lower(`sessionToken`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        ConduitException.ErrorHandler,
     )
     }
-    
 
-    override fun `applyLifecycle`(`sessionId`: kotlin.String, `lifecycle`: SessionLifecycleCore)
+    
+    @Throws(ConduitException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `connect`(`delegate`: ConduitDelegate) {
+        return uniffiRustCallAsync(
+        callWithPointer { thisPtr ->
+            UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_connect(
+                thisPtr,
+                FfiConverterTypeConduitDelegate.lower(`delegate`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        ConduitException.ErrorHandler,
+    )
+    }
+
+    
+    @Throws(ConduitException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `createSession`(`assistant`: kotlin.String, `branch`: kotlin.String?, `reasoningEffort`: kotlin.String?, `model`: kotlin.String?, `cwd`: kotlin.String?) : kotlin.String {
+        return uniffiRustCallAsync(
+        callWithPointer { thisPtr ->
+            UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_create_session(
+                thisPtr,
+                FfiConverterString.lower(`assistant`),FfiConverterOptionalString.lower(`branch`),FfiConverterOptionalString.lower(`reasoningEffort`),FfiConverterOptionalString.lower(`model`),FfiConverterOptionalString.lower(`cwd`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterString.lift(it) },
+        // Error FFI converter
+        ConduitException.ErrorHandler,
+    )
+    }
+
+    override fun `disconnect`()
         = 
     callWithPointer {
     uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_lifecycle(
-        it, FfiConverterString.lower(`sessionId`),FfiConverterTypeSessionLifecycleCore.lower(`lifecycle`),_status)
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_disconnect(
+        it, _status)
 }
     }
     
     
 
-    override fun `applyPreview`(`sessionId`: kotlin.String, `preview`: PreviewInfo): ProjectSessionState? {
-            return FfiConverterOptionalTypeProjectSessionState.lift(
-    callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_preview(
-        it, FfiConverterString.lower(`sessionId`),FfiConverterTypePreviewInfo.lower(`preview`),_status)
-}
-    }
+    
+    @Throws(ConduitException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `exitSession`(`sessionId`: kotlin.String) {
+        return uniffiRustCallAsync(
+        callWithPointer { thisPtr ->
+            UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_exit_session(
+                thisPtr,
+                FfiConverterString.lower(`sessionId`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        ConduitException.ErrorHandler,
     )
     }
-    
 
-    override fun `applyPtyData`(`sessionId`: kotlin.String, `data`: kotlin.ByteArray): ProjectSessionState? {
-            return FfiConverterOptionalTypeProjectSessionState.lift(
-    callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_pty_data(
-        it, FfiConverterString.lower(`sessionId`),FfiConverterByteArray.lower(`data`),_status)
-}
-    }
-    )
-    }
     
-
-    override fun `applySnapshot`(`sessionId`: kotlin.String, `gunzipped`: kotlin.ByteArray): ProjectSessionState? {
-            return FfiConverterOptionalTypeProjectSessionState.lift(
+    @Throws(ConduitException::class)override fun `getSession`(`sessionId`: kotlin.String): ProjectSession {
+            return FfiConverterTypeProjectSession.lift(
     callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_snapshot(
-        it, FfiConverterString.lower(`sessionId`),FfiConverterByteArray.lower(`gunzipped`),_status)
-}
-    }
-    )
-    }
-    
-
-    override fun `applyStatus`(`status`: SessionStatus): ProjectSessionState {
-            return FfiConverterTypeProjectSessionState.lift(
-    callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_sessionstorecore_apply_status(
-        it, FfiConverterTypeSessionStatus.lower(`status`),_status)
-}
-    }
-    )
-    }
-    
-
-    override fun `contains`(`sessionId`: kotlin.String): kotlin.Boolean {
-            return FfiConverterBoolean.lift(
-    callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_sessionstorecore_contains(
+    uniffiRustCallWithError(ConduitException) { _status ->
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_get_session(
         it, FfiConverterString.lower(`sessionId`),_status)
 }
     }
@@ -2036,11 +2084,34 @@ open class SessionStoreCore: Disposable, AutoCloseable, SessionStoreCoreInterfac
     }
     
 
-    override fun `conversation`(`sessionId`: kotlin.String): List<ConversationItem> {
+    
+    @Throws(ConduitException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `joinSession`(`sessionId`: kotlin.String, `assistant`: kotlin.String?) {
+        return uniffiRustCallAsync(
+        callWithPointer { thisPtr ->
+            UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_join_session(
+                thisPtr,
+                FfiConverterString.lower(`sessionId`),FfiConverterOptionalString.lower(`assistant`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        ConduitException.ErrorHandler,
+    )
+    }
+
+    
+    @Throws(ConduitException::class)override fun `listConversationItems`(`sessionId`: kotlin.String): List<ConversationItem> {
             return FfiConverterSequenceTypeConversationItem.lift(
     callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_sessionstorecore_conversation(
+    uniffiRustCallWithError(ConduitException) { _status ->
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_list_conversation_items(
         it, FfiConverterString.lower(`sessionId`),_status)
 }
     }
@@ -2048,63 +2119,204 @@ open class SessionStoreCore: Disposable, AutoCloseable, SessionStoreCoreInterfac
     }
     
 
-    override fun `forgetSession`(`sessionId`: kotlin.String)
-        = 
-    callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_sessionstorecore_forget_session(
-        it, FfiConverterString.lower(`sessionId`),_status)
-}
-    }
-    
-    
-
-    override fun `get`(`sessionId`: kotlin.String): ProjectSessionState? {
-            return FfiConverterOptionalTypeProjectSessionState.lift(
-    callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_sessionstorecore_get(
-        it, FfiConverterString.lower(`sessionId`),_status)
-}
-    }
-    )
-    }
-    
-
-    override fun `lifecycle`(`sessionId`: kotlin.String): SessionLifecycleCore? {
-            return FfiConverterOptionalTypeSessionLifecycleCore.lift(
-    callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_sessionstorecore_lifecycle(
-        it, FfiConverterString.lower(`sessionId`),_status)
-}
-    }
-    )
-    }
-    
-
-    override fun `registerSession`(`session`: ProjectSession)
-        = 
-    callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_sessionstorecore_register_session(
-        it, FfiConverterTypeProjectSession.lower(`session`),_status)
-}
-    }
-    
-    
-
-    override fun `sessions`(): List<ProjectSession> {
+    override fun `listSessions`(): List<ProjectSession> {
             return FfiConverterSequenceTypeProjectSession.lift(
     callWithPointer {
     uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_sessionstorecore_sessions(
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_list_sessions(
         it, _status)
 }
     }
     )
     }
     
+
+    override fun `notifyNetworkChange`()
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_notify_network_change(
+        it, _status)
+}
+    }
+    
+    
+
+    
+    @Throws(ConduitException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `refreshAccountUsage`(`sessionId`: kotlin.String) {
+        return uniffiRustCallAsync(
+        callWithPointer { thisPtr ->
+            UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_refresh_account_usage(
+                thisPtr,
+                FfiConverterString.lower(`sessionId`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        ConduitException.ErrorHandler,
+    )
+    }
+
+    
+    @Throws(ConduitException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `resize`(`sessionId`: kotlin.String, `rows`: kotlin.UShort, `cols`: kotlin.UShort) {
+        return uniffiRustCallAsync(
+        callWithPointer { thisPtr ->
+            UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_resize(
+                thisPtr,
+                FfiConverterString.lower(`sessionId`),FfiConverterUShort.lower(`rows`),FfiConverterUShort.lower(`cols`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        ConduitException.ErrorHandler,
+    )
+    }
+
+    
+    @Throws(ConduitException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `sendChat`(`sessionId`: kotlin.String, `msg`: kotlin.String) {
+        return uniffiRustCallAsync(
+        callWithPointer { thisPtr ->
+            UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_send_chat(
+                thisPtr,
+                FfiConverterString.lower(`sessionId`),FfiConverterString.lower(`msg`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        ConduitException.ErrorHandler,
+    )
+    }
+
+    
+    @Throws(ConduitException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `sendFile`(`sessionId`: kotlin.String, `filename`: kotlin.String, `mime`: kotlin.String, `payload`: kotlin.ByteArray) {
+        return uniffiRustCallAsync(
+        callWithPointer { thisPtr ->
+            UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_send_file(
+                thisPtr,
+                FfiConverterString.lower(`sessionId`),FfiConverterString.lower(`filename`),FfiConverterString.lower(`mime`),FfiConverterByteArray.lower(`payload`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        ConduitException.ErrorHandler,
+    )
+    }
+
+    
+    @Throws(ConduitException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `sendInput`(`sessionId`: kotlin.String, `data`: kotlin.ByteArray) {
+        return uniffiRustCallAsync(
+        callWithPointer { thisPtr ->
+            UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_send_input(
+                thisPtr,
+                FfiConverterString.lower(`sessionId`),FfiConverterByteArray.lower(`data`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        ConduitException.ErrorHandler,
+    )
+    }
+
+    
+    @Throws(ConduitException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `setAgentCredentials`(`provider`: kotlin.String, `credentialJson`: kotlin.String) {
+        return uniffiRustCallAsync(
+        callWithPointer { thisPtr ->
+            UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_set_agent_credentials(
+                thisPtr,
+                FfiConverterString.lower(`provider`),FfiConverterString.lower(`credentialJson`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        ConduitException.ErrorHandler,
+    )
+    }
+
+    
+    @Throws(ConduitException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `startAgentLogin`(`provider`: kotlin.String) {
+        return uniffiRustCallAsync(
+        callWithPointer { thisPtr ->
+            UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_start_agent_login(
+                thisPtr,
+                FfiConverterString.lower(`provider`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        ConduitException.ErrorHandler,
+    )
+    }
+
+    
+    @Throws(ConduitException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `switchAgent`(`sessionId`: kotlin.String, `assistant`: kotlin.String) {
+        return uniffiRustCallAsync(
+        callWithPointer { thisPtr ->
+            UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_conduitclient_switch_agent(
+                thisPtr,
+                FfiConverterString.lower(`sessionId`),FfiConverterString.lower(`assistant`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        ConduitException.ErrorHandler,
+    )
+    }
 
     
 
@@ -2117,25 +2329,25 @@ open class SessionStoreCore: Disposable, AutoCloseable, SessionStoreCoreInterfac
 /**
  * @suppress
  */
-public object FfiConverterTypeSessionStoreCore: FfiConverter<SessionStoreCore, Pointer> {
+public object FfiConverterTypeConduitClient: FfiConverter<ConduitClient, Pointer> {
 
-    override fun lower(value: SessionStoreCore): Pointer {
+    override fun lower(value: ConduitClient): Pointer {
         return value.uniffiClonePointer()
     }
 
-    override fun lift(value: Pointer): SessionStoreCore {
-        return SessionStoreCore(value)
+    override fun lift(value: Pointer): ConduitClient {
+        return ConduitClient(value)
     }
 
-    override fun read(buf: ByteBuffer): SessionStoreCore {
+    override fun read(buf: ByteBuffer): ConduitClient {
         // The Rust code always writes pointers as 8 bytes, and will
         // fail to compile if they don't fit.
         return lift(Pointer(buf.getLong()))
     }
 
-    override fun allocationSize(value: SessionStoreCore) = 8UL
+    override fun allocationSize(value: ConduitClient) = 8UL
 
-    override fun write(value: SessionStoreCore, buf: ByteBuffer) {
+    override fun write(value: ConduitClient, buf: ByteBuffer) {
         // The Rust code always expects pointers written as 8 bytes,
         // and will fail to compile if they don't fit.
         buf.putLong(Pointer.nativeValue(lower(value)))
@@ -2241,50 +2453,40 @@ public object FfiConverterTypeSessionStoreCore: FfiConverter<SessionStoreCore, P
 //
 
 
-public interface SweKittyClientInterface {
+public interface SessionStoreCoreInterface {
     
-    suspend fun `agentLoginCallback`(`sessionToken`: kotlin.String, `queryString`: kotlin.String)
+    fun `applyChat`(`sessionId`: kotlin.String, `event`: ChatEvent): ProjectSessionState?
     
-    suspend fun `cancelAgentLogin`(`sessionToken`: kotlin.String)
+    fun `applyExit`(`sessionId`: kotlin.String, `code`: kotlin.Int): ProjectSessionState?
     
-    suspend fun `connect`(`delegate`: SweKittyDelegate)
+    fun `applyLifecycle`(`sessionId`: kotlin.String, `lifecycle`: SessionLifecycleCore)
     
-    suspend fun `createSession`(`assistant`: kotlin.String, `branch`: kotlin.String?, `reasoningEffort`: kotlin.String?, `model`: kotlin.String?, `cwd`: kotlin.String?): kotlin.String
+    fun `applyPreview`(`sessionId`: kotlin.String, `preview`: PreviewInfo): ProjectSessionState?
     
-    fun `disconnect`()
+    fun `applyPtyData`(`sessionId`: kotlin.String, `data`: kotlin.ByteArray): ProjectSessionState?
     
-    suspend fun `exitSession`(`sessionId`: kotlin.String)
+    fun `applySnapshot`(`sessionId`: kotlin.String, `gunzipped`: kotlin.ByteArray): ProjectSessionState?
     
-    fun `getSession`(`sessionId`: kotlin.String): ProjectSession
+    fun `applyStatus`(`status`: SessionStatus): ProjectSessionState
     
-    suspend fun `joinSession`(`sessionId`: kotlin.String, `assistant`: kotlin.String?)
+    fun `contains`(`sessionId`: kotlin.String): kotlin.Boolean
     
-    fun `listConversationItems`(`sessionId`: kotlin.String): List<ConversationItem>
+    fun `conversation`(`sessionId`: kotlin.String): List<ConversationItem>
     
-    fun `listSessions`(): List<ProjectSession>
+    fun `forgetSession`(`sessionId`: kotlin.String)
     
-    fun `notifyNetworkChange`()
+    fun `get`(`sessionId`: kotlin.String): ProjectSessionState?
     
-    suspend fun `refreshAccountUsage`(`sessionId`: kotlin.String)
+    fun `lifecycle`(`sessionId`: kotlin.String): SessionLifecycleCore?
     
-    suspend fun `resize`(`sessionId`: kotlin.String, `rows`: kotlin.UShort, `cols`: kotlin.UShort)
+    fun `registerSession`(`session`: ProjectSession)
     
-    suspend fun `sendChat`(`sessionId`: kotlin.String, `msg`: kotlin.String)
-    
-    suspend fun `sendFile`(`sessionId`: kotlin.String, `filename`: kotlin.String, `mime`: kotlin.String, `payload`: kotlin.ByteArray)
-    
-    suspend fun `sendInput`(`sessionId`: kotlin.String, `data`: kotlin.ByteArray)
-    
-    suspend fun `setAgentCredentials`(`provider`: kotlin.String, `credentialJson`: kotlin.String)
-    
-    suspend fun `startAgentLogin`(`provider`: kotlin.String)
-    
-    suspend fun `switchAgent`(`sessionId`: kotlin.String, `assistant`: kotlin.String)
+    fun `sessions`(): List<ProjectSession>
     
     companion object
 }
 
-open class SweKittyClient: Disposable, AutoCloseable, SweKittyClientInterface {
+open class SessionStoreCore: Disposable, AutoCloseable, SessionStoreCoreInterface {
 
     constructor(pointer: Pointer) {
         this.pointer = pointer
@@ -2301,11 +2503,11 @@ open class SweKittyClient: Disposable, AutoCloseable, SweKittyClientInterface {
         this.pointer = null
         this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
     }
-    constructor(`endpoint`: kotlin.String, `bearerToken`: kotlin.String) :
+    constructor() :
         this(
     uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_constructor_swekittyclient_new(
-        FfiConverterString.lower(`endpoint`),FfiConverterString.lower(`bearerToken`),_status)
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_constructor_sessionstorecore_new(
+        _status)
 }
     )
 
@@ -2360,7 +2562,7 @@ open class SweKittyClient: Disposable, AutoCloseable, SweKittyClientInterface {
         override fun run() {
             pointer?.let { ptr ->
                 uniffiRustCall { status ->
-                    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_free_swekittyclient(ptr, status)
+                    UniffiLib.INSTANCE.uniffi_conduit_core_fn_free_sessionstorecore(ptr, status)
                 }
             }
         }
@@ -2368,136 +2570,98 @@ open class SweKittyClient: Disposable, AutoCloseable, SweKittyClientInterface {
 
     fun uniffiClonePointer(): Pointer {
         return uniffiRustCall() { status ->
-            UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_clone_swekittyclient(pointer!!, status)
+            UniffiLib.INSTANCE.uniffi_conduit_core_fn_clone_sessionstorecore(pointer!!, status)
         }
     }
 
-    
-    @Throws(SweKittyException::class)
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-    override suspend fun `agentLoginCallback`(`sessionToken`: kotlin.String, `queryString`: kotlin.String) {
-        return uniffiRustCallAsync(
-        callWithPointer { thisPtr ->
-            UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_agent_login_callback(
-                thisPtr,
-                FfiConverterString.lower(`sessionToken`),FfiConverterString.lower(`queryString`),
-            )
-        },
-        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_poll_void(future, callback, continuation) },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_complete_void(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_free_void(future) },
-        // lift function
-        { Unit },
-        
-        // Error FFI converter
-        SweKittyException.ErrorHandler,
+    override fun `applyChat`(`sessionId`: kotlin.String, `event`: ChatEvent): ProjectSessionState? {
+            return FfiConverterOptionalTypeProjectSessionState.lift(
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_sessionstorecore_apply_chat(
+        it, FfiConverterString.lower(`sessionId`),FfiConverterTypeChatEvent.lower(`event`),_status)
+}
+    }
     )
     }
-
     
-    @Throws(SweKittyException::class)
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-    override suspend fun `cancelAgentLogin`(`sessionToken`: kotlin.String) {
-        return uniffiRustCallAsync(
-        callWithPointer { thisPtr ->
-            UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_cancel_agent_login(
-                thisPtr,
-                FfiConverterString.lower(`sessionToken`),
-            )
-        },
-        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_poll_void(future, callback, continuation) },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_complete_void(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_free_void(future) },
-        // lift function
-        { Unit },
-        
-        // Error FFI converter
-        SweKittyException.ErrorHandler,
+
+    override fun `applyExit`(`sessionId`: kotlin.String, `code`: kotlin.Int): ProjectSessionState? {
+            return FfiConverterOptionalTypeProjectSessionState.lift(
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_sessionstorecore_apply_exit(
+        it, FfiConverterString.lower(`sessionId`),FfiConverterInt.lower(`code`),_status)
+}
+    }
     )
     }
-
     
-    @Throws(SweKittyException::class)
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-    override suspend fun `connect`(`delegate`: SweKittyDelegate) {
-        return uniffiRustCallAsync(
-        callWithPointer { thisPtr ->
-            UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_connect(
-                thisPtr,
-                FfiConverterTypeSweKittyDelegate.lower(`delegate`),
-            )
-        },
-        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_poll_void(future, callback, continuation) },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_complete_void(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_free_void(future) },
-        // lift function
-        { Unit },
-        
-        // Error FFI converter
-        SweKittyException.ErrorHandler,
-    )
-    }
 
-    
-    @Throws(SweKittyException::class)
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-    override suspend fun `createSession`(`assistant`: kotlin.String, `branch`: kotlin.String?, `reasoningEffort`: kotlin.String?, `model`: kotlin.String?, `cwd`: kotlin.String?) : kotlin.String {
-        return uniffiRustCallAsync(
-        callWithPointer { thisPtr ->
-            UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_create_session(
-                thisPtr,
-                FfiConverterString.lower(`assistant`),FfiConverterOptionalString.lower(`branch`),FfiConverterOptionalString.lower(`reasoningEffort`),FfiConverterOptionalString.lower(`model`),FfiConverterOptionalString.lower(`cwd`),
-            )
-        },
-        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_poll_rust_buffer(future, callback, continuation) },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_complete_rust_buffer(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_free_rust_buffer(future) },
-        // lift function
-        { FfiConverterString.lift(it) },
-        // Error FFI converter
-        SweKittyException.ErrorHandler,
-    )
-    }
-
-    override fun `disconnect`()
+    override fun `applyLifecycle`(`sessionId`: kotlin.String, `lifecycle`: SessionLifecycleCore)
         = 
     callWithPointer {
     uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_disconnect(
-        it, _status)
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_sessionstorecore_apply_lifecycle(
+        it, FfiConverterString.lower(`sessionId`),FfiConverterTypeSessionLifecycleCore.lower(`lifecycle`),_status)
 }
     }
     
     
 
-    
-    @Throws(SweKittyException::class)
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-    override suspend fun `exitSession`(`sessionId`: kotlin.String) {
-        return uniffiRustCallAsync(
-        callWithPointer { thisPtr ->
-            UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_exit_session(
-                thisPtr,
-                FfiConverterString.lower(`sessionId`),
-            )
-        },
-        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_poll_void(future, callback, continuation) },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_complete_void(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_free_void(future) },
-        // lift function
-        { Unit },
-        
-        // Error FFI converter
-        SweKittyException.ErrorHandler,
+    override fun `applyPreview`(`sessionId`: kotlin.String, `preview`: PreviewInfo): ProjectSessionState? {
+            return FfiConverterOptionalTypeProjectSessionState.lift(
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_sessionstorecore_apply_preview(
+        it, FfiConverterString.lower(`sessionId`),FfiConverterTypePreviewInfo.lower(`preview`),_status)
+}
+    }
     )
     }
-
     
-    @Throws(SweKittyException::class)override fun `getSession`(`sessionId`: kotlin.String): ProjectSession {
-            return FfiConverterTypeProjectSession.lift(
+
+    override fun `applyPtyData`(`sessionId`: kotlin.String, `data`: kotlin.ByteArray): ProjectSessionState? {
+            return FfiConverterOptionalTypeProjectSessionState.lift(
     callWithPointer {
-    uniffiRustCallWithError(SweKittyException) { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_get_session(
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_sessionstorecore_apply_pty_data(
+        it, FfiConverterString.lower(`sessionId`),FfiConverterByteArray.lower(`data`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `applySnapshot`(`sessionId`: kotlin.String, `gunzipped`: kotlin.ByteArray): ProjectSessionState? {
+            return FfiConverterOptionalTypeProjectSessionState.lift(
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_sessionstorecore_apply_snapshot(
+        it, FfiConverterString.lower(`sessionId`),FfiConverterByteArray.lower(`gunzipped`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `applyStatus`(`status`: SessionStatus): ProjectSessionState {
+            return FfiConverterTypeProjectSessionState.lift(
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_sessionstorecore_apply_status(
+        it, FfiConverterTypeSessionStatus.lower(`status`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `contains`(`sessionId`: kotlin.String): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_sessionstorecore_contains(
         it, FfiConverterString.lower(`sessionId`),_status)
 }
     }
@@ -2505,34 +2669,11 @@ open class SweKittyClient: Disposable, AutoCloseable, SweKittyClientInterface {
     }
     
 
-    
-    @Throws(SweKittyException::class)
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-    override suspend fun `joinSession`(`sessionId`: kotlin.String, `assistant`: kotlin.String?) {
-        return uniffiRustCallAsync(
-        callWithPointer { thisPtr ->
-            UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_join_session(
-                thisPtr,
-                FfiConverterString.lower(`sessionId`),FfiConverterOptionalString.lower(`assistant`),
-            )
-        },
-        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_poll_void(future, callback, continuation) },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_complete_void(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_free_void(future) },
-        // lift function
-        { Unit },
-        
-        // Error FFI converter
-        SweKittyException.ErrorHandler,
-    )
-    }
-
-    
-    @Throws(SweKittyException::class)override fun `listConversationItems`(`sessionId`: kotlin.String): List<ConversationItem> {
+    override fun `conversation`(`sessionId`: kotlin.String): List<ConversationItem> {
             return FfiConverterSequenceTypeConversationItem.lift(
     callWithPointer {
-    uniffiRustCallWithError(SweKittyException) { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_list_conversation_items(
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_sessionstorecore_conversation(
         it, FfiConverterString.lower(`sessionId`),_status)
 }
     }
@@ -2540,204 +2681,63 @@ open class SweKittyClient: Disposable, AutoCloseable, SweKittyClientInterface {
     }
     
 
-    override fun `listSessions`(): List<ProjectSession> {
+    override fun `forgetSession`(`sessionId`: kotlin.String)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_sessionstorecore_forget_session(
+        it, FfiConverterString.lower(`sessionId`),_status)
+}
+    }
+    
+    
+
+    override fun `get`(`sessionId`: kotlin.String): ProjectSessionState? {
+            return FfiConverterOptionalTypeProjectSessionState.lift(
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_sessionstorecore_get(
+        it, FfiConverterString.lower(`sessionId`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `lifecycle`(`sessionId`: kotlin.String): SessionLifecycleCore? {
+            return FfiConverterOptionalTypeSessionLifecycleCore.lift(
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_sessionstorecore_lifecycle(
+        it, FfiConverterString.lower(`sessionId`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `registerSession`(`session`: ProjectSession)
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_sessionstorecore_register_session(
+        it, FfiConverterTypeProjectSession.lower(`session`),_status)
+}
+    }
+    
+    
+
+    override fun `sessions`(): List<ProjectSession> {
             return FfiConverterSequenceTypeProjectSession.lift(
     callWithPointer {
     uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_list_sessions(
+    UniffiLib.INSTANCE.uniffi_conduit_core_fn_method_sessionstorecore_sessions(
         it, _status)
 }
     }
     )
     }
     
-
-    override fun `notifyNetworkChange`()
-        = 
-    callWithPointer {
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_notify_network_change(
-        it, _status)
-}
-    }
-    
-    
-
-    
-    @Throws(SweKittyException::class)
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-    override suspend fun `refreshAccountUsage`(`sessionId`: kotlin.String) {
-        return uniffiRustCallAsync(
-        callWithPointer { thisPtr ->
-            UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_refresh_account_usage(
-                thisPtr,
-                FfiConverterString.lower(`sessionId`),
-            )
-        },
-        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_poll_void(future, callback, continuation) },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_complete_void(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_free_void(future) },
-        // lift function
-        { Unit },
-        
-        // Error FFI converter
-        SweKittyException.ErrorHandler,
-    )
-    }
-
-    
-    @Throws(SweKittyException::class)
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-    override suspend fun `resize`(`sessionId`: kotlin.String, `rows`: kotlin.UShort, `cols`: kotlin.UShort) {
-        return uniffiRustCallAsync(
-        callWithPointer { thisPtr ->
-            UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_resize(
-                thisPtr,
-                FfiConverterString.lower(`sessionId`),FfiConverterUShort.lower(`rows`),FfiConverterUShort.lower(`cols`),
-            )
-        },
-        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_poll_void(future, callback, continuation) },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_complete_void(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_free_void(future) },
-        // lift function
-        { Unit },
-        
-        // Error FFI converter
-        SweKittyException.ErrorHandler,
-    )
-    }
-
-    
-    @Throws(SweKittyException::class)
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-    override suspend fun `sendChat`(`sessionId`: kotlin.String, `msg`: kotlin.String) {
-        return uniffiRustCallAsync(
-        callWithPointer { thisPtr ->
-            UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_send_chat(
-                thisPtr,
-                FfiConverterString.lower(`sessionId`),FfiConverterString.lower(`msg`),
-            )
-        },
-        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_poll_void(future, callback, continuation) },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_complete_void(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_free_void(future) },
-        // lift function
-        { Unit },
-        
-        // Error FFI converter
-        SweKittyException.ErrorHandler,
-    )
-    }
-
-    
-    @Throws(SweKittyException::class)
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-    override suspend fun `sendFile`(`sessionId`: kotlin.String, `filename`: kotlin.String, `mime`: kotlin.String, `payload`: kotlin.ByteArray) {
-        return uniffiRustCallAsync(
-        callWithPointer { thisPtr ->
-            UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_send_file(
-                thisPtr,
-                FfiConverterString.lower(`sessionId`),FfiConverterString.lower(`filename`),FfiConverterString.lower(`mime`),FfiConverterByteArray.lower(`payload`),
-            )
-        },
-        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_poll_void(future, callback, continuation) },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_complete_void(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_free_void(future) },
-        // lift function
-        { Unit },
-        
-        // Error FFI converter
-        SweKittyException.ErrorHandler,
-    )
-    }
-
-    
-    @Throws(SweKittyException::class)
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-    override suspend fun `sendInput`(`sessionId`: kotlin.String, `data`: kotlin.ByteArray) {
-        return uniffiRustCallAsync(
-        callWithPointer { thisPtr ->
-            UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_send_input(
-                thisPtr,
-                FfiConverterString.lower(`sessionId`),FfiConverterByteArray.lower(`data`),
-            )
-        },
-        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_poll_void(future, callback, continuation) },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_complete_void(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_free_void(future) },
-        // lift function
-        { Unit },
-        
-        // Error FFI converter
-        SweKittyException.ErrorHandler,
-    )
-    }
-
-    
-    @Throws(SweKittyException::class)
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-    override suspend fun `setAgentCredentials`(`provider`: kotlin.String, `credentialJson`: kotlin.String) {
-        return uniffiRustCallAsync(
-        callWithPointer { thisPtr ->
-            UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_set_agent_credentials(
-                thisPtr,
-                FfiConverterString.lower(`provider`),FfiConverterString.lower(`credentialJson`),
-            )
-        },
-        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_poll_void(future, callback, continuation) },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_complete_void(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_free_void(future) },
-        // lift function
-        { Unit },
-        
-        // Error FFI converter
-        SweKittyException.ErrorHandler,
-    )
-    }
-
-    
-    @Throws(SweKittyException::class)
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-    override suspend fun `startAgentLogin`(`provider`: kotlin.String) {
-        return uniffiRustCallAsync(
-        callWithPointer { thisPtr ->
-            UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_start_agent_login(
-                thisPtr,
-                FfiConverterString.lower(`provider`),
-            )
-        },
-        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_poll_void(future, callback, continuation) },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_complete_void(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_free_void(future) },
-        // lift function
-        { Unit },
-        
-        // Error FFI converter
-        SweKittyException.ErrorHandler,
-    )
-    }
-
-    
-    @Throws(SweKittyException::class)
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-    override suspend fun `switchAgent`(`sessionId`: kotlin.String, `assistant`: kotlin.String) {
-        return uniffiRustCallAsync(
-        callWithPointer { thisPtr ->
-            UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_method_swekittyclient_switch_agent(
-                thisPtr,
-                FfiConverterString.lower(`sessionId`),FfiConverterString.lower(`assistant`),
-            )
-        },
-        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_poll_void(future, callback, continuation) },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_complete_void(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_free_void(future) },
-        // lift function
-        { Unit },
-        
-        // Error FFI converter
-        SweKittyException.ErrorHandler,
-    )
-    }
 
     
 
@@ -2750,25 +2750,25 @@ open class SweKittyClient: Disposable, AutoCloseable, SweKittyClientInterface {
 /**
  * @suppress
  */
-public object FfiConverterTypeSweKittyClient: FfiConverter<SweKittyClient, Pointer> {
+public object FfiConverterTypeSessionStoreCore: FfiConverter<SessionStoreCore, Pointer> {
 
-    override fun lower(value: SweKittyClient): Pointer {
+    override fun lower(value: SessionStoreCore): Pointer {
         return value.uniffiClonePointer()
     }
 
-    override fun lift(value: Pointer): SweKittyClient {
-        return SweKittyClient(value)
+    override fun lift(value: Pointer): SessionStoreCore {
+        return SessionStoreCore(value)
     }
 
-    override fun read(buf: ByteBuffer): SweKittyClient {
+    override fun read(buf: ByteBuffer): SessionStoreCore {
         // The Rust code always writes pointers as 8 bytes, and will
         // fail to compile if they don't fit.
         return lift(Pointer(buf.getLong()))
     }
 
-    override fun allocationSize(value: SweKittyClient) = 8UL
+    override fun allocationSize(value: SessionStoreCore) = 8UL
 
-    override fun write(value: SweKittyClient, buf: ByteBuffer) {
+    override fun write(value: SessionStoreCore, buf: ByteBuffer) {
         // The Rust code always expects pointers written as 8 bytes,
         // and will fail to compile if they don't fit.
         buf.putLong(Pointer.nativeValue(lower(value)))
@@ -3513,6 +3513,83 @@ public object FfiConverterTypeViewEventFile: FfiConverterRustBuffer<ViewEventFil
 
 
 
+
+
+sealed class ConduitException(message: String): kotlin.Exception(message) {
+        
+        class Connection(message: String) : ConduitException(message)
+        
+        class Auth(message: String) : ConduitException(message)
+        
+        class Protocol(message: String) : ConduitException(message)
+        
+        class Json(message: String) : ConduitException(message)
+        
+        class NotConnected(message: String) : ConduitException(message)
+        
+        class UnknownSession(message: String) : ConduitException(message)
+        
+
+    companion object ErrorHandler : UniffiRustCallStatusErrorHandler<ConduitException> {
+        override fun lift(error_buf: RustBuffer.ByValue): ConduitException = FfiConverterTypeConduitError.lift(error_buf)
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeConduitError : FfiConverterRustBuffer<ConduitException> {
+    override fun read(buf: ByteBuffer): ConduitException {
+        
+            return when(buf.getInt()) {
+            1 -> ConduitException.Connection(FfiConverterString.read(buf))
+            2 -> ConduitException.Auth(FfiConverterString.read(buf))
+            3 -> ConduitException.Protocol(FfiConverterString.read(buf))
+            4 -> ConduitException.Json(FfiConverterString.read(buf))
+            5 -> ConduitException.NotConnected(FfiConverterString.read(buf))
+            6 -> ConduitException.UnknownSession(FfiConverterString.read(buf))
+            else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
+        }
+        
+    }
+
+    override fun allocationSize(value: ConduitException): ULong {
+        return 4UL
+    }
+
+    override fun write(value: ConduitException, buf: ByteBuffer) {
+        when(value) {
+            is ConduitException.Connection -> {
+                buf.putInt(1)
+                Unit
+            }
+            is ConduitException.Auth -> {
+                buf.putInt(2)
+                Unit
+            }
+            is ConduitException.Protocol -> {
+                buf.putInt(3)
+                Unit
+            }
+            is ConduitException.Json -> {
+                buf.putInt(4)
+                Unit
+            }
+            is ConduitException.NotConnected -> {
+                buf.putInt(5)
+                Unit
+            }
+            is ConduitException.UnknownSession -> {
+                buf.putInt(6)
+                Unit
+            }
+        }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
+    }
+
+}
+
+
+
 sealed class ConnectionHealth {
     
     object Connected : ConnectionHealth()
@@ -3898,86 +3975,25 @@ public object FfiConverterTypeSshError : FfiConverterRustBuffer<SshException> {
 
 
 
-sealed class SweKittyException(message: String): kotlin.Exception(message) {
-        
-        class Connection(message: String) : SweKittyException(message)
-        
-        class Auth(message: String) : SweKittyException(message)
-        
-        class Protocol(message: String) : SweKittyException(message)
-        
-        class Json(message: String) : SweKittyException(message)
-        
-        class NotConnected(message: String) : SweKittyException(message)
-        
-        class UnknownSession(message: String) : SweKittyException(message)
-        
-
-    companion object ErrorHandler : UniffiRustCallStatusErrorHandler<SweKittyException> {
-        override fun lift(error_buf: RustBuffer.ByValue): SweKittyException = FfiConverterTypeSweKittyError.lift(error_buf)
-    }
-}
-
-/**
- * @suppress
- */
-public object FfiConverterTypeSweKittyError : FfiConverterRustBuffer<SweKittyException> {
-    override fun read(buf: ByteBuffer): SweKittyException {
-        
-            return when(buf.getInt()) {
-            1 -> SweKittyException.Connection(FfiConverterString.read(buf))
-            2 -> SweKittyException.Auth(FfiConverterString.read(buf))
-            3 -> SweKittyException.Protocol(FfiConverterString.read(buf))
-            4 -> SweKittyException.Json(FfiConverterString.read(buf))
-            5 -> SweKittyException.NotConnected(FfiConverterString.read(buf))
-            6 -> SweKittyException.UnknownSession(FfiConverterString.read(buf))
-            else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
-        }
-        
-    }
-
-    override fun allocationSize(value: SweKittyException): ULong {
-        return 4UL
-    }
-
-    override fun write(value: SweKittyException, buf: ByteBuffer) {
-        when(value) {
-            is SweKittyException.Connection -> {
-                buf.putInt(1)
-                Unit
-            }
-            is SweKittyException.Auth -> {
-                buf.putInt(2)
-                Unit
-            }
-            is SweKittyException.Protocol -> {
-                buf.putInt(3)
-                Unit
-            }
-            is SweKittyException.Json -> {
-                buf.putInt(4)
-                Unit
-            }
-            is SweKittyException.NotConnected -> {
-                buf.putInt(5)
-                Unit
-            }
-            is SweKittyException.UnknownSession -> {
-                buf.putInt(6)
-                Unit
-            }
-        }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
-    }
-
-}
-
-
-
-
-
-public interface SshHostKeyDelegate {
+public interface ConduitDelegate {
     
-    fun `acceptHostKey`(`fingerprint`: kotlin.String): kotlin.Boolean
+    fun `onPtyData`(`sessionId`: kotlin.String, `data`: kotlin.ByteArray)
+    
+    fun `onChatEvent`(`sessionId`: kotlin.String, `event`: ChatEvent)
+    
+    fun `onPreviewReady`(`sessionId`: kotlin.String, `preview`: PreviewInfo)
+    
+    fun `onStatus`(`status`: SessionStatus)
+    
+    fun `onSnapshot`(`sessionId`: kotlin.String, `gunzipped`: kotlin.ByteArray)
+    
+    fun `onExit`(`sessionId`: kotlin.String, `code`: kotlin.Int)
+    
+    fun `onDisconnected`(`reason`: kotlin.String)
+    
+    fun `onConnectionHealth`(`sessionId`: kotlin.String, `health`: ConnectionHealth)
+    
+    fun `onViewEvent`(`sessionId`: kotlin.String, `kind`: kotlin.String, `payload`: Map<kotlin.String, kotlin.String>)
     
     companion object
 }
@@ -4016,6 +4032,171 @@ public abstract class FfiConverterCallbackInterface<CallbackInterface: Any>: Ffi
 }
 
 // Put the implementation in an object so we don't pollute the top-level namespace
+internal object uniffiCallbackInterfaceConduitDelegate {
+    internal object `onPtyData`: UniffiCallbackInterfaceConduitDelegateMethod0 {
+        override fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`data`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeConduitDelegate.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`onPtyData`(
+                    FfiConverterString.lift(`sessionId`),
+                    FfiConverterByteArray.lift(`data`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `onChatEvent`: UniffiCallbackInterfaceConduitDelegateMethod1 {
+        override fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`event`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeConduitDelegate.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`onChatEvent`(
+                    FfiConverterString.lift(`sessionId`),
+                    FfiConverterTypeChatEvent.lift(`event`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `onPreviewReady`: UniffiCallbackInterfaceConduitDelegateMethod2 {
+        override fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`preview`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeConduitDelegate.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`onPreviewReady`(
+                    FfiConverterString.lift(`sessionId`),
+                    FfiConverterTypePreviewInfo.lift(`preview`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `onStatus`: UniffiCallbackInterfaceConduitDelegateMethod3 {
+        override fun callback(`uniffiHandle`: Long,`status`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeConduitDelegate.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`onStatus`(
+                    FfiConverterTypeSessionStatus.lift(`status`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `onSnapshot`: UniffiCallbackInterfaceConduitDelegateMethod4 {
+        override fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`gunzipped`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeConduitDelegate.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`onSnapshot`(
+                    FfiConverterString.lift(`sessionId`),
+                    FfiConverterByteArray.lift(`gunzipped`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `onExit`: UniffiCallbackInterfaceConduitDelegateMethod5 {
+        override fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`code`: Int,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeConduitDelegate.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`onExit`(
+                    FfiConverterString.lift(`sessionId`),
+                    FfiConverterInt.lift(`code`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `onDisconnected`: UniffiCallbackInterfaceConduitDelegateMethod6 {
+        override fun callback(`uniffiHandle`: Long,`reason`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeConduitDelegate.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`onDisconnected`(
+                    FfiConverterString.lift(`reason`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `onConnectionHealth`: UniffiCallbackInterfaceConduitDelegateMethod7 {
+        override fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`health`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeConduitDelegate.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`onConnectionHealth`(
+                    FfiConverterString.lift(`sessionId`),
+                    FfiConverterTypeConnectionHealth.lift(`health`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `onViewEvent`: UniffiCallbackInterfaceConduitDelegateMethod8 {
+        override fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`kind`: RustBuffer.ByValue,`payload`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeConduitDelegate.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`onViewEvent`(
+                    FfiConverterString.lift(`sessionId`),
+                    FfiConverterString.lift(`kind`),
+                    FfiConverterMapStringString.lift(`payload`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+
+    internal object uniffiFree: UniffiCallbackInterfaceFree {
+        override fun callback(handle: Long) {
+            FfiConverterTypeConduitDelegate.handleMap.remove(handle)
+        }
+    }
+
+    internal var vtable = UniffiVTableCallbackInterfaceConduitDelegate.UniffiByValue(
+        `onPtyData`,
+        `onChatEvent`,
+        `onPreviewReady`,
+        `onStatus`,
+        `onSnapshot`,
+        `onExit`,
+        `onDisconnected`,
+        `onConnectionHealth`,
+        `onViewEvent`,
+        uniffiFree,
+    )
+
+    // Registers the foreign callback with the Rust side.
+    // This method is generated for each callback interface.
+    internal fun register(lib: UniffiLib) {
+        lib.uniffi_conduit_core_fn_init_callback_vtable_conduitdelegate(vtable)
+    }
+}
+
+/**
+ * The ffiConverter which transforms the Callbacks in to handles to pass to Rust.
+ *
+ * @suppress
+ */
+public object FfiConverterTypeConduitDelegate: FfiConverterCallbackInterface<ConduitDelegate>()
+
+
+
+
+
+public interface SshHostKeyDelegate {
+    
+    fun `acceptHostKey`(`fingerprint`: kotlin.String): kotlin.Boolean
+    
+    companion object
+}
+
+
+
+// Put the implementation in an object so we don't pollute the top-level namespace
 internal object uniffiCallbackInterfaceSshHostKeyDelegate {
     internal object `acceptHostKey`: UniffiCallbackInterfaceSshHostKeyDelegateMethod0 {
         override fun callback(`uniffiHandle`: Long,`fingerprint`: RustBuffer.ByValue,`uniffiOutReturn`: ByteByReference,uniffiCallStatus: UniffiRustCallStatus,) {
@@ -4044,7 +4225,7 @@ internal object uniffiCallbackInterfaceSshHostKeyDelegate {
     // Registers the foreign callback with the Rust side.
     // This method is generated for each callback interface.
     internal fun register(lib: UniffiLib) {
-        lib.uniffi_swe_kitty_core_fn_init_callback_vtable_sshhostkeydelegate(vtable)
+        lib.uniffi_conduit_core_fn_init_callback_vtable_sshhostkeydelegate(vtable)
     }
 }
 
@@ -4054,187 +4235,6 @@ internal object uniffiCallbackInterfaceSshHostKeyDelegate {
  * @suppress
  */
 public object FfiConverterTypeSshHostKeyDelegate: FfiConverterCallbackInterface<SshHostKeyDelegate>()
-
-
-
-
-
-public interface SweKittyDelegate {
-    
-    fun `onPtyData`(`sessionId`: kotlin.String, `data`: kotlin.ByteArray)
-    
-    fun `onChatEvent`(`sessionId`: kotlin.String, `event`: ChatEvent)
-    
-    fun `onPreviewReady`(`sessionId`: kotlin.String, `preview`: PreviewInfo)
-    
-    fun `onStatus`(`status`: SessionStatus)
-    
-    fun `onSnapshot`(`sessionId`: kotlin.String, `gunzipped`: kotlin.ByteArray)
-    
-    fun `onExit`(`sessionId`: kotlin.String, `code`: kotlin.Int)
-    
-    fun `onDisconnected`(`reason`: kotlin.String)
-    
-    fun `onConnectionHealth`(`sessionId`: kotlin.String, `health`: ConnectionHealth)
-    
-    fun `onViewEvent`(`sessionId`: kotlin.String, `kind`: kotlin.String, `payload`: Map<kotlin.String, kotlin.String>)
-    
-    companion object
-}
-
-
-
-// Put the implementation in an object so we don't pollute the top-level namespace
-internal object uniffiCallbackInterfaceSweKittyDelegate {
-    internal object `onPtyData`: UniffiCallbackInterfaceSweKittyDelegateMethod0 {
-        override fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`data`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
-            val uniffiObj = FfiConverterTypeSweKittyDelegate.handleMap.get(uniffiHandle)
-            val makeCall = { ->
-                uniffiObj.`onPtyData`(
-                    FfiConverterString.lift(`sessionId`),
-                    FfiConverterByteArray.lift(`data`),
-                )
-            }
-            val writeReturn = { _: Unit -> Unit }
-            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
-        }
-    }
-    internal object `onChatEvent`: UniffiCallbackInterfaceSweKittyDelegateMethod1 {
-        override fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`event`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
-            val uniffiObj = FfiConverterTypeSweKittyDelegate.handleMap.get(uniffiHandle)
-            val makeCall = { ->
-                uniffiObj.`onChatEvent`(
-                    FfiConverterString.lift(`sessionId`),
-                    FfiConverterTypeChatEvent.lift(`event`),
-                )
-            }
-            val writeReturn = { _: Unit -> Unit }
-            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
-        }
-    }
-    internal object `onPreviewReady`: UniffiCallbackInterfaceSweKittyDelegateMethod2 {
-        override fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`preview`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
-            val uniffiObj = FfiConverterTypeSweKittyDelegate.handleMap.get(uniffiHandle)
-            val makeCall = { ->
-                uniffiObj.`onPreviewReady`(
-                    FfiConverterString.lift(`sessionId`),
-                    FfiConverterTypePreviewInfo.lift(`preview`),
-                )
-            }
-            val writeReturn = { _: Unit -> Unit }
-            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
-        }
-    }
-    internal object `onStatus`: UniffiCallbackInterfaceSweKittyDelegateMethod3 {
-        override fun callback(`uniffiHandle`: Long,`status`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
-            val uniffiObj = FfiConverterTypeSweKittyDelegate.handleMap.get(uniffiHandle)
-            val makeCall = { ->
-                uniffiObj.`onStatus`(
-                    FfiConverterTypeSessionStatus.lift(`status`),
-                )
-            }
-            val writeReturn = { _: Unit -> Unit }
-            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
-        }
-    }
-    internal object `onSnapshot`: UniffiCallbackInterfaceSweKittyDelegateMethod4 {
-        override fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`gunzipped`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
-            val uniffiObj = FfiConverterTypeSweKittyDelegate.handleMap.get(uniffiHandle)
-            val makeCall = { ->
-                uniffiObj.`onSnapshot`(
-                    FfiConverterString.lift(`sessionId`),
-                    FfiConverterByteArray.lift(`gunzipped`),
-                )
-            }
-            val writeReturn = { _: Unit -> Unit }
-            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
-        }
-    }
-    internal object `onExit`: UniffiCallbackInterfaceSweKittyDelegateMethod5 {
-        override fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`code`: Int,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
-            val uniffiObj = FfiConverterTypeSweKittyDelegate.handleMap.get(uniffiHandle)
-            val makeCall = { ->
-                uniffiObj.`onExit`(
-                    FfiConverterString.lift(`sessionId`),
-                    FfiConverterInt.lift(`code`),
-                )
-            }
-            val writeReturn = { _: Unit -> Unit }
-            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
-        }
-    }
-    internal object `onDisconnected`: UniffiCallbackInterfaceSweKittyDelegateMethod6 {
-        override fun callback(`uniffiHandle`: Long,`reason`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
-            val uniffiObj = FfiConverterTypeSweKittyDelegate.handleMap.get(uniffiHandle)
-            val makeCall = { ->
-                uniffiObj.`onDisconnected`(
-                    FfiConverterString.lift(`reason`),
-                )
-            }
-            val writeReturn = { _: Unit -> Unit }
-            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
-        }
-    }
-    internal object `onConnectionHealth`: UniffiCallbackInterfaceSweKittyDelegateMethod7 {
-        override fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`health`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
-            val uniffiObj = FfiConverterTypeSweKittyDelegate.handleMap.get(uniffiHandle)
-            val makeCall = { ->
-                uniffiObj.`onConnectionHealth`(
-                    FfiConverterString.lift(`sessionId`),
-                    FfiConverterTypeConnectionHealth.lift(`health`),
-                )
-            }
-            val writeReturn = { _: Unit -> Unit }
-            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
-        }
-    }
-    internal object `onViewEvent`: UniffiCallbackInterfaceSweKittyDelegateMethod8 {
-        override fun callback(`uniffiHandle`: Long,`sessionId`: RustBuffer.ByValue,`kind`: RustBuffer.ByValue,`payload`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
-            val uniffiObj = FfiConverterTypeSweKittyDelegate.handleMap.get(uniffiHandle)
-            val makeCall = { ->
-                uniffiObj.`onViewEvent`(
-                    FfiConverterString.lift(`sessionId`),
-                    FfiConverterString.lift(`kind`),
-                    FfiConverterMapStringString.lift(`payload`),
-                )
-            }
-            val writeReturn = { _: Unit -> Unit }
-            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
-        }
-    }
-
-    internal object uniffiFree: UniffiCallbackInterfaceFree {
-        override fun callback(handle: Long) {
-            FfiConverterTypeSweKittyDelegate.handleMap.remove(handle)
-        }
-    }
-
-    internal var vtable = UniffiVTableCallbackInterfaceSweKittyDelegate.UniffiByValue(
-        `onPtyData`,
-        `onChatEvent`,
-        `onPreviewReady`,
-        `onStatus`,
-        `onSnapshot`,
-        `onExit`,
-        `onDisconnected`,
-        `onConnectionHealth`,
-        `onViewEvent`,
-        uniffiFree,
-    )
-
-    // Registers the foreign callback with the Rust side.
-    // This method is generated for each callback interface.
-    internal fun register(lib: UniffiLib) {
-        lib.uniffi_swe_kitty_core_fn_init_callback_vtable_swekittydelegate(vtable)
-    }
-}
-
-/**
- * The ffiConverter which transforms the Callbacks in to handles to pass to Rust.
- *
- * @suppress
- */
-public object FfiConverterTypeSweKittyDelegate: FfiConverterCallbackInterface<SweKittyDelegate>()
 
 
 
@@ -4742,10 +4742,10 @@ public object FfiConverterMapStringString: FfiConverterRustBuffer<Map<kotlin.Str
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
      suspend fun `sshBootstrap`(`credentials`: SshCredentials, `preAllocatedToken`: kotlin.String, `anthropicApiKey`: kotlin.String, `openaiApiKey`: kotlin.String, `imageRef`: kotlin.String?, `hostKeyDelegate`: SshHostKeyDelegate) : SshBootstrapResult {
         return uniffiRustCallAsync(
-        UniffiLib.INSTANCE.uniffi_swe_kitty_core_fn_func_ssh_bootstrap(FfiConverterTypeSshCredentials.lower(`credentials`),FfiConverterString.lower(`preAllocatedToken`),FfiConverterString.lower(`anthropicApiKey`),FfiConverterString.lower(`openaiApiKey`),FfiConverterOptionalString.lower(`imageRef`),FfiConverterTypeSshHostKeyDelegate.lower(`hostKeyDelegate`),),
-        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_poll_rust_buffer(future, callback, continuation) },
-        { future, continuation -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_complete_rust_buffer(future, continuation) },
-        { future -> UniffiLib.INSTANCE.ffi_swe_kitty_core_rust_future_free_rust_buffer(future) },
+        UniffiLib.INSTANCE.uniffi_conduit_core_fn_func_ssh_bootstrap(FfiConverterTypeSshCredentials.lower(`credentials`),FfiConverterString.lower(`preAllocatedToken`),FfiConverterString.lower(`anthropicApiKey`),FfiConverterString.lower(`openaiApiKey`),FfiConverterOptionalString.lower(`imageRef`),FfiConverterTypeSshHostKeyDelegate.lower(`hostKeyDelegate`),),
+        { future, callback, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.INSTANCE.ffi_conduit_core_rust_future_free_rust_buffer(future) },
         // lift function
         { FfiConverterTypeSshBootstrapResult.lift(it) },
         // Error FFI converter

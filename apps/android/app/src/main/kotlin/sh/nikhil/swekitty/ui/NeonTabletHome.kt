@@ -160,7 +160,7 @@ private fun SessionCard(
     assistant: String,
     isRunning: Boolean,
     preview: String?,
-    session: uniffi.swe_kitty_core.ProjectSession,
+    session: uniffi.conduit_core.ProjectSession,
     onClick: () -> Unit,
 ) {
     val tint = neonAgentColor(assistant, neon)
