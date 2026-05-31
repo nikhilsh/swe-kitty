@@ -338,7 +338,7 @@ jobs:
         run: |
           set -e
           claims=(ConversationToolCard ConversationDiffBlock QuickReplyDetector
-                  PendingInputCard LitterPendingInputCard SubagentCard HandoffCard)
+                  PendingInputCard ConduitPendingInputCard SubagentCard HandoffCard)
           missing=()
           for c in "${claims[@]}"; do
             if ! grep -RIlq --include='*.swift' --include='*.kt' "$c" apps/; then

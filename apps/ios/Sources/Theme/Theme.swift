@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Centralised semantic tokens for the app. Replaces the original ad-hoc
-/// enum in `DesignSystem.swift`. Mirrors litter's `LitterTheme` shape:
+/// enum in `DesignSystem.swift`. Mirrors litter's `ConduitTheme` shape:
 /// adaptive colors + corner radii + a background gradient builder.
 enum ConduitTheme {
     // MARK: - Adaptive colours
@@ -59,7 +59,7 @@ enum ConduitTheme {
     static var surfaceLight: Color  { ConduitPalette.surfaceLight.color }
     static var border: Color        { ConduitPalette.border.color }
     static var separator: Color     { ConduitPalette.separator.color }
-    /// Inline-code / fenced-code background. Matches LitterPalette.
+    /// Inline-code / fenced-code background. Matches ConduitPalette.
     static var codeBackground: Color { ConduitPalette.codeBackground.color }
     static var danger: Color        { ConduitPalette.danger.color }
     static var success: Color       { ConduitPalette.success.color }

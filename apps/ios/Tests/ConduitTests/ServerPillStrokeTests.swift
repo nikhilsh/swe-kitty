@@ -34,15 +34,15 @@ struct ServerPillStrokeTests {
     }
 }
 
-/// Pins the post-audit (§A.4.2) icon size for `LitterAddServerSheet`
+/// Pins the post-audit (§A.4.2) icon size for `ConduitAddServerSheet`
 /// rows. Before PR 5 each row showed a 36pt filled-color circle; the
 /// audit called this out as reading "launchpad" rather than
-/// "settings sheet." 28pt symbol-only matches the rest of the LitterUI
+/// "settings sheet." 28pt symbol-only matches the rest of the ConduitUI
 /// row pattern.
-@Suite("LitterAddServerSheet metrics")
-struct LitterAddServerSheetMetricsTests {
+@Suite("ConduitAddServerSheet metrics")
+struct ConduitAddServerSheetMetricsTests {
 
     @Test func iconSizeIs28() {
-        #expect(LitterAddServerSheetMetrics.iconSize == 28)
+        #expect(ConduitAddServerSheetMetrics.iconSize == 28)
     }
 }

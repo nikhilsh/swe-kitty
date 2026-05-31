@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// Shared typography ramp for non-LitterUI surfaces (Settings sheets,
+/// Shared typography ramp for non-ConduitUI surfaces (Settings sheets,
 /// Appearance sheet, AccessoryBar, etc.). Mirrors the
-/// `LitterUI/Theme/LitterTypography.swift` shape so call sites can be
+/// `ConduitUI/Theme/ConduitTypography.swift` shape so call sites can be
 /// ported 1:1 when subsequent PR 2–5 rebuilds touch them.
 ///
-/// **Why a parent-level ramp at all?** Before PR 1, non-LitterUI views
+/// **Why a parent-level ramp at all?** Before PR 1, non-ConduitUI views
 /// reached for raw `Font.system(.body, design: …)` calls, which:
 ///   - ignored `AppearanceStore.fontFamily` (the user's serif /
 ///     monospaced / system preference)

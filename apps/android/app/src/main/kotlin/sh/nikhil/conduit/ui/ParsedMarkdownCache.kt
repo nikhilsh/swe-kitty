@@ -9,7 +9,7 @@ import androidx.compose.ui.text.AnnotatedString
  *
  * The chat list re-parses markdown into an [AnnotatedString] on every
  * recycle: a recycled `LazyColumn` row whose `remember(text, ...)` key
- * changed recomputes [LitterMarkdownHeadingScaler.scaledAnnotated]
+ * changed recomputes [ConduitMarkdownHeadingScaler.scaledAnnotated]
  * from scratch (0px → final height), which is the judder source during
  * scrollback and streaming. Hoisting a process-shaped cache above the
  * list lets recycled rows render straight from cache.

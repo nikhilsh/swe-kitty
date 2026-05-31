@@ -11,7 +11,7 @@ import org.junit.Test
  * always present, timestamp rows omitted when absent, uptime math, and
  * relative-time bucket formatting. Pure JUnit — [SessionDetails] takes an
  * injectable `nowMs` so the relative buckets are deterministic. Mirror of
- * iOS `LitterSessionInfoViewModelTests` details/relative coverage.
+ * iOS `ConduitSessionInfoViewModelTests` details/relative coverage.
  */
 class SessionDetailsTest {
 

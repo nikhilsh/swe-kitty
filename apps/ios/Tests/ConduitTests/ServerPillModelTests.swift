@@ -2,7 +2,7 @@ import Testing
 import Foundation
 @testable import Conduit
 
-/// Litter parity audit item A.3 (iOS half) — defends the `ServerPill`
+/// Conduit parity audit item A.3 (iOS half) — defends the `ServerPill`
 /// visual contract by asserting against the pure-data `ServerPillModel`.
 /// Same approach as `ProjectHeaderModel` / `InSessionBottomBarModel`:
 /// no SwiftUI host, just the formatting and status-mapping rules the

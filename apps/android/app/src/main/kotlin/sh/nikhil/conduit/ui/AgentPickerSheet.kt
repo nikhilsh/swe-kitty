@@ -43,7 +43,7 @@ import sh.nikhil.conduit.RemoteDirectoryListing
 import sh.nikhil.conduit.SessionStore
 
 /**
- * Compose mirror of `apps/ios/Sources/LitterUI/Views/LitterAgentPickerSheet.swift`.
+ * Compose mirror of `apps/ios/Sources/ConduitUI/Views/ConduitAgentPickerSheet.swift`.
  * Two-step new-session flow:
  *   1. Pick an agent (Claude / Codex).
  *   2. Pick a working directory — a "Recent" shortcut list plus a live

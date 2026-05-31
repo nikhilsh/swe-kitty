@@ -6,7 +6,7 @@ import Foundation
 /// `^[A-Za-z0-9 _-]{1,32}$` after trimming surrounding whitespace.
 ///
 /// Extracted out of the legacy `RenameSessionSheet.swift` so the
-/// `LitterRenameSessionSheet` can call into the same rule. Behaviour
+/// `ConduitRenameSessionSheet` can call into the same rule. Behaviour
 /// pinned by `RenameSessionValidatorTests`.
 enum RenameSessionValidator {
     /// Human-readable hint shown beneath the field. Kept here so the

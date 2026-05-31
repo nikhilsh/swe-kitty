@@ -383,7 +383,7 @@ fn looks_like_handoff(text: &str) -> bool {
 }
 
 /// Mirror of the client `isNeonPlanShaped` gate (Android `NeonComponents.kt`,
-/// iOS `LitterChatView`): a tool name containing "todo"/"plan", or content
+/// iOS `ConduitChatView`): a tool name containing "todo"/"plan", or content
 /// with a markdown checkbox line (`- [ ]` / `- [x]`). Kept in lock-step so
 /// core and the shells agree on what counts as a plan.
 fn looks_like_plan(content: &str, tool_name: Option<&str>) -> bool {

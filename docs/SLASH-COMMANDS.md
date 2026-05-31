@@ -56,7 +56,7 @@ Three classes, recognised only when the trimmed draft starts with `/`:
   iOS `SlashCommandRegistry.swift`): `name`, `aliases`, `class`,
   `agentConstraint`, `description`. Pure data — unit-testable.
 - A `/` autocomplete overlay over the composer (Android `ChatPage.kt`, iOS
-  `LitterChatView.swift`), filtered by typed prefix. (Pairs with the litter
+  `ConduitChatView.swift`), filtered by typed prefix. (Pairs with the litter
   `@/$//` autocomplete gap in MOBILE-PORT-MATRIX.)
 - In the send path, `classify(draft)` before sending: pass-through → send
   as-is (Claude only; Codex → in-chat "not supported with this agent");

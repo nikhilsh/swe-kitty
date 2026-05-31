@@ -23,7 +23,7 @@ import sh.nikhil.conduit.R
  * The Conduit brand mark (`KittyMark`) with a subtle, continuous
  * "breathe" — a gentle scale loop so the home header feels alive without
  * the attention-grabbing pulse of the cold-start splash. Mirrors the iOS
- * `LitterUI.AnimatedBrandMark`; both share the same calm timing
+ * `ConduitUI.AnimatedBrandMark`; both share the same calm timing
  * (1.0 → 1.03 over 2.2s, ease-in-out, autoreversing) so the wordless
  * brand mark reads the same on both platforms.
  *

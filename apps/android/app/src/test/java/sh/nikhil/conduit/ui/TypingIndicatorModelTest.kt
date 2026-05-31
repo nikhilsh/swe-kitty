@@ -72,7 +72,7 @@ class TypingIndicatorModelTest {
     //
     // Extracted verbatim from ChatPage's inline block; OR-ed with the
     // streaming model at the call site. Same case set / outcomes as iOS
-    // `LitterUI.ChatViewModel.isAgentWorking`.
+    // `ConduitUI.ChatViewModel.isAgentWorking`.
 
     @Test fun agentWorkingFalseWhenNoEvents() {
         assertFalse(TypingIndicatorModel.agentWorking(lastRole = null, lastStatus = null, lastContentEmpty = true))

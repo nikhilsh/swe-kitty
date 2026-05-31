@@ -1,7 +1,7 @@
-# Plan — Litter-style UI rebuild
+# Plan — Conduit-style UI rebuild
 
 > **Archived 2026-05-27 — shipped; see [`docs/ROADMAP.md`](../ROADMAP.md).** The
-> LitterUI tree is the default on iOS (`experimentalLitterUI` defaults on).
+> ConduitUI tree is the default on iOS (`experimentalConduitUI` defaults on).
 > Preserved for the stage-by-stage design rationale.
 
 Date: 2026-05-20 (status block updated 2026-05-23)
@@ -16,8 +16,8 @@ the user observed the iOS view tree had drifted enough from litter's
 reference that point-fixes weren't closing the gap, which triggered:
 
 1. PR #117 — gap audit landing `docs/PLAN-LITTER-VISUAL-PARITY.md`.
-2. PR #118 — parallel `apps/ios/Sources/LitterUI/` tree behind
-   `experimentalLitterUI` flag.
+2. PR #118 — parallel `apps/ios/Sources/ConduitUI/` tree behind
+   `experimentalConduitUI` flag.
 3. PR #119 — flag flipped on, legacy iOS view tree deleted.
 4. PR #122 — `NavigationSplitView` restored for iPad regular size class.
 5. PRs #139–#143 + polish #145 + Android mirror #146 + #147 — the
@@ -26,7 +26,7 @@ reference that point-fixes weren't closing the gap, which triggered:
 **For current work, read `docs/PLAN-LITTER-VISUAL-PARITY.md`**. This
 doc is preserved for the original stage-by-stage rationale (font
 setting, settings IA, info-screen Fork/Rename) that underpins the
-LitterUI tree. The remainder is verbatim from the original plan.
+ConduitUI tree. The remainder is verbatim from the original plan.
 
 ## Goal
 
@@ -178,7 +178,7 @@ Android equivalents.
 
 ## What's explicitly NOT in this plan
 
-- **Litter's agent-output parsing (permission prompts, diff cards, tool affordances)** — that's task #16, separate package. Without that, our chat won't FUNCTIONALLY mimic litter's chat even when it visually does.
+- **Conduit's agent-output parsing (permission prompts, diff cards, tool affordances)** — that's task #16, separate package. Without that, our chat won't FUNCTIONALLY mimic litter's chat even when it visually does.
 - **Carplay / Watch / Live Activities** — long-roadmap, not relevant.
 - **Berkeley Mono shipping** — we'll use SF Mono / system mono for v1. Berkeley Mono is a paid font with licensing implications; revisit later.
 
@@ -197,7 +197,7 @@ Sum: ~12.5 hours of real work, spread across as many sessions as needed.
 
 ## Existing tasks this absorbs / supersedes
 
-- Task #18 (Litter-style home + settings rebuild) — this plan _is_ that, expanded.
+- Task #18 (Conduit-style home + settings rebuild) — this plan _is_ that, expanded.
 - Task #16 (litter-style chat adapter for agent output parsing) — stays separate, complements but doesn't depend on this plan.
 - Task #17 (debug agent-swap) — independent; should be done before Stage 2 so the new chat header's agent dropdown actually works.
 

@@ -191,12 +191,12 @@ struct ConversationRendererTests {
     }
 
     // User-message rendering style is now expressed directly by the
-    // LitterUI chat view (`LitterUI.ChatViewModel.alignment(for:)` +
+    // ConduitUI chat view (`ConduitUI.ChatViewModel.alignment(for:)` +
     // the row's foreground-color / background-style choices). The
     // legacy `ConversationStyle.userMessage` pin was deleted in the
     // litter-ui-cutover along with `ConversationBubbleContainer`; the
     // `alignment(for:)` rule has its own coverage in
-    // `LitterUI.ChatViewModel`-adjacent tests.
+    // `ConduitUI.ChatViewModel`-adjacent tests.
 }
 
 /// Pins the structured-markdown splitter (BUG 1). `AttributedString
@@ -204,11 +204,11 @@ struct ConversationRendererTests {
 /// text and GFM tables collapse into concatenated cell text. The
 /// splitter pre-separates the body into typed pieces so the renderer can
 /// space them and stack table rows instead of running them together.
-@Suite("LitterMarkdownStructure.parse")
-struct LitterMarkdownStructureTests {
+@Suite("ConduitMarkdownStructure.parse")
+struct ConduitMarkdownStructureTests {
 
     @Test func headingIsItsOwnPieceAndDoesNotMergeIntoNextBlock() {
-        let pieces = LitterMarkdownStructure.parse("""
+        let pieces = ConduitMarkdownStructure.parse("""
         ## Summary
         The build is green.
         """)
@@ -227,7 +227,7 @@ struct LitterMarkdownStructureTests {
     }
 
     @Test func gfmTableParsesIntoHeadersAndRowsNotConcatenated() {
-        let pieces = LitterMarkdownStructure.parse("""
+        let pieces = ConduitMarkdownStructure.parse("""
         | Session | Assistant | Notes |
         | --- | --- | --- |
         | 062e6bf1 | claude | 120x40 |
@@ -247,7 +247,7 @@ struct LitterMarkdownStructureTests {
 
     @Test func pipeProseLineIsNotMistakenForATable() {
         // A lone pipe line with no delimiter row underneath stays prose.
-        let pieces = LitterMarkdownStructure.parse("Run `a | b` to pipe.")
+        let pieces = ConduitMarkdownStructure.parse("Run `a | b` to pipe.")
         #expect(pieces.count == 1)
         guard case .paragraph(let text) = pieces[0] else {
             Issue.record("pipe prose collapsed into \(pieces[0])"); return
@@ -256,7 +256,7 @@ struct LitterMarkdownStructureTests {
     }
 
     @Test func unorderedListParsesItems() {
-        let pieces = LitterMarkdownStructure.parse("""
+        let pieces = ConduitMarkdownStructure.parse("""
         - first
         - second
         - third
@@ -270,7 +270,7 @@ struct LitterMarkdownStructureTests {
     }
 
     @Test func orderedListParsesItemsAndMarkerType() {
-        let pieces = LitterMarkdownStructure.parse("""
+        let pieces = ConduitMarkdownStructure.parse("""
         1. alpha
         2. beta
         """)
@@ -285,7 +285,7 @@ struct LitterMarkdownStructureTests {
     @Test func mixedBodySeparatesEveryBlock() {
         // Heading + paragraph + list + table all in one body must yield
         // four separate pieces in order — no block bunching.
-        let pieces = LitterMarkdownStructure.parse("""
+        let pieces = ConduitMarkdownStructure.parse("""
         # Report
 
         Here are the results.
@@ -308,7 +308,7 @@ struct LitterMarkdownStructureTests {
         // Streaming path: the live buffer is passed in raw (not pre-split
         // by ConversationRenderer.blocks), so parse must turn a fence into
         // a .code piece rather than leaking the ``` markers as prose.
-        let pieces = LitterMarkdownStructure.parse("""
+        let pieces = ConduitMarkdownStructure.parse("""
         Here:
 
         ```swift
@@ -328,7 +328,7 @@ struct LitterMarkdownStructureTests {
     @Test func unclosedFenceMidStreamStillRendersAsCode() {
         // The common streaming case: the closing ``` hasn't arrived yet.
         // We must still render the body as code (no raw ``` flash).
-        let pieces = LitterMarkdownStructure.parse("""
+        let pieces = ConduitMarkdownStructure.parse("""
         ```js
         const a =
         """)
@@ -341,7 +341,7 @@ struct LitterMarkdownStructureTests {
     }
 
     @Test func emptyInputProducesOneEmptyParagraph() {
-        let pieces = LitterMarkdownStructure.parse("")
+        let pieces = ConduitMarkdownStructure.parse("")
         #expect(pieces.count == 1)
         if case .paragraph(let t) = pieces[0] { #expect(t == "") } else {
             Issue.record("empty input not a paragraph: \(pieces[0])")
@@ -352,7 +352,7 @@ struct LitterMarkdownStructureTests {
         // A fence opened with bare ``` (no language tag) must still be a
         // .code piece — and the language must be nil, not the empty
         // string, so the renderer hides the language label entirely.
-        let pieces = LitterMarkdownStructure.parse("""
+        let pieces = ConduitMarkdownStructure.parse("""
         ```
         plain code
         ```
@@ -368,7 +368,7 @@ struct LitterMarkdownStructureTests {
     @Test func codeInterleavedWithProseKeepsPieceOrdering() {
         // Prose · code · prose · code · prose — every block must survive
         // in order, with the two fences landing as the 2nd and 4th pieces.
-        let pieces = LitterMarkdownStructure.parse("""
+        let pieces = ConduitMarkdownStructure.parse("""
         First, the setup:
 
         ```sh
@@ -403,7 +403,7 @@ struct LitterMarkdownStructureTests {
         // The close fence butts right up against a heading with no blank
         // line. The heading must NOT be swallowed into the code body and
         // must surface as its own .heading piece.
-        let pieces = LitterMarkdownStructure.parse("""
+        let pieces = ConduitMarkdownStructure.parse("""
         ```swift
         let x = 1
         ```

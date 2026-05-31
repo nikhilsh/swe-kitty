@@ -72,7 +72,7 @@ backed by a tagged GitHub Release built from `.github/workflows/release.yml`.
 - **Fork-with-model.** Fork a session onto a fresh one, choosing reasoning
   effort and (optionally) a different model from a per-assistant dropdown —
   claude opus/sonnet/haiku, codex gpt-5-codex
-  (`apps/ios/.../LitterForkSheet.swift`, core `fork_session`).
+  (`apps/ios/.../ConduitForkSheet.swift`, core `fork_session`).
 - **Composer attachments.** Images / PDFs / files via core `send_file` → broker
   `uploads/<sessionID>/` (binary upload frame, see
   [`WEBSOCKET-PROTOCOL.md`](WEBSOCKET-PROTOCOL.md) §2.1).
@@ -113,8 +113,8 @@ backed by a tagged GitHub Release built from `.github/workflows/release.yml`.
 
 ### App shell & connectivity
 
-- **iOS UI is the LitterUI tree** (iOS-26 Liquid Glass design),
-  `AppearanceStore.experimentalLitterUI` default **ON**. The legacy
+- **iOS UI is the ConduitUI tree** (iOS-26 Liquid Glass design),
+  `AppearanceStore.experimentalConduitUI` default **ON**. The legacy
   `apps/ios/Sources/Views/` tree is the fallback. iPad uses `NavigationSplitView`
   on regular size class.
 - **Android** is Jetpack Compose (Material 3).

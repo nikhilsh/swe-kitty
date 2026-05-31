@@ -325,7 +325,7 @@ internal fun firstUserMessageOf(
  * recent NON-user transcript item (assistant reply or tool action),
  * condensed. The card title is already the first user message, so this
  * complements it and lets the user tell active sessions apart at a
- * glance. Mirror of iOS `LitterHomeView.latestActivityPreview` +
+ * glance. Mirror of iOS `ConduitHomeView.latestActivityPreview` +
  * `HomeViewModel.activityPreview`. Returns null when there's no non-user
  * activity yet (placeholder / user-only transcripts).
  */

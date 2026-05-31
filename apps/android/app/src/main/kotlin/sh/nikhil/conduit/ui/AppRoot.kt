@@ -69,7 +69,7 @@ fun AppRoot(store: SessionStore) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             // iPad / wide screen: a permanent activity-bar rail + section
             // content (Sessions = ProjectList rail + ProjectScreen). Phone
-            // keeps the ModalNavigationDrawer. Mirrors iOS LitterUI.TabletShell.
+            // keeps the ModalNavigationDrawer. Mirrors iOS ConduitUI.TabletShell.
             if (maxWidth >= 840.dp) {
                 val neon = LocalNeonTheme.current
                 Row(modifier = Modifier.fillMaxSize()) {

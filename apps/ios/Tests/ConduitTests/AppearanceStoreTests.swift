@@ -39,19 +39,19 @@ struct AppearanceStoreTests {
         #expect(second.collapseTurns == true)
     }
 
-    @Test func persistsExperimentalLitterUI() {
-        // Trash-rebuild feature flag for the parallel `LitterUI/` view
-        // tree. PR #119 cutover flipped the default to ON — LitterUI
+    @Test func persistsExperimentalConduitUI() {
+        // Trash-rebuild feature flag for the parallel `ConduitUI/` view
+        // tree. PR #119 cutover flipped the default to ON — ConduitUI
         // is now the only UI; the flag is kept for one cycle as an
         // emergency revert. This test pins persistence: flipping it
         // OFF survives a relaunch.
         let defaults = freshDefaults()
         let first = AppearanceStore(defaults: defaults)
-        #expect(first.experimentalLitterUI == true)
-        first.experimentalLitterUI = false
+        #expect(first.experimentalConduitUI == true)
+        first.experimentalConduitUI = false
 
         let second = AppearanceStore(defaults: defaults)
-        #expect(second.experimentalLitterUI == false)
+        #expect(second.experimentalConduitUI == false)
     }
 
     @Test func persistsExperimentalNativeTerminal() {

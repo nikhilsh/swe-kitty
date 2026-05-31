@@ -79,7 +79,7 @@ fun AppearanceSheet(appearance: AppearanceStore, onDismiss: () -> Unit) {
             // + glow toggle, then a live preview chip. Mode is handled by
             // the Theme section above (Neon reuses themeMode for its
             // light/dark resolution). Mirrors the iOS
-            // LitterUI.NeonPalettePickerContent + NeonThemePreviewChip.
+            // ConduitUI.NeonPalettePickerContent + NeonThemePreviewChip.
             SettingsSection("Neon Terminal") {
                 NeonAccentPalettePicker(appearance)
                 HorizontalDivider(

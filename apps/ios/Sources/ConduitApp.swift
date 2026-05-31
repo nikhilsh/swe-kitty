@@ -44,7 +44,7 @@ struct ConduitApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                LitterUI.RootView()
+                ConduitUI.RootView()
                     .environment(store)
                     .environment(appearance)
                     .environment(StreamingRendererCoordinator.shared)
@@ -90,7 +90,7 @@ struct ConduitApp: App {
                         .presentationDetents([.medium])
                     }
                     .sheet(item: agentPickBinding) { pick in
-                        LitterUI.AgentPickerSheet(headerNote: pick.hostNote)
+                        ConduitUI.AgentPickerSheet(headerNote: pick.hostNote)
                             .environment(store)
                     }
                 if showSplash {

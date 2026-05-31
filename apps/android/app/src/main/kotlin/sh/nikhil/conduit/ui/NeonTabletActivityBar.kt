@@ -30,7 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// Android mirror of iOS LitterUI.TabletActivityBar — the design bundle's
+// Android mirror of iOS ConduitUI.TabletActivityBar — the design bundle's
 // far-left iPad activity bar (tablet-sections.jsx → TabletActivityBar):
 // brand mark on top, vertical section items (Home / Sessions / History /
 // Boxes / Settings), account glyph pinned to the bottom. 84dp wide; the

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Litter parity audit item A.3 (iOS half): a glass-capsule pill row that
+/// Conduit parity audit item A.3 (iOS half): a glass-capsule pill row that
 /// represents one server — saved or discovered — uniformly across the
 /// Home strip and the DiscoveryView. Lifted into a pure-data model
 /// (`ServerPillModel`) so the rendering, label formatting, and saved-vs

@@ -15,7 +15,7 @@ Priorities 1 and 2 below have shipped on `main`:
 - `broker/internal/ws/conformance_test.go::TestPingPong` is green; ping/pong are now JSON text frames per `docs/WEBSOCKET-PROTOCOL.md §3.3`.
 - Session creation failures surface as typed errors instead of a Rust panic. The apps now distinguish "Paired" (token stored) from a verified broker round-trip; auth failures map to a re-pair instruction (see `docs/SENTRY.md`).
 
-Priority 3 (iOS UI convergence toward the KittyLitter surface) is the open work — tracked in `docs/MOBILE-PORT-MATRIX.md` (Package B sub-plan) and `docs/MOBILE-FEATURE-BACKLOG.md`.
+Priority 3 (iOS UI convergence toward the KittyConduit surface) is the open work — tracked in `docs/MOBILE-PORT-MATRIX.md` (Package B sub-plan) and `docs/MOBILE-FEATURE-BACKLOG.md`.
 
 The original findings below are kept for historical context.
 
@@ -74,7 +74,7 @@ Required fix:
 - Add explicit session creation state and inline error presentation in the project/session creation flow.
 - Do not report the app as fully "connected" until at least one broker operation has succeeded, or rename the state to something narrower like "configured".
 
-### 3. The current iOS UI is intentionally a minimal shell, not the planned KittyLitter-style product surface
+### 3. The current iOS UI is intentionally a minimal shell, not the planned KittyConduit-style product surface
 
 Evidence:
 
@@ -94,9 +94,9 @@ Interpretation:
 
 - The current app is not a faithful build of the full planned UI.
 - It is the outcome of the narrower task brief that was actually implemented.
-- So the divergence from the KittyLitter reference is not accidental styling drift alone; it is scope drift caused by shipping the shell milestone as if it were the product UI milestone.
+- So the divergence from the KittyConduit reference is not accidental styling drift alone; it is scope drift caused by shipping the shell milestone as if it were the product UI milestone.
 
-### 4. We likely should have reused more of the KittyLitter structure instead of inventing a thinner shell
+### 4. We likely should have reused more of the KittyConduit structure instead of inventing a thinner shell
 
 Assessment:
 
@@ -110,7 +110,7 @@ Recommendation:
 
 - Treat the next iOS pass as a convergence release:
   - keep the new Rust core + broker plumbing
-  - pull the UI hierarchy, navigation patterns, and view composition much closer to the KittyLitter reference / planned design
+  - pull the UI hierarchy, navigation patterns, and view composition much closer to the KittyConduit reference / planned design
   - avoid another parallel custom shell unless a specific platform limitation forces it
 
 ## Next Release Scope
@@ -127,9 +127,9 @@ Recommendation:
 - Show session creation failure inline at the point of action.
 - Keep Settings for configuration, not as the main place users discover runtime failures.
 
-### Priority 3: Converge iOS UI toward the planned KittyLitter surface
+### Priority 3: Converge iOS UI toward the planned KittyConduit surface
 
-- Audit the KittyLitter reference against the current files under `apps/ios/Sources/Views/`.
+- Audit the KittyConduit reference against the current files under `apps/ios/Sources/Views/`.
 - Rework the current shell to match the planned hierarchy in `docs/PLAN.md` instead of continuing to elaborate the minimal shell.
 - Prefer lifting structure and interaction patterns from the reference where possible rather than redesigning them from scratch.
 
@@ -150,4 +150,4 @@ The next iOS release should:
 
 - successfully create and open a session against a live broker
 - surface session creation failures in-context if anything goes wrong
-- move the UI materially closer to the planned KittyLitter-style app instead of preserving the current scaffold feel
+- move the UI materially closer to the planned KittyConduit-style app instead of preserving the current scaffold feel

@@ -44,7 +44,7 @@ That means the reference app is not just "nice visuals." It is a complete produc
 - real session/server management flows
 - a much more opinionated iOS/Android presentation layer
 
-So if the goal is "make `conduit` feel like KittyLitter instead of a scaffold," the right move is not incremental beautification of the current shell. The right move is structural convergence toward the upstream app shape.
+So if the goal is "make `conduit` feel like KittyConduit instead of a scaffold," the right move is not incremental beautification of the current shell. The right move is structural convergence toward the upstream app shape.
 
 ## Decision Gate
 
@@ -55,7 +55,7 @@ Before implementation, choose one path.
 Use when:
 
 - you are comfortable with GPLv3 + section 7 App Store/Play exception implications
-- you want maximum speed and maximum fidelity to the current KittyLitter app
+- you want maximum speed and maximum fidelity to the current KittyConduit app
 
 Effect:
 

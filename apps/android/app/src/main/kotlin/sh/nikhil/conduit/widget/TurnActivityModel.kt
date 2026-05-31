@@ -34,7 +34,7 @@ data class TurnActivityAttributesData(
  *
  * `startedAt` is epoch millis (Swift uses `Date`; we use `Long` so
  * the model stays serializable to / from a plain WorkData / Glance
- * preferences). `status` matches Litter's vocabulary — `"running"`,
+ * preferences). `status` matches Conduit's vocabulary — `"running"`,
  * `"pending"`, `"exited"`.
  */
 data class TurnActivityContentState(

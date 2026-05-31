@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Global "All sessions" overlay opened from the home top-right
 /// hamburger and from the bottom-bar magnifying-glass control. Empty
-/// query → full session list (matches Litter's "every thread"
+/// query → full session list (matches Conduit's "every thread"
 /// surface). Typed query → substring filter over server name,
 /// session name, assistant, branch, and conversation-content content.
 ///

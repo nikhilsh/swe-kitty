@@ -165,7 +165,7 @@ public final class TurnLiveActivityController {
         #if canImport(ActivityKit)
         // Defensive: if a previous activity is still alive (e.g. app was
         // backgrounded mid-turn and a stale handle leaked), tear it down
-        // before requesting a new one. Mirrors Litter's behaviour.
+        // before requesting a new one. Mirrors Conduit's behaviour.
         if let priorID = activeActivityIDs[sessionID] {
             Task { await Self.terminateActivity(id: priorID) }
             activeActivityIDs[sessionID] = nil

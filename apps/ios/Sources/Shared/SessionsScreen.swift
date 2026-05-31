@@ -164,7 +164,7 @@ extension ResumeDecision {
 /// and a swipe-to-resume action that re-establishes the WebSocket if
 /// needed and selects the row via `store.switchTo(sessionID:)`.
 ///
-/// Litter parity audit item A.8. Distinct from `ThreadSwitcherSheet`
+/// Conduit parity audit item A.8. Distinct from `ThreadSwitcherSheet`
 /// (#42), which shows live parallel sessions on the *current* server —
 /// this is the *historical* surface, across servers, including ones
 /// that have already exited.

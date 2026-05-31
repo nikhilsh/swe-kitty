@@ -36,16 +36,16 @@
   - structured tool payload (args/exit/duration) consumed in both timelines
   - saved-server persistence scaffolding in settings
   - delete affordances: iOS swipe + context-menu (PR #128), Android dialog mirror (PR #136), both backed by `SessionStore.forgetServer` which also sweeps the per-id displayName override
-- **LitterUI cutover (PR #118 → #127)**: parallel iOS view tree built clean-room from the litter reference, flipped from `experimentalLitterUI` flag-gated to default, legacy view tree deleted. iPad NavigationSplitView for regular size class (PR #122).
-- **Litter visual-parity rebuild (PRs #139–#143 + polish #145 + Android mirror #146 + settings-gear restore #147)** — the 5-PR plan in `docs/PLAN-LITTER-VISUAL-PARITY.md` shipped end-to-end:
+- **ConduitUI cutover (PR #118 → #127)**: parallel iOS view tree built clean-room from the litter reference, flipped from `experimentalConduitUI` flag-gated to default, legacy view tree deleted. iPad NavigationSplitView for regular size class (PR #122).
+- **Conduit visual-parity rebuild (PRs #139–#143 + polish #145 + Android mirror #146 + settings-gear restore #147)** — the 5-PR plan in `docs/PLAN-LITTER-VISUAL-PARITY.md` shipped end-to-end:
   - PR1 (#139) foundation: typography ramp, tokens, iOS 26 `glassEffect`, lighter shadows
-  - PR2 (#140) settings: iOS 26 glass on LitterUI, font-size slider, 14pt corners (iOS+Android)
+  - PR2 (#140) settings: iOS 26 glass on ConduitUI, font-size slider, 14pt corners (iOS+Android)
   - PR3 (#141) home: footnote row density, 7pt indicator, 44pt bottom bar, dropped top-row gear (iOS+Android) — partially reverted by #147 which restores a discoverable settings entry
   - PR4 (#142) chat: heading-scale ramp on markdown, flat tool-card surface, dropped diff stroke (iOS+Android)
   - PR5 (#143) sheets: ServerPill stroke treatment, AddServerSheet 28pt icons, plain SessionInfo Done
   - polish (#145) flat inline rows for PendingInput/Handoff, 20/12 discovery padding, inline agent-picker header
 - **iOS Ghostty terminal Stage 4 (PR #129, #131, #133, #134, #137)**: real libghostty App/Surface integration via Lakr233's `libghostty-spm` xcframework, CoreText/Metal renderer with full link path (CoreGraphics + CoreText + Metal + IOSurface + QuartzCore + c++). `Terminal.isAvailable` now returns true at runtime; experimental terminal flag exercises libghostty's parser.
-- **Agent OAuth v2 broker + skeletons (PRs #114, #126, #144)**: broker `internal/oauth/login_session.go` spawns the agent CLI's own `login` subcommand, parses the stdout authorize URL + loopback port, and ferries the redirect over WS. WS handlers for `start_agent_login` / `agent_login_callback` / `cancel_agent_login` are live. iOS `AgentLoginCoordinator` + `AgentLoginLoopbackServer` + `LitterAgentLoginSheet` consume the inbound view-events. Android pure-data state machine + loopback parser landed in #144 (no UI wire-up yet).
+- **Agent OAuth v2 broker + skeletons (PRs #114, #126, #144)**: broker `internal/oauth/login_session.go` spawns the agent CLI's own `login` subcommand, parses the stdout authorize URL + loopback port, and ferries the redirect over WS. WS handlers for `start_agent_login` / `agent_login_callback` / `cancel_agent_login` are live. iOS `AgentLoginCoordinator` + `AgentLoginLoopbackServer` + `ConduitAgentLoginSheet` consume the inbound view-events. Android pure-data state machine + loopback parser landed in #144 (no UI wire-up yet).
 - Test discipline (2026-05-23): iOS `ConduitTests` target with 20+ tests (PR #20); Android JUnit harness + TerminalBridge tests (PR #21); core E2E WS tests (PR #25); snapshot testing wired on both platforms (PR #30) with CI artifacts on failure (PR #31); `SessionStoreForgetServerTest` pins Android persistence contract (PR #136); `TurnActivityModel` mirrors iOS pure-data state machine on Android (PR #146).
 
 ### In Progress
@@ -60,7 +60,7 @@
 
 ### Planned / Future
 - Push notifications + background fetch/wakeup (Package 5; broker has no `push/` package yet).
-- Composer attach sheet + context bar + expanded editor (final KittyLitter polish round, no plan doc yet).
+- Composer attach sheet + context bar + expanded editor (final KittyConduit polish round, no plan doc yet).
 
 ## Original Planning Context (Preserved)
 

@@ -96,7 +96,7 @@ Required-to-merge: all four. No `[skip ci]` for client changes. No "I'll add the
 
 ## What this enables
 
-- **Refactoring without dread.** The Litter-style rewrite, the Tier 1.5 chat refresh, the Claude-style typography change — all of those would have been lower-risk with a snapshot suite. We have done several visual rewrites blindly; the next one shouldn't be.
+- **Refactoring without dread.** The Conduit-style rewrite, the Tier 1.5 chat refresh, the Claude-style typography change — all of those would have been lower-risk with a snapshot suite. We have done several visual rewrites blindly; the next one shouldn't be.
 - **Catching protocol drift early.** The reason the chat tab was silent for two weeks (PRs #12, #13) was that the wire format had a gap nobody noticed. An e2e test that asserted "user-sent chat round-trips to an assistant reply within N ms" would have caught this on PR #12.
 - **Confidence to delete code.** Legacy `TerminalTab.swift` (the SwiftTerm leftover) and `AnsiTerminal.kt` were both removed only after the user confirmed in production. With tests, we delete them when the test says the replacement passes.
 

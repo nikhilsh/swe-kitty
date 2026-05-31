@@ -34,7 +34,7 @@ Live-verified on this box as root: with the env var, `claude
 --dangerously-skip-permissions` runs; without it, it refuses. No-op for codex.
 
 ### #3a — chat→agent input (HIGH, next)
-Path exists: `LitterChatView` send → `SessionStore.sendChat` →
+Path exists: `ConduitChatView` send → `SessionStore.sendChat` →
 `ConduitClient.sendChat` → broker `handleText` "chat" → `c.sess.Write()`
 (`server.go:583`) → PTY. The write errors are swallowed (`_, _ =`). Two
 suspects: (a) for claude the agent was dead (=#1), so re-test first; (b) the

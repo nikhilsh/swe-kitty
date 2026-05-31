@@ -3,7 +3,7 @@ import UIKit
 
 /// Light/dark colour pairs used by `ConduitTheme`. The neutrals are
 /// the system grays Apple ships in its HIG palette; `accentStrong` is
-/// tuned to the neon-cat brand.
+/// tuned to the Conduit brand.
 enum ConduitPalette {
     struct Pair {
         let light: String
@@ -49,8 +49,8 @@ enum ConduitPalette {
     static let textMuted       = Pair(light: "#9E9E9E", dark: "#555555")
     static let textBody        = Pair(light: "#2D2D2D", dark: "#E0E0E0")
     /// Muted-green tone used by handoff / system-emitted bubble rendering
-    /// (mirrors litter's `LitterPalette.textSystem`). Added in the
-    /// PLAN-LITTER-VISUAL-PARITY PR 1 foundation pass so non-LitterUI
+    /// (mirrors litter's `ConduitPalette.textSystem`). Added in the
+    /// PLAN-LITTER-VISUAL-PARITY PR 1 foundation pass so non-ConduitUI
     /// surfaces stop falling back to ad-hoc opacity tricks.
     static let textSystem      = Pair(light: "#3A4A3F", dark: "#C6D0CA")
     static let textOnAccent    = Pair(light: "#FFFFFF", dark: "#0D0D0D")
@@ -59,7 +59,7 @@ enum ConduitPalette {
     static let border          = Pair(light: "#D1D1D6", dark: "#333333")
     static let separator       = Pair(light: "#E0E0E0", dark: "#1E1E1E")
     /// Background tone for inline code / code blocks (mirrors litter's
-    /// `LitterPalette.codeBackground`). Until PR 1 we used
+    /// `ConduitPalette.codeBackground`). Until PR 1 we used
     /// `surface.opacity(0.72)` ad-hoc, which read differently per scheme.
     static let codeBackground  = Pair(light: "#F0F0F5", dark: "#111111")
     static let danger          = Pair(light: "#D32F2F", dark: "#FF5555")

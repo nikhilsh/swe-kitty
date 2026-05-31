@@ -14,7 +14,7 @@ struct PaletteTokensTests {
 
     @Test func textSystemTokenExists() {
         // Used by handoff / system-emitted bubble rendering; before
-        // this PR non-LitterUI surfaces faked it with `textSecondary`
+        // this PR non-ConduitUI surfaces faked it with `textSecondary`
         // at lowered opacity.
         let pair = ConduitPalette.textSystem
         #expect(!pair.light.isEmpty)
@@ -29,15 +29,15 @@ struct PaletteTokensTests {
         #expect(!pair.dark.isEmpty)
     }
 
-    @Test func textSystemMatchesLitterReferenceHex() {
-        // Hex values copied verbatim from litter's `LitterPalette.swift`
+    @Test func textSystemMatchesConduitReferenceHex() {
+        // Hex values copied verbatim from litter's `ConduitPalette.swift`
         // (§B.1 of the audit). If we re-derive them here, this test
         // catches the drift.
         #expect(ConduitPalette.textSystem.light == "#3A4A3F")
         #expect(ConduitPalette.textSystem.dark == "#C6D0CA")
     }
 
-    @Test func codeBackgroundMatchesLitterReferenceHex() {
+    @Test func codeBackgroundMatchesConduitReferenceHex() {
         #expect(ConduitPalette.codeBackground.light == "#F0F0F5")
         #expect(ConduitPalette.codeBackground.dark == "#111111")
     }

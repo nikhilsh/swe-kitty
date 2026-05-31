@@ -16,7 +16,7 @@ Date: 2026-05-18
 
 ## Purpose
 
-This document turns the KittyLitter reference into a concrete product backlog for `conduit`.
+This document turns the KittyConduit reference into a concrete product backlog for `conduit`.
 
 It is not a vague "make the app nicer" note. It is the next implementation plan for making the current shell behave like a real mobile client for our broker.
 
@@ -33,7 +33,7 @@ Current mobile chat surfaces are extremely thin:
 
 This is enough for smoke testing transport, but not enough for serious dogfooding.
 
-## What KittyLitter Has That We Need
+## What KittyConduit Has That We Need
 
 From upstream `litter`:
 
@@ -70,7 +70,7 @@ From upstream `litter`:
 
 Interpretation:
 
-- KittyLitter is not just a styled chat bubble app.
+- KittyConduit is not just a styled chat bubble app.
 - It has a richer conversation model, richer tool/rendering model, richer saved-server/session model, and richer shared core.
 
 ## Highest-Value Gaps
@@ -89,7 +89,7 @@ What we need:
 
 Why:
 
-- KittyLitter treats the conversation as structured content, not just plain strings
+- KittyConduit treats the conversation as structured content, not just plain strings
 - this is the single most visible gap in daily use
 
 ## 2. Tool calls need first-class UI
@@ -141,7 +141,7 @@ What we need:
 
 Why:
 
-- KittyLitter has explicit image-related conversation/tool surfaces
+- KittyConduit has explicit image-related conversation/tool surfaces
 - our current app barely treats images as a first-class message element
 
 ## 5. Composer needs to become a real mobile composer
@@ -335,17 +335,17 @@ The next meaningful mobile milestone should be:
 3. add image rendering + attachments
 4. strengthen sessions/servers
 
-That is the shortest route from "shell" to "credible KittyLitter-style mobile client."
+That is the shortest route from "shell" to "credible KittyConduit-style mobile client."
 
 ---
 
 ## v1.x — Parity follow-ups (2026-05-18 update)
 
-The first backlog pass framed "what KittyLitter has that we lack" at the chat-bubble level. After landing the reconnect / Glass-theme / ANSI-terminal / one-line-install milestones, here are the next parity-driven items, grouped by which upstream they come from. Order roughly reflects user-visible impact per unit work.
+The first backlog pass framed "what KittyConduit has that we lack" at the chat-bubble level. After landing the reconnect / Glass-theme / ANSI-terminal / one-line-install milestones, here are the next parity-driven items, grouped by which upstream they come from. Order roughly reflects user-visible impact per unit work.
 
 ### A. Parity with **litter** (`github.com/dnakov/litter`)
 
-Surfaces we don't have yet, drawn from `apps/ios/Sources/Litter/Views/`:
+Surfaces we don't have yet, drawn from `apps/ios/Sources/Conduit/Views/`:
 
 1. **`ConversationTimelineView`-style streaming** — litter has a `StreamingRendererCoordinator` (in `Models/`) that interleaves tool-call cards with assistant text as the agent streams. Our flat `ChatTab` renders only finished events. Building this needs typed `ConversationItem`s in the Rust core (`hydration.rs` / `conversation.rs` in litter) so iOS and Android share one timeline model.
 
@@ -353,13 +353,13 @@ Surfaces we don't have yet, drawn from `apps/ios/Sources/Litter/Views/`:
 
 3. **`QuickReplySheet`** — modal sheet of contextual chips parsed from the visible agent output. Existing memory `project-quick-replies-client-side` already pins the design: client-side detector, no MCP bridge, per-agent regex strategies. Lives in `core/` so iOS + Android share.
 
-4. **`DiscoveryView` + saved servers** — multi-broker pairing. Today we pair one endpoint and forget. Add `SavedServerStore` (Keychain / EncryptedSharedPreferences), an mDNS browser screen listing every `_conduit._tcp.local` advertiser, and a server-switcher in the sidebar / drawer. Litter's `DiscoveredServer.swift` + `SavedServer.swift` are the template.
+4. **`DiscoveryView` + saved servers** — multi-broker pairing. Today we pair one endpoint and forget. Add `SavedServerStore` (Keychain / EncryptedSharedPreferences), an mDNS browser screen listing every `_conduit._tcp.local` advertiser, and a server-switcher in the sidebar / drawer. Conduit's `DiscoveredServer.swift` + `SavedServer.swift` are the template.
 
 5. **`HomeBottomBar` + `HomeComposerView`** — the in-session bottom dock from litter's `HomeDashboardView`. Glass-capsule action row that's persistent across the terminal/chat/browser tabs (new session, voice, attach, pin a context). Currently we have no global persistent affordance inside a session. Closes B.5 in `project-ios-visual-rewrite`.
 
-6. **`ChatWallpaperBackground` / `WallpaperSelectionView`** — per-conversation visual identity. Litter ships static + video wallpapers (`VideoWallpaperPlayerView`). Nice-to-have, not load-bearing, but the AppearanceSettings story plugs into our existing `Theme/` cleanly.
+6. **`ChatWallpaperBackground` / `WallpaperSelectionView`** — per-conversation visual identity. Conduit ships static + video wallpapers (`VideoWallpaperPlayerView`). Nice-to-have, not load-bearing, but the AppearanceSettings story plugs into our existing `Theme/` cleanly.
 
-7. **`AnimatedSplashView`** — closes B.6 in `project-ios-visual-rewrite`. Litter has a tuned splash that hides the cold-start latency of the Rust core boot.
+7. **`AnimatedSplashView`** — closes B.6 in `project-ios-visual-rewrite`. Conduit has a tuned splash that hides the cold-start latency of the Rust core boot.
 
 8. **`InlineHandoffView`** — when an agent swap (`switch_agent`) is mid-flight, show the typed handoff progress inline in the chat instead of just flipping the badge. Mirrors our existing `docs/SESSION-LIFECYCLE.md §5` flow but adds a UX.
 

@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.sp
 import sh.nikhil.conduit.AppearanceStore
 
 // Shared Neon "Appearance" controls — Android mirror of the iOS
-// LitterUI.NeonPalettePickerContent / NeonThemePreviewChip. Matches the
+// ConduitUI.NeonPalettePickerContent / NeonThemePreviewChip. Matches the
 // design's NeonSettingsScreen Appearance card: a row of gradient swatches
 // (each palette's accent → accent2) labelled with the active palette,
 // then a glow row (caller-supplied), with a terminal-styled

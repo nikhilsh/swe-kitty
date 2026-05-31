@@ -2,7 +2,7 @@ import Testing
 import Foundation
 @testable import Conduit
 
-/// Litter parity audit item A.3 (iOS half) — defends the merge policy
+/// Conduit parity audit item A.3 (iOS half) — defends the merge policy
 /// that feeds `ServerPillRow`. The pure-data layer is
 /// `DiscoveryMergePolicy.merge`, which combines saved + discovered
 /// into the ordered pill list. The merge rule mirrors the Rust

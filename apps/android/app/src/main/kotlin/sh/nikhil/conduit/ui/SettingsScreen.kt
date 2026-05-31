@@ -83,7 +83,7 @@ fun SettingsScreen(
     onDismiss: () -> Unit,
     onOpenLicenses: () -> Unit = {},
     // When true, render inline as a tablet section pane (no bottom-sheet
-    // shell) — mirrors iOS LitterUI.SettingsView(embedded:).
+    // shell) — mirrors iOS ConduitUI.SettingsView(embedded:).
     embedded: Boolean = false,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -127,7 +127,7 @@ fun SettingsScreen(
                 color = neon.text,
             )
 
-            // Theme — matches iOS LitterSettings section name (the
+            // Theme — matches iOS ConduitSettings section name (the
             // wrapper used to be "Appearance" with a single Theme row,
             // which read as a redundant label). Support / Sponsor on
             // GitHub moves to the very bottom so the settings sheet
@@ -167,7 +167,7 @@ fun SettingsScreen(
                 }
             }
 
-            // Font Size — Android mirror of iOS LitterSettingsView's
+            // Font Size — Android mirror of iOS ConduitSettingsView's
             // Font Size slider (PLAN-LITTER-VISUAL-PARITY PR 2). Range
             // and default live in [AppearanceStore]; the setter
             // clamps so out-of-range writes can't blow out layout.
@@ -476,7 +476,7 @@ fun SettingsScreen(
 
 /**
  * A grouped settings section. Mirrors iOS
- * `LitterSettingsView.sectionCard` — a small ALL-CAPS monospaced muted
+ * `ConduitSettingsView.sectionCard` — a small ALL-CAPS monospaced muted
  * label (11sp bold, `onSurfaceVariant`) above a flatter glass card
  * (~0.32α surfaceVariant, 14dp radius, no elevation). The earlier
  * primary-tinted bold header + opaque tonal card looked dated next

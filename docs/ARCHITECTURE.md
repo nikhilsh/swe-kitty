@@ -71,7 +71,7 @@ conduit/
 │   ├── src/ssh/                 SSH-bootstrap pairing (russh)
 │   └── conduit-core.udl
 ├── apps/
-│   ├── ios/                     SwiftUI — Sources/LitterUI/ is the default tree
+│   ├── ios/                     SwiftUI — Sources/ConduitUI/ is the default tree
 │   └── android/                 Jetpack Compose (Material 3)
 ├── agents/                      production adapter TOMLs
 ├── scripts/                     install / bootstrap / ghostty fetch

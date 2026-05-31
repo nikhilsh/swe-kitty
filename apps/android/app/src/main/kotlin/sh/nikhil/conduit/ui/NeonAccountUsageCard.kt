@@ -34,7 +34,7 @@ import kotlin.math.roundToInt
 // usage is account-global and always shown, with a refresh button. Data rides
 // the status frame (broker fetches GET /api/oauth/usage on connect + refresh).
 // utilization is a percentage 0–100; resets_at is an ISO-8601 instant rendered
-// as a relative countdown. Mirrors apps/ios .../LitterAccountUsageCard.swift.
+// as a relative countdown. Mirrors apps/ios .../ConduitAccountUsageCard.swift.
 @Composable
 fun NeonAccountUsageCard(
     fivePct: Double?,

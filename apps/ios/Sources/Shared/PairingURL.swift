@@ -3,8 +3,8 @@ import Foundation
 /// `conduit://host[:port]?token=<bearer>` → (endpoint URL, token).
 ///
 /// Lived in the now-deleted `Sources/Views/SettingsSheet.swift` before
-/// PR #119's cutover. Hoisted here because LitterAddServerSheet +
-/// LitterDiscoveryView reference it from `Sources/LitterUI/Views/`.
+/// PR #119's cutover. Hoisted here because ConduitAddServerSheet +
+/// ConduitDiscoveryView reference it from `Sources/ConduitUI/Views/`.
 enum PairingURL {
     struct Parsed { let endpoint: String; let token: String }
 

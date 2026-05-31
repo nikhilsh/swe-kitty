@@ -28,7 +28,7 @@ import sh.nikhil.conduit.LocalAppearanceStore
 import sh.nikhil.conduit.SessionStore
 import uniffi.conduit_core.ProjectSession
 
-// Android mirror of iOS LitterUI.TabletRightPane — the design's tablet
+// Android mirror of iOS ConduitUI.TabletRightPane — the design's tablet
 // Sessions right pane: a Terminal / Browser / Info tab row over the
 // matching surface, beside the chat-only ProjectScreen(chatOnly=true).
 // Reuses the same surfaces the phone uses as pager pages (TerminalPage /

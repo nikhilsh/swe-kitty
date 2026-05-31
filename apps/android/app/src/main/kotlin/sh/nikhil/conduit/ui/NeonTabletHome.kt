@@ -35,7 +35,7 @@ import sh.nikhil.conduit.SessionStore
 import sh.nikhil.conduit.firstUserMessageOf
 import sh.nikhil.conduit.latestActivityPreviewOf
 
-// Android mirror of iOS LitterUI.TabletHome — the design bundle's tablet
+// Android mirror of iOS ConduitUI.TabletHome — the design bundle's tablet
 // Home dashboard (tablet-sections.jsx → TabletHome): a 2-col grid of
 // session cards + a 2-col Boxes grid, under a header with a connection
 // chip. Reuses the home data + naming/preview helpers. Outcome chips are

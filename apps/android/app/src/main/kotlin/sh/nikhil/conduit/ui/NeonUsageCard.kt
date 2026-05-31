@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 
-// Android mirror of iOS LitterUI.UsageCard — the design bundle's
+// Android mirror of iOS ConduitUI.UsageCard — the design bundle's
 // Session-Info usage card (usage.jsx → UsageCardA / UsageCardB + the
 // Visual/Terminal segmented switch). Data is the live broker-accumulated
 // status (PR #274): tokens in/out/cache, cost (claude), context-window

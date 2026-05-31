@@ -36,7 +36,7 @@ import uniffi.conduit_core.SessionStatus
 enum class ProjectTab(val label: String) { Terminal("Terminal"), Chat("Chat"), Browser("Browser") }
 
 /**
- * Litter Stage 2 header (Android mirror of `apps/ios/Sources/Views/ProjectView.swift`).
+ * Conduit Stage 2 header (Android mirror of `apps/ios/Sources/Views/ProjectView.swift`).
  *
  * Three explicit rows wrapped in a single `glassRoundedRect` surface:
  *  - Row 1 [ControlsRow]: drawer toggle (left) · centered compound agent

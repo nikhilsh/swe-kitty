@@ -9,7 +9,7 @@ import uniffi.conduit_core.ConversationItem
  * Pins the home-card latest-activity preview (iOS #238 parity). Pure
  * JUnit — [SessionNaming.activityPreview] is Compose- and core-type-free,
  * and [latestActivityPreviewOf] just picks the last non-user item. Mirror
- * of iOS `LitterHomeViewModelTests` activity-preview coverage.
+ * of iOS `ConduitHomeViewModelTests` activity-preview coverage.
  */
 class ActivityPreviewTest {
 

@@ -56,7 +56,7 @@ import sh.nikhil.conduit.SessionLifecycle
 import sh.nikhil.conduit.SessionNaming
 
 /**
- * Litter-style home screen — shown when no session is selected, in
+ * Conduit-style home screen — shown when no session is selected, in
  * place of `EmptyDetail`. Top row (settings · title · list) +
  * ServerTabsStrip + sessions list + BottomActionBar (mic / + / search).
  * Mirrors `apps/ios/Sources/Views/HomeView.swift`.
@@ -86,7 +86,7 @@ fun HomeScreen(
     val selectedId by store.selectedId.collectAsState()
 
     // Pending exit target for the session-row long-press confirmation.
-    // Mirror of iOS PR #128's `pendingDelete` on LitterHomeView — we
+    // Mirror of iOS PR #128's `pendingDelete` on ConduitHomeView — we
     // keep the title alongside the id so the prompt can name the
     // session being ended without re-resolving displayNames.
     var pendingDelete by remember { mutableStateOf<SessionDeleteTarget?>(null) }
@@ -94,7 +94,7 @@ fun HomeScreen(
     val neon = LocalNeonTheme.current
 
     Column(modifier = Modifier.fillMaxSize().statusBarsPadding().padding(top = 8.dp)) {
-        // Top row. Litter parity put settings behind a hidden long-press
+        // Top row. Conduit parity put settings behind a hidden long-press
         // on the title — undiscoverable in practice (user feedback
         // 2026-05-23). Restore a visible gear in the leading slot; the
         // long-press stays as a secondary path. Trailing keeps the
@@ -208,7 +208,7 @@ fun HomeScreen(
         // Sessions list
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             if (sessions.isEmpty()) {
-                // iOS LitterHomeView empty-state parity: hero glyph
+                // iOS ConduitHomeView empty-state parity: hero glyph
                 // (sparkles when we can issue commands, cloud.slash when
                 // waiting), headline title, footnote body. Sits a touch
                 // above optical center so it doesn't feel marooned in
@@ -250,7 +250,7 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 14.dp),
                     // Breathing room between cards so the list doesn't read
                     // as one packed slab.
-                    verticalArrangement = Arrangement.spacedBy(LitterHomeRowMetrics.rowGap.dp),
+                    verticalArrangement = Arrangement.spacedBy(ConduitHomeRowMetrics.rowGap.dp),
                 ) {
                     sessions.forEach { session ->
                         val isSelected = selectedId == session.id
@@ -289,7 +289,7 @@ fun HomeScreen(
                         // agent-tinted hairline (brighter when selected),
                         // and the theme glow. Replaces the M3
                         // surfaceVariant slab.
-                        val rowShape = RoundedCornerShape(LitterHomeRowMetrics.cardCornerRadius.dp)
+                        val rowShape = RoundedCornerShape(ConduitHomeRowMetrics.cardCornerRadius.dp)
                         val agentTint = neonAgentColor(session.assistant, neon)
                         Box(
                             modifier = Modifier
@@ -322,7 +322,7 @@ fun HomeScreen(
                                 // title line, inside the card.
                                 Box(
                                     modifier = Modifier
-                                        .size(LitterHomeRowMetrics.indicatorSize.dp)
+                                        .size(ConduitHomeRowMetrics.indicatorSize.dp)
                                         .background(
                                             color = if (isRunning) neon.green else neon.textFaint,
                                             shape = CircleShape,
@@ -372,7 +372,7 @@ fun HomeScreen(
             }
         }
 
-        // Bottom action bar — audit §A.1.5 / PR 3. Litter uses 44dp
+        // Bottom action bar — audit §A.1.5 / PR 3. Conduit uses 44dp
         // for ALL three controls (not 52/68); the prior 68dp filled
         // accent + plus over-built the FAB relative to the mic/search
         // peers. We keep the brand fill on the plus so it still reads
@@ -442,11 +442,11 @@ private data class SessionDeleteTarget(val id: String, val title: String)
 /**
  * Row metrics for the litter-faithful home list, mirror of iOS
  * `HomeRowMetrics`. Extracted as named constants so
- * `LitterHomeRowMetricsTest` can pin them — silently regrowing any of
+ * `ConduitHomeRowMetricsTest` can pin them — silently regrowing any of
  * these would re-introduce the audit drift PR 3 is trying to stop
  * (audit §A.1.1 / §A.1.2 / §A.1.7).
  */
-internal object LitterHomeRowMetrics {
+internal object ConduitHomeRowMetrics {
     const val titlePointSize: Float = 13f
     const val subtitlePointSize: Float = 11f
     const val leadingPadding: Float = 1f

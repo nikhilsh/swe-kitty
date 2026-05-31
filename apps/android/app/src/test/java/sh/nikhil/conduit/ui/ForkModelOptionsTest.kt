@@ -10,7 +10,7 @@ import org.junit.Test
  * fork chooser's model dropdown is built straight off these pure lists,
  * and the broker passes the chosen value to the agent's --model flag — so
  * the per-assistant filtering and the inherit→no-override mapping are a
- * contract worth pinning. Mirror of iOS `LitterForkOptionsTests`.
+ * contract worth pinning. Mirror of iOS `ConduitForkOptionsTests`.
  */
 class ForkModelOptionsTest {
 

@@ -558,7 +558,7 @@ internal const val forkModelInherit = ""
  * are the CLI's accepted aliases. The leading inherit entry maps to "no
  * override". Aliases (opus/sonnet/haiku, gpt-5-codex) avoid pinning a
  * dated full model name in the client. Mirror of iOS
- * `LitterUI.ForkOptions.models(forAssistant:)`.
+ * `ConduitUI.ForkOptions.models(forAssistant:)`.
  */
 internal fun forkModelOptions(assistant: String): List<String> = when (assistant) {
     "claude" -> listOf(forkModelInherit, "opus", "sonnet", "haiku")

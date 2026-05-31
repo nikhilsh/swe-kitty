@@ -40,7 +40,7 @@ struct TurnLiveActivityModelTests {
 
     @Test func commandItemAlsoStartsActivity() {
         // Commands (terminal-style shell calls) are first-class triggers
-        // alongside tools — Litter treats them the same.
+        // alongside tools — Conduit treats them the same.
         var model = TurnActivityModel()
         let item = TurnActivityItem(
             id: "i1",

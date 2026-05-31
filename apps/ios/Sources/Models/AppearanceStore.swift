@@ -110,12 +110,12 @@ final class AppearanceStore {
         /// terminal path. See docs/PLAN-TERMINAL-REWRITE.md. Defaults
         /// off; xterm.js stays the production renderer until Stage 2.
         static let experimentalNativeTerminal = "conduit.experimental.nativeTerminal"
-        /// Trash-rebuild feature flag for the parallel `LitterUI/` view
-        /// tree. When on, `ConduitApp` renders `LitterUI.RootView`
+        /// Trash-rebuild feature flag for the parallel `ConduitUI/` view
+        /// tree. When on, `ConduitApp` renders `ConduitUI.RootView`
         /// instead of the current `RootView`. Off by default for this
         /// PR — follow-up PRs flip the default and delete the old
         /// views. See `docs/PLAN-LITTER-UI.md`.
-        static let experimentalLitterUI = "conduit.experimental.litterUI"
+        static let experimentalConduitUI = "conduit.experimental.litterUI"
         /// Body point size for the typography ramp
         /// (`ConduitTypography`). User-tunable within
         /// [bodyPointSizeRange]; everything in the ramp scales off this.
@@ -148,7 +148,7 @@ final class AppearanceStore {
     /// readable; upper bound prevents headings from blowing out the
     /// composer / list rows.
     static let bodyPointSizeRange: ClosedRange<CGFloat> = 12...18
-    /// Default chosen to match litter's `LitterFont.conversationBodyPointSize`
+    /// Default chosen to match litter's `ConduitFont.conversationBodyPointSize`
     /// starting value at the centre of the slider's range.
     static let defaultBodyPointSize: CGFloat = 14
 
@@ -177,12 +177,12 @@ final class AppearanceStore {
     }
 
     /// Trash-rebuild flag — when true, the app boots into the parallel
-    /// `LitterUI` view tree rather than the legacy `RootView`. Default
-    /// `false`; users opt in via Settings → Experimental → "Litter UI
-    /// (preview)". See `apps/ios/Sources/LitterUI/` and
+    /// `ConduitUI` view tree rather than the legacy `RootView`. Default
+    /// `false`; users opt in via Settings → Experimental → "Conduit UI
+    /// (preview)". See `apps/ios/Sources/ConduitUI/` and
     /// `docs/PLAN-LITTER-UI.md`.
-    var experimentalLitterUI: Bool {
-        didSet { defaults.set(experimentalLitterUI, forKey: Keys.experimentalLitterUI) }
+    var experimentalConduitUI: Bool {
+        didSet { defaults.set(experimentalConduitUI, forKey: Keys.experimentalConduitUI) }
     }
 
     /// Font size libghostty renders the native terminal at. Setter
@@ -252,15 +252,15 @@ final class AppearanceStore {
         self.experimentalNativeTerminal =
             defaults.object(forKey: Keys.experimentalNativeTerminal) as? Bool ?? false
         // Default flipped to `true` in the litter-ui-cutover (this PR):
-        // LitterUI is now the production tree. The flag is kept around
+        // ConduitUI is now the production tree. The flag is kept around
         // (rather than being deleted entirely) so an emergency revert
         // is one line — flip the default back to `false` and ship a
         // hotfix. The legacy view tree itself is gone, so flipping the
         // flag without restoring `Sources/Views/` would just render a
         // blank screen; we'll delete the flag in the next PR once the
         // cutover has soaked.
-        self.experimentalLitterUI =
-            defaults.object(forKey: Keys.experimentalLitterUI) as? Bool ?? true
+        self.experimentalConduitUI =
+            defaults.object(forKey: Keys.experimentalConduitUI) as? Bool ?? true
         let storedBody = defaults.object(forKey: Keys.bodyPointSize) as? Double
         self.bodyPointSize = CGFloat(storedBody ?? Double(Self.defaultBodyPointSize))
             .clamped(to: Self.bodyPointSizeRange)

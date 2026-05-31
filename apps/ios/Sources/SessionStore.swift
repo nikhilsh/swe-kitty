@@ -376,7 +376,7 @@ final class SessionStore {
     var streamingCoordinator: StreamingRendererCoordinator?
 
     /// Active per-user agent OAuth v2 coordinator. Set by the
-    /// `LitterAgentLoginSheet` when the user taps "Login with …";
+    /// `ConduitAgentLoginSheet` when the user taps "Login with …";
     /// inbound `agent_login_url` / `agent_login_complete` /
     /// `agent_login_failed` view_events are routed here so the
     /// coordinator's state machine can advance regardless of which

@@ -48,7 +48,7 @@ import sh.nikhil.conduit.auth.AgentLoginProvider
 import sh.nikhil.conduit.auth.SessionStoreAgentLoginTransport
 
 /**
- * Android port of `apps/ios/Sources/LitterUI/Views/LitterAgentLoginSheet.swift`.
+ * Android port of `apps/ios/Sources/ConduitUI/Views/ConduitAgentLoginSheet.swift`.
  *
  * v2 (litter-pattern, broker-driven) agent login. Two rows kick off the
  * `AgentLoginCoordinator` flow for OpenAI / Anthropic:

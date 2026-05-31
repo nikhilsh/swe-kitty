@@ -329,7 +329,7 @@ fun ChatPage(
      * When non-null, skip [SessionStore.conversationLog] / [SessionStore.chatLog]
      * and render exactly these items. Used by [SavedTranscriptScreen] to
      * replay a fetched archived transcript without polluting the live
-     * log maps. Mirror of iOS `LitterUI.ChatView(session, readOnlyItems:)`.
+     * log maps. Mirror of iOS `ConduitUI.ChatView(session, readOnlyItems:)`.
      */
     readOnlyItems: List<ConversationItem>? = null,
 ) {
@@ -345,7 +345,7 @@ fun ChatPage(
     // server items were concatenated ahead of locally-echoed user turns,
     // sank every user message to the bottom. `mergedConversation` dedupes
     // by role+content and sorts by `ts`, interleaving user and assistant
-    // turns correctly. Mirror of iOS `LitterUI.ChatViewModel.mergedEvents`.
+    // turns correctly. Mirror of iOS `ConduitUI.ChatViewModel.mergedEvents`.
     val events = remember(typedLog, fallbackLog, session.id, readOnlyItems) {
         // Read-only history opens hand us a pre-fetched transcript;
         // bypass the live log maps so the saved render doesn't see
@@ -619,7 +619,7 @@ fun ChatPage(
 
         // Read-only (exited/archived) sessions are a frozen transcript —
         // no live WS to send into — so the composer + quick-reply bar are
-        // suppressed entirely (mirrors iOS `LitterChatView` read-only mode).
+        // suppressed entirely (mirrors iOS `ConduitChatView` read-only mode).
         if (!readOnly) {
             // Agent-tinted hairline above the composer — a quiet "you're
             // talking to X" cue. Pairs with the composer's tinted shadow
@@ -714,7 +714,7 @@ private suspend fun scrollToTrueBottom(listState: androidx.compose.foundation.la
  * Resolve the single chronologically-ordered event stream the chat
  * surface renders, merging the typed [conversation] log with the
  * broker's raw [chatLog]. Mirror of iOS
- * `LitterUI.ChatViewModel.mergedEvents`.
+ * `ConduitUI.ChatViewModel.mergedEvents`.
  *
  * The typed `conversationLog` (built from the broker's structured
  * `view_event` stream) is preferred, but for sessions where the broker
@@ -1358,7 +1358,7 @@ private fun ConversationBubble(
      *  hides the role label and tightens top spacing to group messages. */
     isContinuation: Boolean = false,
 ) {
-    // Mirror of iOS `LitterChatMessageRow`: a monospaced uppercase role
+    // Mirror of iOS `ConduitChatMessageRow`: a monospaced uppercase role
     // label ("YOU" in the brand accent, "ASSISTANT" in secondary) above
     // the body. USER messages right-align (trailing) and carry a subtle
     // rounded surface; ASSISTANT messages flow full-width with no
@@ -1520,7 +1520,7 @@ private fun MarkdownBlock(text: String, role: ConversationRole) {
     // rendering cramped + structurally collapsed — a whole reply went
     // into one `Text`, so GFM tables came out as run-on `| a | b |`
     // text, headings jammed into the following line, and blocks had no
-    // vertical rhythm. We now split into typed [LitterMarkdownBlocks]
+    // vertical rhythm. We now split into typed [ConduitMarkdownBlocks]
     // and render each block as its own composable with real spacing:
     // headings weighted + spaced, lists with bullets/indent, tables
     // stacked as "header: value" rows, code monospaced.
@@ -1533,20 +1533,20 @@ private fun MarkdownBlock(text: String, role: ConversationRole) {
     // content + body size + font into a revision; the id is the
     // content hash so identical text shares one entry.
     val cache = LocalParsedMarkdownCache.current
-    val blocks = remember(text) { LitterMarkdownBlocks.parse(text) }
+    val blocks = remember(text) { ConduitMarkdownBlocks.parse(text) }
     SelectionContainer {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             blocks.forEach { block ->
                 when (block) {
-                    is LitterMarkdownBlocks.MdBlock.Heading ->
+                    is ConduitMarkdownBlocks.MdBlock.Heading ->
                         MarkdownHeading(block, bodyPointSize, resolvedFont, onColor)
-                    is LitterMarkdownBlocks.MdBlock.Paragraph ->
+                    is ConduitMarkdownBlocks.MdBlock.Paragraph ->
                         MarkdownProse(block.text, bodyPointSize, fontChoice, resolvedFont, onColor, cache)
-                    is LitterMarkdownBlocks.MdBlock.ListBlock ->
+                    is ConduitMarkdownBlocks.MdBlock.ListBlock ->
                         MarkdownList(block, bodyPointSize, resolvedFont, onColor)
-                    is LitterMarkdownBlocks.MdBlock.Quote ->
+                    is ConduitMarkdownBlocks.MdBlock.Quote ->
                         MarkdownQuote(block.text, bodyPointSize, resolvedFont)
-                    is LitterMarkdownBlocks.MdBlock.Table ->
+                    is ConduitMarkdownBlocks.MdBlock.Table ->
                         MarkdownTable(block, bodyPointSize, resolvedFont, onColor)
                 }
             }
@@ -1560,12 +1560,12 @@ private fun MarkdownBlock(text: String, role: ConversationRole) {
 /** A scaled, weighted heading line with clear breathing room. */
 @Composable
 private fun MarkdownHeading(
-    block: LitterMarkdownBlocks.MdBlock.Heading,
+    block: ConduitMarkdownBlocks.MdBlock.Heading,
     bodyPointSize: Float,
     font: FontFamily,
     onColor: Color,
 ) {
-    val mult = LitterMarkdownHeadingScaler.multiplier(block.level) ?: 1f
+    val mult = ConduitMarkdownHeadingScaler.multiplier(block.level) ?: 1f
     Text(
         text = block.text,
         modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
@@ -1600,7 +1600,7 @@ private fun MarkdownProse(
     }
     val annotated = remember(text, revision) {
         cache.getOrPut(id = text.hashCode().toString(), revision = revision) {
-            LitterMarkdownHeadingScaler.scaledAnnotated(text, basePointSize = bodyPointSize)
+            ConduitMarkdownHeadingScaler.scaledAnnotated(text, basePointSize = bodyPointSize)
         }
     }
     Text(
@@ -1619,7 +1619,7 @@ private fun MarkdownProse(
 /** Bullet / numbered list with markers + indent. */
 @Composable
 private fun MarkdownList(
-    block: LitterMarkdownBlocks.MdBlock.ListBlock,
+    block: ConduitMarkdownBlocks.MdBlock.ListBlock,
     bodyPointSize: Float,
     font: FontFamily,
     onColor: Color,
@@ -1695,7 +1695,7 @@ private fun MarkdownQuote(
  */
 @Composable
 private fun MarkdownTable(
-    block: LitterMarkdownBlocks.MdBlock.Table,
+    block: ConduitMarkdownBlocks.MdBlock.Table,
     bodyPointSize: Float,
     font: FontFamily,
     onColor: Color,
@@ -2412,7 +2412,7 @@ private fun parseDiffFiles(content: String): List<DiffFileSection> {
 }
 
 /**
- * Litter-style composer (Stage 2):
+ * Conduit-style composer (Stage 2):
  *  - Single rounded-rect with leading `+`, message field, trailing mic/send
  *  - Send button only appears when draft is non-empty (mic otherwise)
  *  - Agent selector moved to the chat header dropdown, not per-row

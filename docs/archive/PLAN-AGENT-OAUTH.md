@@ -146,7 +146,7 @@ Broker → client (typed `view_event`):
   (broker per-session HOME isolation) so refresh races no longer
   corrupt the host operator's credentials.
 - **Stage 1 — iOS end-to-end (PARTIALLY SHIPPED)**:
-  - **Inbound side wired**: `LitterAgentLoginSheet` consumes
+  - **Inbound side wired**: `ConduitAgentLoginSheet` consumes
     `agent_login_url` / `agent_login_complete` / `agent_login_failed`
     view_events via `SessionStore.dispatchAgentLogin*`.
   - **Outbound side NOT wired**: `SessionStore.startAgentLogin(...)` /
@@ -245,13 +245,13 @@ Mirror what `litter` does: in-app OAuth → token shipped to broker over
 the existing authenticated WS → broker materializes a per-session
 `auth.json` / `.credentials.json` and points the agent's `$HOME` at it.
 
-## A. Litter's approach (verbatim code paths)
+## A. Conduit's approach (verbatim code paths)
 
-Litter ships in-app **ChatGPT OAuth** today (Claude isn't wired yet —
+Conduit ships in-app **ChatGPT OAuth** today (Claude isn't wired yet —
 see commit history, no `ClaudeOAuth*` files exist). The wire is
 PKCE → loopback HTTP server on the *phone* → token exchange in the app.
 
-### A.1 iOS — `apps/ios/Sources/Litter/Models/ChatGPTOAuth.swift`
+### A.1 iOS — `apps/ios/Sources/Conduit/Models/ChatGPTOAuth.swift`
 
 PKCE generation:
 
@@ -301,7 +301,7 @@ let body = [
 Storage: iOS Keychain, accessibility
 `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`.
 
-UI surface (`apps/ios/Sources/Litter/Views/AccountView.swift`):
+UI surface (`apps/ios/Sources/Conduit/Views/AccountView.swift`):
 
 ```swift
 Button {
@@ -333,7 +333,7 @@ upstream and passed in as an intent extra.
 
 ### A.3 Wire to the sidecar — `shared/rust-bridge/codex-mobile-client/src/mobile_client/mod.rs`
 
-Litter does **not** ship the raw token over the wire. It runs the
+Conduit does **not** ship the raw token over the wire. It runs the
 codex CLI on the **server side** (the sidecar) and uses an SSH
 port-forward trick: the codex CLI's `login` subcommand on the server
 opens `auth.openai.com/...` and listens on `127.0.0.1:1455` on the
@@ -920,7 +920,7 @@ Each stage is a single demoable PR. Roughly modeled on
   (where `set_agent_credentials` slots in)
 - `docs/SESSION-LIFECYCLE.md` — per-session worktree pattern that
   agent-home mirrors
-- `dnakov/litter` `apps/ios/Sources/Litter/Models/ChatGPTOAuth.swift`
+- `dnakov/litter` `apps/ios/Sources/Conduit/Models/ChatGPTOAuth.swift`
 - `openai/codex` `codex-rs/login/src/server.rs` and
   `codex-rs/login/src/auth/storage.rs`
 - `https://code.claude.com/docs/en/authentication`

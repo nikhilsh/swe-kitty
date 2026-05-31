@@ -70,9 +70,9 @@ Run as a single release session per repo policy (one release per device cycle).
 - [ ] **Rust-store read path.** Make both apps read from the shared Rust
   reducer (`core/src/store/`) and drop their private reducer maps. Currently
   write-only; guarded by existing parity tests. Size M.
-- [ ] **Litter parity components.**
+- [ ] **Conduit parity components.**
   - `BadgeStack` (per-server running-agent badges) on `ServerPill`.
-  - Litter-faithful `SessionsScreen` rebuild.
+  - Conduit-faithful `SessionsScreen` rebuild.
   - `VoiceDictation` phase colours + real audio levels.
   - `SessionInfo` charts (activity-by-day, model breakdown).
 - [ ] **Testing foundations.** Record iOS snapshot goldens on first Mac
