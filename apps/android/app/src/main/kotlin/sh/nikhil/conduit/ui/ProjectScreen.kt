@@ -33,7 +33,9 @@ import sh.nikhil.conduit.SessionStore
 import uniffi.conduit_core.ProjectSession
 import uniffi.conduit_core.SessionStatus
 
-enum class ProjectTab(val label: String) { Terminal("Terminal"), Chat("Chat"), Browser("Browser") }
+// Order matches the design TabBar and iOS (`[chat, terminal, browser]`):
+// Chat first, so a session lands on the conversation, not the raw terminal.
+enum class ProjectTab(val label: String) { Chat("Chat"), Terminal("Terminal"), Browser("Browser") }
 
 /**
  * Conduit Stage 2 header (Android mirror of `apps/ios/Sources/Views/ProjectView.swift`).
