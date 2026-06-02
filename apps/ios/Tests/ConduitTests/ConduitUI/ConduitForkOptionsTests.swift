@@ -19,7 +19,7 @@ struct ConduitForkOptionsTests {
 
     @Test func codexOffersInheritThenCodexAlias() {
         let models = ConduitUI.ForkOptions.models(forAssistant: "codex")
-        #expect(models == [ConduitUI.ForkOptions.inheritModel, "gpt-5-codex"])
+        #expect(models == [ConduitUI.ForkOptions.inheritModel, "gpt-5-codex", "gpt-5", "gpt-5.5"])
     }
 
     @Test func unknownAssistantOnlyOffersInherit() {
