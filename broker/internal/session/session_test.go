@@ -246,9 +246,16 @@ func TestManagerRecoverRestoresPersistedSnapshot(t *testing.T) {
 	if len(recovered) != 1 || recovered[0] != "session-recover" {
 		t.Fatalf("unexpected recovered ids: %v", recovered)
 	}
-	sess2, ok := m2.Get("session-recover")
-	if !ok {
-		t.Fatal("recovered session missing from manager")
+	// Lazy recovery: Recover() enumerates the session but must NOT spawn it
+	// yet (eager respawn of every session at boot was a process storm that
+	// wedged the host). It only becomes live when a client opens it.
+	if _, ok := m2.Get("session-recover"); ok {
+		t.Fatal("Recover must not eagerly spawn the session (lazy recovery)")
+	}
+	// On-demand open spawns + restores the persisted snapshot.
+	sess2, _, err := m2.GetOrCreate("session-recover", "claude")
+	if err != nil {
+		t.Fatalf("GetOrCreate (on-demand recover): %v", err)
 	}
 	if !bytes.Contains(sess2.Snapshot(), []byte("restore-me")) {
 		t.Fatalf("snapshot missing restored output: %q", string(sess2.Snapshot()))
@@ -295,9 +302,10 @@ func TestRecoverRestoresWorkspaceDir(t *testing.T) {
 	if len(recovered) != 1 || recovered[0] != "session-cwd" {
 		t.Fatalf("unexpected recovered ids: %v", recovered)
 	}
-	sess2, ok := m2.Get("session-cwd")
-	if !ok {
-		t.Fatal("recovered session missing from manager")
+	// Lazy recovery: opening the session on demand restores its workspace dir.
+	sess2, _, err := m2.GetOrCreate("session-cwd", "claude")
+	if err != nil {
+		t.Fatalf("GetOrCreate (on-demand recover): %v", err)
 	}
 	if sess2.WorkspaceDir() != projectDir {
 		t.Fatalf("workspaceDir after recover = %q, want %q", sess2.WorkspaceDir(), projectDir)

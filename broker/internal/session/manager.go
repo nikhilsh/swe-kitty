@@ -1243,11 +1243,20 @@ func (m *Manager) Recover() ([]string, error) {
 		if _, ok := m.sessions[id]; ok {
 			continue
 		}
-		s, err := m.recoverSessionLocked(id)
-		if err != nil {
-			continue
+		// LAZY recovery: enumerate recoverable sessions but do NOT spawn
+		// their agents here. Eagerly calling recoverSessionLocked for
+		// every persisted session used to start one PTY + agent process
+		// (plus a per-session watchdog/checkpoint timer) per session at
+		// boot; with dozens of accumulated sessions that was a process
+		// storm that pinned the host (~98% sys, load > 100) and made the
+		// whole box — including unrelated interactive shells — hang. The
+		// session is recovered + spawned on demand in
+		// GetOrCreateWithOptions the first time a client actually opens
+		// it; the home/session list is served from recent-projects.json
+		// on disk, so it is unaffected by not pre-warming here.
+		if m.sessionOnDisk(id) {
+			recovered = append(recovered, id)
 		}
-		recovered = append(recovered, s.ID)
 	}
 	slices.Sort(recovered)
 	return recovered, nil
