@@ -566,7 +566,7 @@ internal const val forkModelInherit = ""
  */
 internal fun forkModelOptions(assistant: String): List<String> = when (assistant) {
     "claude" -> listOf(forkModelInherit, "opus", "sonnet", "haiku")
-    "codex" -> listOf(forkModelInherit, "gpt-5-codex")
+    "codex" -> listOf(forkModelInherit, "gpt-5-codex", "gpt-5", "gpt-5.5")
     else -> listOf(forkModelInherit)
 }
 

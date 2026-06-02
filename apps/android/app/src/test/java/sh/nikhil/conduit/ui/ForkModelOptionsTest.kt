@@ -24,7 +24,7 @@ class ForkModelOptionsTest {
 
     @Test
     fun codexOffersInheritThenCodexAlias() {
-        assertEquals(listOf(forkModelInherit, "gpt-5-codex"), forkModelOptions("codex"))
+        assertEquals(listOf(forkModelInherit, "gpt-5-codex", "gpt-5", "gpt-5.5"), forkModelOptions("codex"))
     }
 
     @Test

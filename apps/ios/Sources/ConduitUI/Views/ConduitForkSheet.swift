@@ -156,7 +156,7 @@ extension ConduitUI {
             case "claude":
                 return [inheritModel, "opus", "sonnet", "haiku"]
             case "codex":
-                return [inheritModel, "gpt-5-codex"]
+                return [inheritModel, "gpt-5-codex", "gpt-5", "gpt-5.5"]
             default:
                 return [inheritModel]
             }
