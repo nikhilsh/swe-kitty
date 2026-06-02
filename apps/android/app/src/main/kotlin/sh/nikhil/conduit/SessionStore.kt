@@ -1223,6 +1223,7 @@ class SessionStore : ViewModel(), ConduitDelegate {
         assistant: String,
         branch: String? = null,
         startupCwd: String? = null,
+        model: String? = null,
         initialPrompt: String? = null,
     ) {
         val c = client ?: return
@@ -1237,7 +1238,8 @@ class SessionStore : ViewModel(), ConduitDelegate {
                 // the headless agent still started in the broker's default
                 // .conduit work dir.)
                 val startup = startupCwd?.trim()?.takeIf { it.isNotEmpty() }
-                val id = withContext(Dispatchers.IO) { c.createSession(assistant, branch, null, null, startup) }
+                val pickedModel = model?.trim()?.takeIf { it.isNotEmpty() }
+                val id = withContext(Dispatchers.IO) { c.createSession(assistant, branch, null, pickedModel, startup) }
                 startup?.let { rememberRecentDirectory(it) }
                 initialPrompt?.trim()?.takeIf { it.isNotEmpty() }?.let { prompt ->
                     runCatching { withContext(Dispatchers.IO) { c.sendChat(id, prompt) } }

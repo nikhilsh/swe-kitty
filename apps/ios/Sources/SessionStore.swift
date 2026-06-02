@@ -885,6 +885,7 @@ final class SessionStore {
         assistant: String,
         branch: String? = nil,
         startupCwd: String? = nil,
+        model: String? = nil,
         initialPrompt: String? = nil
     ) {
         guard let client else { return }
@@ -903,7 +904,9 @@ final class SessionStore {
                 // .conduit work dir.)
                 let trimmedCwd = startupCwd?.trimmingCharacters(in: .whitespacesAndNewlines)
                 let startup = (trimmedCwd?.isEmpty == false) ? trimmedCwd : nil
-                let id = try await client.createSession(assistant: assistant, branch: branch, reasoningEffort: nil, model: nil, cwd: startup)
+                let trimmedModel = model?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let pickedModel = (trimmedModel?.isEmpty == false) ? trimmedModel : nil
+                let id = try await client.createSession(assistant: assistant, branch: branch, reasoningEffort: nil, model: pickedModel, cwd: startup)
                 if let startup {
                     self.rememberRecentDirectory(startup)
                 }

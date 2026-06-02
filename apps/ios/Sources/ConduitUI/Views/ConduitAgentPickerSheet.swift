@@ -76,10 +76,11 @@ extension ConduitUI {
                     DirectoryPicker(
                         agentKind: kind,
                         initialPrompt: initialPrompt,
-                        onCreate: { cwd in
+                        onCreate: { cwd, model in
                             store.createSession(
                                 assistant: kind,
                                 startupCwd: cwd,
+                                model: model,
                                 initialPrompt: initialPrompt
                             )
                             dismiss()
@@ -204,9 +205,10 @@ extension ConduitUI {
     struct DirectoryPicker: View {
         let agentKind: String
         var initialPrompt: String?
-        /// Called with the absolute path to cd into, or nil to start with
-        /// no working directory (skip).
-        let onCreate: (String?) -> Void
+        /// Called with the absolute path to cd into (or nil to start with no
+        /// working directory) and the selected model alias (nil = inherit the
+        /// agent's default model).
+        let onCreate: (String?, String?) -> Void
 
         @Environment(SessionStore.self) private var store
         @Environment(\.neonTheme) private var neon
@@ -216,12 +218,24 @@ extension ConduitUI {
         @State private var loadError: String?
         /// Path currently being browsed. nil = the harness default (home).
         @State private var currentPath: String?
+        /// Selected model option. `ForkOptions.inheritModel` (empty string)
+        /// means "no override — use the agent's default model", which is the
+        /// default and keeps the start path identical to before.
+        @State private var model: String = ConduitUI.ForkOptions.inheritModel
+
+        private var modelOptions: [String] {
+            ConduitUI.ForkOptions.models(forAssistant: agentKind)
+        }
+
+        /// The model to hand to onCreate: the sentinel maps to nil.
+        private var selectedModel: String? { model.isEmpty ? nil : model }
 
         var body: some View {
             ZStack {
                 GlassAppBackground()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
+                        modelSection
                         if !store.recentDirectories.isEmpty {
                             recentSection
                         }
@@ -241,13 +255,40 @@ extension ConduitUI {
 
         // MARK: Sections
 
+        private var modelSection: some View {
+            VStack(alignment: .leading, spacing: 8) {
+                sectionLabel("Model")
+                Menu {
+                    Picker("Model", selection: $model) {
+                        ForEach(modelOptions, id: \.self) { option in
+                            Text(ConduitUI.ForkOptions.modelLabel(option)).tag(option)
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Text(ConduitUI.ForkOptions.modelLabel(model))
+                            .font(neon.sans(13).weight(.medium))
+                            .foregroundStyle(neon.text)
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(neon.textDim)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .neonCardSurface(neon, fill: neon.surface, cornerRadius: 13)
+                }
+                .tint(neon.accent)
+            }
+        }
+
         private var recentSection: some View {
             VStack(alignment: .leading, spacing: 8) {
                 sectionLabel("Recent")
                 VStack(spacing: 6) {
                     ForEach(store.recentDirectories, id: \.self) { path in
                         Button {
-                            onCreate(path)
+                            onCreate(path, selectedModel)
                         } label: {
                             ConduitUI.ListRow(
                                 icon: "clock.arrow.circlepath",
@@ -345,7 +386,7 @@ extension ConduitUI {
         private var bottomBar: some View {
             VStack(spacing: 10) {
                 Button {
-                    onCreate(listing?.path)
+                    onCreate(listing?.path, selectedModel)
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
@@ -366,7 +407,7 @@ extension ConduitUI {
                 .opacity(listing == nil ? 0.5 : 1.0)
 
                 Button {
-                    onCreate(nil)
+                    onCreate(nil, selectedModel)
                 } label: {
                     Text("Start without a folder")
                         .font(neon.sans(13).weight(.medium))
