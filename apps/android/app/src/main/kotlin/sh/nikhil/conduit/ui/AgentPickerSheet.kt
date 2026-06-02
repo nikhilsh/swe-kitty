@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CheckCircle
@@ -17,6 +18,8 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -81,8 +84,9 @@ fun AgentPickerSheet(
         } else {
             DirectoryStep(
                 store = store,
-                onCreate = { cwd ->
-                    store.createSession(assistant = agent, startupCwd = cwd)
+                assistant = agent,
+                onCreate = { cwd, model ->
+                    store.createSession(assistant = agent, startupCwd = cwd, model = model)
                     onDismiss()
                 },
             )
@@ -164,13 +168,19 @@ private fun AgentStep(
 @Composable
 private fun DirectoryStep(
     store: SessionStore,
-    onCreate: (String?) -> Unit,
+    assistant: String,
+    onCreate: (String?, String?) -> Unit,
 ) {
     val recent by store.recentDirectories.collectAsState()
     var currentPath by remember { mutableStateOf<String?>(null) }
     var listing by remember { mutableStateOf<RemoteDirectoryListing?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var loadError by remember { mutableStateOf<String?>(null) }
+    // Selected model alias. forkModelInherit ("") = no override / agent
+    // default, which is the default and keeps the start path unchanged.
+    var model by remember(assistant) { mutableStateOf(forkModelInherit) }
+    // The model handed to onCreate: the sentinel maps to null.
+    val selectedModel = model.trim().ifEmpty { null }
 
     LaunchedEffect(currentPath) {
         isLoading = true
@@ -207,11 +217,17 @@ private fun DirectoryStep(
                 color = neon.text,
             )
 
+            ModelPicker(
+                assistant = assistant,
+                model = model,
+                onSelect = { model = it },
+            )
+
             if (recent.isNotEmpty()) {
                 SectionLabel("Recent")
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     recent.forEach { path ->
-                        RecentRow(path = path, onTap = { onCreate(path) })
+                        RecentRow(path = path, onTap = { onCreate(path, selectedModel) })
                     }
                 }
             }
@@ -261,7 +277,7 @@ private fun DirectoryStep(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Button(
-                onClick = { onCreate(listing?.path) },
+                onClick = { onCreate(listing?.path, selectedModel) },
                 enabled = listing != null,
                 shape = RoundedCornerShape(14.dp),
                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(
@@ -274,12 +290,74 @@ private fun DirectoryStep(
                 Spacer(Modifier.width(8.dp))
                 Text("Use this folder", fontFamily = neon.sans, fontWeight = FontWeight.SemiBold)
             }
-            TextButton(onClick = { onCreate(null) }) {
+            TextButton(onClick = { onCreate(null, selectedModel) }) {
                 Text(
                     "Start without a folder",
                     fontFamily = neon.sans,
                     color = neon.textDim,
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Model picker for the new-session flow. Mirrors the fork chooser's model
+ * dropdown (`SessionInfoScreen.kt`) and the iOS new-session model menu.
+ * Reuses the shared per-assistant option/label helpers so the broker never
+ * gets an alias it would drop. The default selection is the inherit
+ * sentinel → no `--model` override.
+ */
+@Composable
+private fun ModelPicker(
+    assistant: String,
+    model: String,
+    onSelect: (String) -> Unit,
+) {
+    val neon = LocalNeonTheme.current
+    val options = forkModelOptions(assistant)
+    var expanded by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        SectionLabel("Model")
+        Box {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = neon.surface,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = true },
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp).fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        forkModelLabel(model),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontFamily = neon.sans,
+                        color = neon.text,
+                    )
+                    Icon(
+                        Icons.Filled.ArrowDropDown,
+                        contentDescription = "Choose model",
+                        tint = neon.textDim,
+                    )
+                }
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(forkModelLabel(option), fontFamily = neon.sans) },
+                        onClick = {
+                            onSelect(option)
+                            expanded = false
+                        },
+                    )
+                }
             }
         }
     }
