@@ -155,7 +155,7 @@ sealed class OAuthCredential {
  *   `org.json.JSONObject` is already on the classpath.
  */
 data class AuthDotJson(
-    val authMode: String?,        // "ChatGPT" for the OAuth path
+    val authMode: String?,        // "chatgpt" for the OAuth path (lowercase, matches codex on disk)
     val openaiApiKey: String?,    // null on the ChatGPT path
     val tokens: TokenData?,
     val lastRefreshIso: String?,  // ISO-8601 UTC string; null when missing
@@ -548,7 +548,11 @@ class OAuthClient(
                 .format(java.time.format.DateTimeFormatter.ISO_INSTANT)
 
             return AuthDotJson(
-                authMode = "ChatGPT",
+                // Lowercase "chatgpt" — matches what a real `codex login`
+                // writes to ~/.codex/auth.json. codex deserializes auth_mode
+                // case-sensitively; "ChatGPT" fails to match → it ignores the
+                // OAuth tokens and falls back to API-key mode.
+                authMode = "chatgpt",
                 openaiApiKey = null,
                 tokens = AuthDotJson.TokenData(
                     idToken = id,

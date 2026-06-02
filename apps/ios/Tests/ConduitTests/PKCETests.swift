@@ -187,7 +187,7 @@ struct PKCETests {
         }
         """.data(using: .utf8)!
         let cred = try OAuthClient.decodeOpenAITokenResponse(json)
-        #expect(cred.authMode == "ChatGPT")
+        #expect(cred.authMode == "chatgpt")
         #expect(cred.openaiAPIKey == nil)
         #expect(cred.agentIdentity == nil)
         let t = try #require(cred.tokens)
@@ -338,7 +338,7 @@ struct PKCETests {
     /// `account_id`. Stage 1's broker reads these keys verbatim.
     @Test func authDotJsonKeysMatchCodexSchema() throws {
         let cred = AuthDotJson(
-            authMode: "ChatGPT",
+            authMode: "chatgpt",
             openaiAPIKey: nil,
             tokens: .init(
                 idToken: "i",
@@ -353,7 +353,7 @@ struct PKCETests {
         encoder.outputFormatting = [.sortedKeys]
         let data = try encoder.encode(cred)
         let json = try #require(String(data: data, encoding: .utf8))
-        #expect(json.contains("\"auth_mode\":\"ChatGPT\""))
+        #expect(json.contains("\"auth_mode\":\"chatgpt\""))
         #expect(json.contains("\"OPENAI_API_KEY\":null"))
         #expect(json.contains("\"id_token\":\"i\""))
         #expect(json.contains("\"access_token\":\"a\""))
