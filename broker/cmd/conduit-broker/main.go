@@ -105,7 +105,9 @@ func runUp(args []string) int {
 		}
 	}
 	if recovered, err := mgr.Recover(); err == nil && len(recovered) > 0 {
-		log.Printf("recovered sessions: %v", recovered)
+		// Lazy recovery: these are enumerated but NOT spawned here; each
+		// agent starts on demand when a client first opens the session.
+		log.Printf("recoverable sessions (lazy, spawn on open): %d", len(recovered))
 	}
 	srv := ws.New(store, mgr)
 	// Wire the per-identity OAuth credential store (Stage 1 of
