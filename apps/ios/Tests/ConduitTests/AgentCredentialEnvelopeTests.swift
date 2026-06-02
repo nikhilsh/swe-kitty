@@ -38,7 +38,10 @@ struct AgentCredentialEnvelopeTests {
     @Test func openAIEnvelopeMatchesAuthDotJsonShape() throws {
         let credential: OAuthCredential = .openai(
             AuthDotJson(
-                authMode: "ChatGPT",
+                // Lowercase — matches a real `codex login` on disk; codex
+                // parses auth_mode case-sensitively (capital "ChatGPT" → it
+                // ignores the OAuth tokens and uses API-key mode).
+                authMode: "chatgpt",
                 openaiAPIKey: nil,
                 tokens: .init(
                     idToken: "ID_TOKEN_VALUE",
@@ -46,7 +49,7 @@ struct AgentCredentialEnvelopeTests {
                     refreshToken: "REFRESH_TOKEN_VALUE",
                     accountID: "acct-123"
                 ),
-                lastRefresh: nil,
+                lastRefresh: Date(timeIntervalSince1970: 1_700_000_000),
                 agentIdentity: nil
             )
         )
@@ -54,7 +57,13 @@ struct AgentCredentialEnvelopeTests {
         let parsed = try parseObject(json)
 
         // Wire keys = codex-rs/login/src/auth/storage.rs verbatim.
-        #expect(parsed["auth_mode"] as? String == "ChatGPT")
+        #expect(parsed["auth_mode"] as? String == "chatgpt")
+        // last_refresh must be an RFC3339 STRING, not a number. codex's
+        // `last_refresh: Option<DateTime<Utc>>` fails to deserialize a
+        // numeric date → it rejects the whole file and falls back to
+        // API-key mode. Swift's default JSONEncoder encodes Date as a
+        // number; `encodeCredentialAsJSONString` sets `.iso8601` to fix it.
+        #expect(parsed["last_refresh"] is String)
         // Critical: OPENAI_API_KEY must be present-and-explicit-null,
         // not missing, so codex parses the file as an OAuth credential
         // and doesn't fall back to the api-key path. The custom
@@ -136,13 +145,13 @@ struct AgentCredentialEnvelopeTests {
     }
 
     /// Same round-trip for OpenAI: decoded blob equals the original.
-    /// `last_refresh` is intentionally nil here — codex tolerates
-    /// missing `last_refresh` on first-write per its decode path. We
-    /// don't test the date-encoding format because UniFFI / the
-    /// broker don't currently care.
+    /// `last_refresh` is intentionally nil here so this round-trip stays
+    /// valid under the default `JSONDecoder` (the encoder now emits dates
+    /// as ISO strings; codex's date-format requirement is covered by
+    /// `openAIEnvelopeMatchesAuthDotJsonShape`).
     @Test func openAIBlobRoundTrips() throws {
         let original = AuthDotJson(
-            authMode: "ChatGPT",
+            authMode: "chatgpt",
             openaiAPIKey: nil,
             tokens: .init(
                 idToken: "ID",

@@ -183,7 +183,7 @@ class PKCETest {
             }
         """.trimIndent().toByteArray()
         val cred = OAuthClient.decodeOpenAITokenResponse(json)
-        assertEquals("ChatGPT", cred.authMode)
+        assertEquals("chatgpt", cred.authMode)
         assertNull(cred.openaiApiKey)
         assertNull(cred.agentIdentity)
         val t = cred.tokens!!
@@ -291,7 +291,7 @@ class PKCETest {
      */
     @Test fun authDotJsonKeysMatchCodexSchema() {
         val cred = AuthDotJson(
-            authMode = "ChatGPT",
+            authMode = "chatgpt",
             openaiApiKey = null,
             tokens = AuthDotJson.TokenData(
                 idToken = "i",
@@ -303,7 +303,7 @@ class PKCETest {
             agentIdentity = null,
         )
         val json = cred.toJsonString()
-        assertTrue(json, json.contains("\"auth_mode\":\"ChatGPT\""))
+        assertTrue(json, json.contains("\"auth_mode\":\"chatgpt\""))
         assertTrue(json, json.contains("\"OPENAI_API_KEY\":null"))
         assertTrue(json, json.contains("\"id_token\":\"i\""))
         assertTrue(json, json.contains("\"access_token\":\"a\""))

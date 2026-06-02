@@ -1389,6 +1389,12 @@ final class SessionStore {
     /// console-eyeball output is exactly what travels the wire.
     nonisolated static func encodeCredentialAsJSONString(_ credential: OAuthCredential) throws -> String {
         let encoder = JSONEncoder()
+        // codex's auth.json `last_refresh` is an RFC3339 string
+        // (DateTime<Utc>). Without this, Swift's default strategy encodes
+        // `AuthDotJson.lastRefresh` (a Date) as a NUMBER, which codex fails
+        // to deserialize → it rejects the OAuth file and falls back to
+        // API-key mode. (Harmless for the Anthropic blob — it has no Dates.)
+        encoder.dateEncodingStrategy = .iso8601
         let data: Data
         switch credential {
         case .openai(let blob):    data = try encoder.encode(blob)

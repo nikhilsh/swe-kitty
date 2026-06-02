@@ -177,7 +177,7 @@ enum OAuthCredential: Sendable, Equatable {
 /// `codex-rs/login/src/auth/storage.rs`'s `AuthDotJson`). The broker
 /// writes this JSON to `<agent-home>/.codex/auth.json` byte-for-byte.
 struct AuthDotJson: Codable, Sendable, Equatable {
-    var authMode: String?        // "ChatGPT" for the OAuth path
+    var authMode: String?        // "chatgpt" for the OAuth path (lowercase, matches codex on disk)
     var openaiAPIKey: String?    // null on the ChatGPT path
     var tokens: TokenData?
     var lastRefresh: Date?
@@ -600,7 +600,11 @@ final class OAuthClient: NSObject, ASWebAuthenticationPresentationContextProvidi
         let accountID = obj["account_id"] as? String
 
         return AuthDotJson(
-            authMode: "ChatGPT",
+            // Lowercase "chatgpt" — matches what a real `codex login` writes
+            // to ~/.codex/auth.json. codex deserializes auth_mode
+            // case-sensitively; "ChatGPT" fails to match → codex ignores the
+            // OAuth tokens and falls back to API-key mode.
+            authMode: "chatgpt",
             openaiAPIKey: nil,
             tokens: .init(
                 idToken: id,

@@ -16,7 +16,7 @@ class AgentCredentialEnvelopeTest {
 
     private fun openAiSample() = OAuthCredential.OpenAi(
         AuthDotJson(
-            authMode = "ChatGPT",
+            authMode = "chatgpt",
             openaiApiKey = null,
             tokens = AuthDotJson.TokenData(
                 idToken = "i",
