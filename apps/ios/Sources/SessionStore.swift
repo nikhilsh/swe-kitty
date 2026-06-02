@@ -956,7 +956,19 @@ final class SessionStore {
                     )
                 }
                 self.recordSavedSession(forSessionID: id)
-                self.selectedSessionID = id
+                // Defer selecting the new session by one runloop tick.
+                // Selecting it flips `ConduitRootView`'s `.id(session.id)`,
+                // which tears down the prior detail subtree AND mounts the
+                // new one — including `GhosttyTerminalView`, whose attach
+                // does synchronous CALayer work (`addSublayer:` +
+                // `CATransaction`). Doing the teardown+mount in the SAME
+                // CoreAnimation commit that's already flushing the
+                // just-dismissed new-session sheet frees a layer mid-flush →
+                // `EXC_BAD_ACCESS` in `CA::Transaction::commit` (the
+                // post-create crash; localized via the `[session] created`
+                // breadcrumb trail). One tick lets the prior commit finish
+                // so the terminal mounts in a clean transaction.
+                DispatchQueue.main.async { self.selectedSessionID = id }
                 // PLAN-AGENT-OAUTH stage 2: now that we have an active
                 // session WS (and therefore an authenticated route to
                 // the broker), replay any Keychain-stored OAuth

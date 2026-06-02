@@ -109,6 +109,11 @@ struct GhosttyTerminalView: UIViewRepresentable {
     let onResize: (Int, Int) -> Void
 
     func makeUIView(context: Context) -> GhosttyRenderView {
+        // Breadcrumb the terminal mount: this representable does synchronous
+        // CALayer work on attach, and mounting it during a detail-pane
+        // teardown was the post-session-create EXC_BAD_ACCESS. If that crash
+        // recurs, this crumb pins the terminal mount as the trigger.
+        Telemetry.breadcrumb("terminal", "GhosttyTerminalView makeUIView")
         let view = GhosttyRenderView(frame: .zero)
         view.onInput = onInput
         view.onResize = onResize
